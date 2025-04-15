@@ -1,0 +1,7 @@
+[run]
+branch = True
+
+[report]
+include_namespace_packages = true
+
+skip_empty = true

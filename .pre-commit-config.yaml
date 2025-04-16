@@ -41,7 +41,7 @@ repos:
     language: system
     pass_filenames: false
 
-- repo: https://github.com/commitizen-tools/commitizen
-  rev: v4.2.2
-  hooks:
-    - id: commitizen
+#- repo: https://github.com/commitizen-tools/commitizen
+#  rev: v4.2.2
+#  hooks:
+#    - id: commitizen

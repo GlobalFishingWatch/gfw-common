@@ -1,6 +1,9 @@
 <h1 align="center" style="border-bottom: none;"> gfw-common </h1>
 
 <p align="center">
+  <a href="https://github.com/GlobalFishingWatch/gfw-common-client/actions/workflows/ci.yaml" >
+    <img src="https://github.com/GlobalFishingWatch/gfw-common/actions/workflows/ci.yaml/badge.svg"/>
+  </a>
   <a href="https://codecov.io/gh/GlobalFishingWatch/gfw-common" >
     <img src="https://codecov.io/gh/GlobalFishingWatch/gfw-common/graph/badge.svg?token=bpFiU6qtrd"/>
   </a>
@@ -12,13 +15,14 @@
   </a>
 </p>
 
-Common place for GFW reusable components.
+Common place for GFW reusable Python components.
 
 [commitizen]: https://github.com/commitizen-tools/commitizen
 [Conventional Commits]: https://www.conventionalcommits.org/en/v1.0.0/
 [git-flow]: https://nvie.com/posts/a-successful-git-branching-model/
+[PEP8]: https://peps.python.org/pep-0008/
 [pip-tools]: https://pip-tools.readthedocs.io/en/stable/
-
+[How to Write a Git Commit Message]: https://cbea.ms/git-commit/
 
 [GIT-WORKFLOW.md]: GIT-WORKFLOW.md
 [Makefile]: Makefile
@@ -31,21 +35,22 @@ Common place for GFW reusable components.
 
 TDB.
 
-</div>
-
 | Module | Description |
 | --- | --- |
 | [-] | -.  |
 
 ## Installation
 
-TBD.
+Just type
+```shell
+pip install gfw-common
+```
 
 ## Usage
 
 TBD.
 
-## Development
+## How to Contribute
 
 ### Preparing the environment
 
@@ -70,27 +75,17 @@ Make sure you can run unit tests:
 make test
 ```
 
-> [!NOTE]
-> Alternatively,
-  you can perform all the development inside a docker container
-  without the need of installing dependencies in a virtual environment.
-  See other options in the [Makefile].
-
-### Workflow
+### Development Workflow
 
 Regarding the git workflow, we just use [git-flow].
-See [GIT-WORKFLOW.md] for details.
+See [GIT-WORKFLOW.md] for a summary.
 
-We use [Conventional Commits] as a standard for commit messages and we enforce it with [commitizen].
+Try to write good commit messages.
+See [How to Write a Git Commit Message] guide for details.
 
 The [pre-commit hooks] will take care of validating your code before a commit
-in terms of PEP8 standards, type-checking, miss-pellings, missing documentation, etc.
+in terms of [PEP8] standards, type-checking, miss-pellings, missing documentation, etc.
 If you want/need to do it manually, you have commands in the [Makefile].
-To see options, type:
-```shell
-make
-```
+To see options, type `make`.
 
-### How to release
-
-TDB.
+</div>

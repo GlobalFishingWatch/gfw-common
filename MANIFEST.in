@@ -1,9 +1,6 @@
-include CHANGELOG.md
-include CODE_OF_CONDUCT.md
-include CONTRIBUTING.md
+include GIT-WORKFLOW.md
 include LICENSE
 include README.md
-include SECURITY.md
 
 recursive-include tests *
 recursive-exclude * __pycache__

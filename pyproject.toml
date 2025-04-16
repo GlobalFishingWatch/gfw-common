@@ -61,6 +61,7 @@ lint = [
   "pydocstyle~=6.3",           # Python docstring style checker
   "ruff~=0.11",                # Linter and code analysis tool
   "codespell[toml]~=2.4",      # Spell checker for code
+  "flake8~=7.0",               # Simple PEP8 checker
 ]
 
 # Testing tools
@@ -72,7 +73,7 @@ test = [
 
 # Development workflow and tools
 dev = [
-  "commitizen~=4.4",        # Standardized commit messages and versioning
+  # "commitizen~=4.4",        # Standardized commit messages and versioning
   "pre-commit~=4.2",        # Framework for managing pre-commit hooks
   "pip-audit~=2.8",         # Audit for finding vulnerabilities in dependencies
 ]
@@ -87,9 +88,7 @@ build = [
 # Documentation tools
 docs = [
   "sphinx~=7.0",                    # Tool for generating documentation
-  "furo~=2024.8.6",                 # Sphinx theme for beautiful documentation
   "myst-parser~=3.0",               # Writing documentation with Markdown in Sphinx
-  "myst-nb~=1.2",                   # Writing documentation with upyter Notebook in Sphinx
   "sphinx-copybutton~=0.5",         # Add a "copy" button to code blocks in Sphinx
   "sphinx-autobuild~=2024.10.3",    # Build, watch and serve documentation with live reload in the browser
   "sphinx-inline-tabs~=2023.4.21",  # Add inline tabbed content to documentation
@@ -196,24 +195,8 @@ exclude_lines = [
   "if TYPE_CHECKING:",
 ]
 
-[tool.commitizen]
-name = "cz_conventional_commits"
-version = "0.1.0"
-version_files = [
-    "pyproject.toml:version",
-    "src/gfw/common/version.py",
-    "CITATION.cff:version",
-]
-version_provider = "commitizen"
-version_scheme = "semver"
-major_version_zero = false
-tag_format = "v$version"
-update_changelog_on_bump = true
-changelog_file = "CHANGELOG.md"
-bump_message = "chore(release): bump to v$new_version"
-
 [tool.codespell]
-skip = '.git,env*,venv*,build*,tmp*'
+skip = '.git,env*,venv*,.venv*, build*,tmp*'
 
 
 # Build system metadata.

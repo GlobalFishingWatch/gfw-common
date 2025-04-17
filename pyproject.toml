@@ -50,7 +50,9 @@ classifiers = [
   "Topic :: Utilities",
   "Topic :: Scientific/Engineering",
 ]
-dependencies = []
+dependencies = [
+  "pyyaml~=6.0",
+]
 
 [project.optional-dependencies]
 # Linting and code quality tools
@@ -62,6 +64,7 @@ lint = [
   "ruff~=0.11",                # Linter and code analysis tool
   "codespell[toml]~=2.4",      # Spell checker for code
   "flake8~=7.0",               # Simple PEP8 checker
+  "types-PyYAML",              # MyPy stubs for pyyaml
 ]
 
 # Testing tools

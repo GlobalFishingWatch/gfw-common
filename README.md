@@ -24,20 +24,38 @@ Common place for GFW reusable Python components.
 [pip-tools]: https://pip-tools.readthedocs.io/en/stable/
 [How to Write a Git Commit Message]: https://cbea.ms/git-commit/
 
+[examples]: examples/
 [GIT-WORKFLOW.md]: GIT-WORKFLOW.md
 [Makefile]: Makefile
 [pre-commit hooks]: .pre-commit-config.yaml
 [pyproject.toml]: pyproject.toml
 
+[gfw.common.cli]: src/gfw/common/cli/
+[gfw.common.decorators.py]: src/gfw/common/decorators.py
+[gfw.common.io.py]: src/gfw/common/io.py
+[gfw.common.iterables.py]: src/gfw/common/iterables.py
+[gfw.common.logging.py]: src/gfw/common/logging.py
+[gfw.common.serialization.py]: src/gfw/common/serialization.py
+
+
 ## Introduction
 
 <div align="justify">
 
-TDB.
+The following table shows a summary of the current supported features:
 
-| Module | Description |
-| --- | --- |
-| [-] | -.  |
+<div align="center">
+
+| Module                       | Description                                                         |
+| ---------------------------- | ------------------------------------------------------------------- |
+|[gfw.common.cli]              | Lightweight framework around argparse for building CLIs more easily.|
+|[gfw.common.decorators.py]    | Basic function decorators.                                          |
+|[gfw.common.io.py]            | Basic IO functions.                                                 |
+|[gfw.common.iterables.py]     | Iterables utilities.                                                |
+|[gfw.common.logging.py]       | Basic logging configuration.                                        |
+|[gfw.common.serialization.py] | Basic serialization utilities.                                      |
+
+</div>
 
 ## Installation
 
@@ -48,7 +66,7 @@ pip install gfw-common
 
 ## Usage
 
-TBD.
+You can see examples in the [examples] folder.
 
 ## How to Contribute
 

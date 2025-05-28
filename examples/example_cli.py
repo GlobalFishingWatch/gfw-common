@@ -39,6 +39,7 @@ normalize_command = ParametrizedCommand(
     options=[
         Option("--partition-date", type=valid_date, default=date(2022, 9, 1), help="Date.")
     ],
+    run=lambda config, **kwargs: print(f"Hello!. partition-date is: {config.partition_date}")
 )
 
 

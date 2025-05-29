@@ -284,6 +284,7 @@ class CLI:
         # Compose help string with real default appended
         kwargs.setdefault("help", "")
         kwargs["help"] = f"{kwargs['help']} (default: {option.default})"
+        kwargs["default"] = None
 
         kwargs.update({"type": option.type})
         kwargs.setdefault("metavar", "")

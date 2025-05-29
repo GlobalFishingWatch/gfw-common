@@ -43,23 +43,35 @@ def test_execute_without_subcommands(main_command):
     test_cli.execute(args=["--number-1", "4"])
 
 
-def test_arguments_precedence(tmp_path, main_command, subcommand):
+@pytest.mark.parametrize(
+    "arg, config_value, cli_value",
+    [
+        pytest.param("number_2", 5, 3, id="string"),
+        pytest.param("boolean_2", True, False, id="bool"),
+    ],
+)
+def test_arguments_precedence(
+    tmp_path, main_command, subcommand, arg, config_value, cli_value
+):
     path = tmp_path.joinpath("config.yaml")
-    arg = "number_2"
-    config_value = 5
-    cli_value = 3
     default_value = subcommand.defaults()[arg]
     command_name = subcommand.name
 
+    config_file_arg = []
     yaml_save(path, data={arg: config_value})
     config_file_arg = ["--config-file", f"{path}"]
+
+    cli_args = []
     cli_arg = arg.replace("_", "-")
-    tail_args = [f"--{cli_arg}", f"{cli_value}"]
+    if not type(cli_value) is bool:
+        cli_args = [f"--{cli_arg}", f"{cli_value}"]
+    elif cli_value is True:
+        cli_args = [f"--{cli_arg}"]
 
     test_cli = CLI(**main_command, subcommands=[subcommand])
 
-    _, config = test_cli.execute(args=[command_name] + config_file_arg + tail_args)
-    assert config[arg] == cli_value
+    _, config = test_cli.execute(args=[command_name] + config_file_arg + cli_args)
+    assert config[arg] == cli_value if cli_args else config_value
 
     _, config = test_cli.execute(args=[command_name] + config_file_arg)
     assert config[arg] == config_value

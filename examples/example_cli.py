@@ -1,7 +1,8 @@
 import sys
+import json
+from datetime import date
 from typing import Any, Sequence
 from types import SimpleNamespace
-from datetime import date
 
 from gfw.common.cli import CLI, Command, ParametrizedCommand, Option
 from gfw.common.cli.validations import valid_date
@@ -11,6 +12,9 @@ from gfw.common.version import __version__
 
 HELP_DRY_RUN = "If passed, all queries, if any, will be run in dry run mode."
 HELP_PROJECT = "GCP project id."
+
+HELP_LABELS = "Labels to audit costs over the queries."
+DEFAULT_LABELS = {"environment": "develop", "stage": "test"}
 
 
 class ParseCommand(Command):
@@ -37,7 +41,8 @@ normalize_command = ParametrizedCommand(
     name="normalize",
     description="Normalize tables.",
     options=[
-        Option("--partition-date", type=valid_date, default=date(2022, 9, 1), help="Date.")
+        Option("--partition-date", type=valid_date, default=date(2022, 9, 1), help="Date."),
+        Option("--labels", type=json.loads, default=DEFAULT_LABELS, help=HELP_LABELS),
     ],
     run=lambda config, **kwargs: print(f"Hello!. partition-date is: {config.partition_date}")
 )
@@ -45,7 +50,8 @@ normalize_command = ParametrizedCommand(
 
 def cli(args):
     nmea_cli = CLI(
-        name="pipe-nmea",
+        # Uncomment if running the CLI from a 'pipe-nmea' python installed package.
+        # name="pipe-nmea",
         description="Tools for parsing AIS data in NMEA format from multiple sources.",
         options=[
             # Options declared here are going to be inherited by subcommands, if any.

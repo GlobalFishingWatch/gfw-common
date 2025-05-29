@@ -3,11 +3,11 @@
 import argparse
 import json
 import logging
-import os
 import sys
 
 from collections import ChainMap
 from functools import cached_property
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Iterator, Sequence, Tuple, Type, Union
 
@@ -21,6 +21,12 @@ from .option import Option
 
 
 logger = logging.getLogger(__name__)
+
+try:
+    script_relative_path = Path(sys.argv[0]).resolve().relative_to(Path.cwd())
+except ValueError:
+    # Not relative, just use the absolute path
+    script_relative_path = Path(sys.argv[0]).resolve()
 
 
 class CLI:
@@ -90,7 +96,7 @@ class CLI:
 
     def __init__(
         self,
-        name: str = os.path.basename(sys.argv[0]),
+        name: str = f"python {script_relative_path}",
         description: str = "",
         options: Tuple[Option, ...] = (),
         subcommands: Sequence[Union[Command, Type[Command]]] = (),
@@ -235,6 +241,13 @@ class CLI:
         defaults_args = command.defaults()
         defaults_args.update(common_defaults)
 
+        for p in config:
+            if p not in common_defaults.keys() | defaults_args.keys():
+                raise ValueError(
+                    f"Invalid configuration file: parameter '{p}'"
+                    " is not recognized by any defined command."
+                )
+
         cli_args.pop(self.KEY_SUBCOMMAND, None)
         cli_args = {k: v for k, v in cli_args.items() if v is not None}
 
@@ -253,7 +266,8 @@ class CLI:
 
         if only_render:
             rendered = self._render_command_line_call(command.name, config)
-            logger.info(f"Equivalent command-line call: \n {rendered}")
+            logger.info("Equivalent command-line call: ")
+            print(f"{rendered}")
             return rendered, config
 
         return command.run(SimpleNamespace(**config), **kwargs), config
@@ -311,7 +325,16 @@ class CLI:
 
     def _render_command_line_call(self, command_name: str, config: dict[str, Any]) -> str:
         config = config.copy()
-        parts = [command_name]
+
+        main_command = self._main_command.name
+        if not main_command.startswith("python"):
+            # Is not a python script. It is an installed package.
+            main_command = self._resolve_cli_name(main_command)
+
+        parts = [
+            main_command,
+            self._resolve_cli_name(command_name),
+        ]
 
         unparsed = config.pop(self.KEY_UNPARSED_ARGS, [])
         if unparsed:
@@ -336,6 +359,9 @@ class CLI:
 
                 value = ""
                 sep = ""
+
+            if isinstance(v, dict):
+                value = f"'{json.dumps(v)}'"
 
             parts.append(argument.format(name=name, sep=sep, value=value))
 

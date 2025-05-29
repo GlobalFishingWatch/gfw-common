@@ -124,7 +124,8 @@ def test_only_render(main_command, subcommand, use_underscore, sep):
     res, config = test_cli.execute(args=known + unknown)
 
     expected = (
-        "subcommand \\"
+        "program \\"
+        "\nsubcommand \\"
         "\n--other 4 \\"
         "\n--number{sep}2=2 \\"
         "\n--date{sep}2=2025-01-02 \\"

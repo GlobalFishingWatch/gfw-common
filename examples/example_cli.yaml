@@ -1,0 +1,2 @@
+partition_date: 2022-01-01
+labels: {"environment": "develop", "stage": "test"}

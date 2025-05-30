@@ -55,6 +55,19 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+
+# Apache Beam
+beam = [
+  "apache-beam[gcp]~=2.0",
+  "google-cloud-bigquery~=3.0",  # beam package needs bigquery.
+  "google-cloud-profiler~=4.1",
+]
+
+# Google BigQuery
+bq = [
+  "google-cloud-bigquery~=3.0",
+]
+
 # Linting and code quality tools
 lint = [
   "black~=25.1",               # Code formatting tool
@@ -132,6 +145,7 @@ ignore = [
   "E501",    # line too long, handled by black
   "C901",    # too complex
   "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed in `**kwargs`
+  "D107",    # Ignore missing docstring in `__init__`.
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -167,6 +181,13 @@ convention = "google"
 strict = true
 ignore_missing_imports = true
 files = "src"
+mypy_path = "src"
+disable_error_code = ["union-attr", "no-any-return"]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "gfw.common.beam.*"
+disable_error_code = ["no-untyped-call", "no-any-return", "type-arg"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

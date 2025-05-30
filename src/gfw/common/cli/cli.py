@@ -9,7 +9,7 @@ from collections import ChainMap
 from functools import cached_property
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Iterator, Sequence, Tuple, Type, Union
+from typing import Any, Callable, Iterator, Optional, Sequence, Tuple, Type, Union
 
 from gfw.common.io import yaml_load
 from gfw.common.logging import LoggerConfig
@@ -104,7 +104,7 @@ class CLI:
         version: str = "0.1.0",
         examples: Tuple[str, ...] = (),
         formatter: Callable[..., argparse.HelpFormatter] = default_formatter(),
-        logger_config: LoggerConfig = None,
+        logger_config: Optional[LoggerConfig] = None,
         allow_unknown: bool = False,
         use_underscore: bool = False,
         **main_parser_kwargs: Any,

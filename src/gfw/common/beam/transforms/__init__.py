@@ -18,10 +18,13 @@ maintaining high code quality and reducing duplication.
 
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
 from .sample_and_log import SampleAndLogElements
+from .bigquery_write_to_partitioned import FakeWriteToBigQuery, WriteToPartitionedBigQuery
 
 
 __all__ = [
     "FakeReadFromPubSub",
     "ReadAndDecodeFromPubSub",
     "SampleAndLogElements",
+    "FakeWriteToBigQuery",
+    "WriteToPartitionedBigQuery",
 ]

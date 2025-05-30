@@ -10,7 +10,7 @@ venv:
 .PHONY: install  ## Install the package, dependencies, and pre-commit for local development.
 install:
 	python -m pip install -U pip
-	python -m pip install -e .[lint,test,dev,build,docs]
+	python -m pip install -e .[bq,lint,test,dev,build,docs]
 	python -m pre_commit install --install-hooks
 	python -m pre_commit install --hook-type commit-msg
 

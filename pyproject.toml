@@ -62,6 +62,12 @@ bq = [
   "sqlparse==0.5",
 ]
 
+# Apache Beam
+beam = [
+  "apache-beam[gcp]~=2.0",
+  "google-cloud-profiler~=4.1",
+]
+
 # Linting and code quality tools
 lint = [
   "black~=25.1",               # Code formatting tool
@@ -175,7 +181,13 @@ convention = "google"
 strict = true
 ignore_missing_imports = true
 files = "src"
+mypy_path = "src"
 disable_error_code = ["union-attr", "no-any-return"]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "gfw.common.beam.*"
+disable_error_code = ["no-untyped-call", "no-any-return", "type-arg", "misc"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

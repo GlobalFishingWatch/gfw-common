@@ -8,7 +8,7 @@
     <img src="https://codecov.io/gh/GlobalFishingWatch/gfw-common/graph/badge.svg?token=bpFiU6qtrd"/>
   </a>
   <a>
-    <img alt="Python versions" src="https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue">
+    <img alt="Python versions" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue">
   </a>
   <a>
     <img alt="Last release" src="https://img.shields.io/github/v/release/GlobalFishingWatch/gfw-common">

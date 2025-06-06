@@ -54,7 +54,6 @@ def test_with_optionals() -> None:
 
     expected_bq_params = {
         "timePartitioning": {"field": partition_field, "type": partition_type},
-        # "destinationTableProperties": {"description": description},
         "clustering": {"fields": clustering_fields},
     }
 

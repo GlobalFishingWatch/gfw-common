@@ -11,33 +11,12 @@ from apache_beam import PTransform
 from apache_beam.io.gcp.bigquery import WriteToBigQuery
 from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam.pvalue import PCollection
-from apache_beam.utils.timestamp import Timestamp
 
+from gfw.common.beam.utils import float_to_beam_timestamp
 from gfw.common.bigquery_helper import BigQueryHelper
 
 
 logger = logging.getLogger(__name__)
-
-
-def float_to_beam_timestamp(row: dict[str, Any], fields: list[str]) -> dict[str, Any]:
-    """Converts specified fields in a dictionary from float to Beam Timestamp objects.
-
-    Args:
-        row:
-            A dictionary containing data with potential float values.
-
-        fields:
-            A tuple of field names to be converted to Timestamp.
-
-    Returns:
-        The input dictionary with specified fields converted to Timestamp objects.
-    """
-    new_row = row.copy()
-
-    for field in fields:
-        new_row[field] = Timestamp(row[field])
-
-    return new_row
 
 
 class FakeWriteToBigQuery(WriteToBigQuery):
@@ -213,10 +192,9 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
         if method == WriteToBigQuery.Method.STORAGE_WRITE_API:
             # 'STORAGE_WRITE_API' requires Apache Beam Timestamp objects.
             # See https://beam.apache.org/documentation/io/built-in/google-bigquery/
-            def convert_to_timestamp(x: dict[str, Any]) -> dict[str, Any]:
-                return float_to_beam_timestamp(x, self.timestamp_fields)
-
-            pcoll = pcoll | "Float to Timestamp" >> beam.Map(convert_to_timestamp)
+            pcoll = pcoll | "Float to Timestamp" >> beam.Map(
+                lambda x: float_to_beam_timestamp(x, self.timestamp_fields)
+            )
 
         return pcoll | "Write to BigQuery" >> self._write_to_bigquery_factory(
             table=self._table, schema=self.schema, method=method, **write_to_bigquery_kwargs

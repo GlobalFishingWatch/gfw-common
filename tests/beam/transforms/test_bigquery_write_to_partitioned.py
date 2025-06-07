@@ -9,9 +9,11 @@ from typing import Any
 import apache_beam as beam
 import pytest
 
+from apache_beam.utils.timestamp import Timestamp
 from apache_beam.io.gcp.bigquery import WriteToBigQuery
 from apache_beam.options.pipeline_options import PipelineOptions, StandardOptions
 from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
+from apache_beam.testing.util import assert_that, equal_to
 
 from gfw.common.beam.transforms import (
     WriteToPartitionedBigQuery, FakeWriteToBigQuery
@@ -40,6 +42,30 @@ def test_resolve_write_method(streaming: bool, runner: str, expected_method: str
 
     method = WriteToPartitionedBigQuery.resolve_write_method(options)
     assert method == expected_method
+
+
+def test_get_client_factory_mocked_true():
+    factory = WriteToPartitionedBigQuery.get_client_factory(mocked=True)
+    assert factory is FakeWriteToBigQuery
+
+
+def test_get_client_factory_mocked_false():
+    factory = WriteToPartitionedBigQuery.get_client_factory(mocked=False)
+    assert factory is WriteToBigQuery
+
+
+def test_timestamp_fields():
+    transform = WriteToPartitionedBigQuery(
+        table="project:dataset.table",
+        schema=[
+            {"name": "event_time", "type": "TIMESTAMP", "mode": "REQUIRED"},
+            {"name": "created_at", "type": "TIMESTAMP"},
+            {"name": "device_id", "type": "STRING"},
+            {"name": "value", "type": "FLOAT"},
+        ],
+    )
+
+    assert transform.timestamp_fields == ["event_time", "created_at"]
 
 
 def test_with_optionals() -> None:
@@ -123,3 +149,35 @@ def _run_write_test(
 
     if "schema" in transform_kwargs:
         assert instance.kwargs["schema"] == {"fields": transform_kwargs["schema"]}
+
+
+def test_expand_converts_float_timestamp_to_beam_timestamp():
+    input_data = [
+        {"ts": 1710000000.0, "value": 1},  # some float timestamp
+        {"ts": 1710000001.5, "value": 2},
+    ]
+
+    expected = [
+        {"ts": Timestamp(1710000000.0), "value": 1},
+        {"ts": Timestamp(1710000001.5), "value": 2},
+    ]
+
+    with _TestPipeline() as p:
+        pcoll = p | "Create" >> beam.Create(input_data)
+
+        transform = WriteToPartitionedBigQuery(
+            table="project.dataset.table",
+            schema=[
+                {"name": "ts", "type": "TIMESTAMP"},
+                {"name": "value", "type": "INTEGER"},
+            ],
+            bigquery_helper_factory=BigQueryHelper.mocked,
+            write_to_bigquery_factory=lambda **kwargs: beam.Map(lambda x: x),  # no-op sink
+        )
+
+        # Force use of STORAGE_WRITE_API
+        transform.resolve_write_method = lambda _: beam.io.gcp.bigquery.WriteToBigQuery.Method.STORAGE_WRITE_API
+
+        result = pcoll | "Apply Transform" >> transform
+
+        assert_that(result, equal_to(expected))

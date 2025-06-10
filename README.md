@@ -30,6 +30,7 @@ Common place for GFW reusable Python components.
 [pre-commit hooks]: .pre-commit-config.yaml
 [pyproject.toml]: pyproject.toml
 
+[gfw.common.beam]: src/gfw/common/beam/
 [gfw.common.cli]: src/gfw/common/cli/
 [gfw.common.decorators.py]: src/gfw/common/decorators.py
 [gfw.common.io.py]: src/gfw/common/io.py
@@ -48,6 +49,7 @@ The following table shows a summary of the current supported features:
 
 | Module                       | Description                                                         |
 | ---------------------------- | ------------------------------------------------------------------- |
+|[gfw.common.beam]             | Common utilities and wrappers for Apache Beam pipelines.            |
 |[gfw.common.cli]              | Lightweight framework around argparse for building CLIs more easily.|
 |[gfw.common.decorators.py]    | Basic function decorators.                                          |
 |[gfw.common.io.py]            | Basic IO functions.                                                 |

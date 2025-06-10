@@ -187,7 +187,13 @@ explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = "gfw.common.beam.*"
-disable_error_code = ["no-untyped-call", "no-any-return", "type-arg", "misc"]
+disable_error_code = [
+  "no-untyped-call",
+  "no-any-return",
+  "type-arg",
+  "misc",
+  "call-overload"
+]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

@@ -9,11 +9,16 @@ import codecs
 import logging
 
 from functools import cached_property
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional  # , Callable
 
 import apache_beam as beam
 
-from apache_beam.io.gcp.pubsub import PubsubMessage, ReadFromPubSub
+# I had to import it this way so that the monkeypatch works.
+# (because otherwise ReadFromPubSub its already imported when we try to patch, and doesn't work)
+import apache_beam.io.gcp.pubsub as pubsub
+
+
+# from apache_beam.io.gcp.pubsub import PubsubMessage, ReadFromPubSub
 from apache_beam.pvalue import PCollection
 
 
@@ -33,7 +38,7 @@ class FakeReadFromPubSub(beam.PTransform[Any, Any]):
 
     def expand(self, pcoll: PCollection) -> PCollection:
         """Returns a PCollection created from self.messages list."""
-        return pcoll | beam.Create([PubsubMessage(**m) for m in self.messages])
+        return pcoll | beam.Create([pubsub.PubsubMessage(**m) for m in self.messages])
 
 
 class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
@@ -81,7 +86,7 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
         with_attributes: bool = True,
         decode: bool = True,
         decode_method: str = "utf-8",
-        read_from_pubsub_factory: Callable[..., ReadFromPubSub] = ReadFromPubSub,
+        # read_from_pubsub_factory: Callable[..., ReadFromPubSub] = ReadFromPubSub,
         **read_from_pubsub_kwargs: Any,
     ) -> None:
         self._subscription_id = subscription_id
@@ -89,18 +94,10 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
         self._with_attributes = with_attributes
         self._decode = decode
         self._decode_method = decode_method
-        self._read_from_pubsub_factory = read_from_pubsub_factory
+        # self._read_from_pubsub_factory = read_from_pubsub_factory
         self._read_from_pubsub_kwargs = read_from_pubsub_kwargs
 
         self._validate_decode_method()
-
-    @classmethod
-    def get_client_factory(cls, mocked: bool = False) -> Callable:
-        """Returns a factory for bigquery.Client objects."""
-        if mocked:
-            return FakeReadFromPubSub
-
-        return ReadFromPubSub
 
     @cached_property
     def subscription(self) -> str:
@@ -121,7 +118,7 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
                 - "data": the decoded message string (if decoding is enabled),
                 - "metadata": a dictionary of message attributes (if available).
         """
-        messages = pcoll | self._read_from_pubsub_factory(
+        messages = pcoll | pubsub.ReadFromPubSub(
             subscription=self.subscription,
             with_attributes=self._with_attributes,
             **self._read_from_pubsub_kwargs,
@@ -132,7 +129,7 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
 
         return messages
 
-    def _decode_pub_sub_message(self, message: PubsubMessage) -> Dict[str, Any]:
+    def _decode_pub_sub_message(self, message: pubsub.PubsubMessage) -> Dict[str, Any]:
         return {"data": message.data.decode(self._decode_method), "metadata": message.attributes}
 
     def _validate_decode_method(self) -> None:

@@ -2,11 +2,12 @@ import pytest
 
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
+from apache_beam.io.gcp import pubsub
 
 from gfw.common.beam.transforms import ReadAndDecodeFromPubSub, FakeReadFromPubSub
 
 
-def test_read_and_decode_from_pubsub():
+def test_read_and_decode_from_pubsub(monkeypatch):
     """Test ReadAndDecodeFromPubSub with mocked PubSub input and UTF-8 decoding."""
 
     pubsub_messages = [
@@ -16,6 +17,8 @@ def test_read_and_decode_from_pubsub():
         )
     ]
 
+    monkeypatch.setattr(pubsub, "ReadFromPubSub", FakeReadFromPubSub)
+
     with TestPipeline() as p:
         output = (
             p
@@ -24,7 +27,7 @@ def test_read_and_decode_from_pubsub():
                 project="test-project",
                 decode=True,
                 decode_method="utf-8",
-                read_from_pubsub_factory=FakeReadFromPubSub,
+                # read_from_pubsub_factory=FakeReadFromPubSub,
                 messages=pubsub_messages,
             )
         )

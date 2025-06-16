@@ -1,4 +1,6 @@
 from datetime import date
+from unittest.mock import patch
+from types import SimpleNamespace
 
 import pytest
 
@@ -41,6 +43,48 @@ def test_execute_with_subcommands(main_command, subcommand):
 def test_execute_without_subcommands(main_command):
     test_cli = CLI(**main_command)
     test_cli.execute(args=["--number-1", "4"])
+
+
+def test_main_command_run_is_called_with_correct_args():
+    called = {}
+
+    def main_run(config, **kwargs):
+        called["called"] = True
+        called["config"] = config
+        return config.number_1 * 10
+
+    cli = CLI(
+        name="program",
+        options=[Option("--number-1", type=int, default=1)],
+        run=main_run,
+    )
+
+    result, config = cli.execute(args=["--number-1", "7"])
+
+    # Assert the run function was called
+    assert called.get("called") is True, "run method of main command was not called!"
+
+    # Assert the config is SimpleNamespace and has number_1 set
+    assert isinstance(called["config"], SimpleNamespace)
+    assert called["config"].number_1 == 7
+
+    # Assert the return value of run is correct
+    assert result == 70
+
+    # Also verify config dictionary returned
+    assert config["number_1"] == 7
+
+
+def test_execute_raises_on_invalid_config_key(tmp_path, main_command):
+    test_cli = CLI(**main_command)
+
+    config_path = tmp_path / "config.yaml"
+    yaml_save(config_path, data={"invalid_param": 123})
+
+    with pytest.raises(
+        ValueError, match="Invalid configuration file: parameter 'invalid_param'"
+    ):
+        test_cli.execute(args=["--config-file", str(config_path)])
 
 
 @pytest.mark.parametrize(

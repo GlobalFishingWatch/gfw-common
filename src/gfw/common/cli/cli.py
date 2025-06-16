@@ -11,6 +11,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Iterator, Optional, Sequence, Tuple, Type, Union
 
+from gfw.common.dictionaries import filter_none_values
 from gfw.common.io import yaml_load
 from gfw.common.logging import LoggerConfig
 from gfw.common.serialization import to_json
@@ -26,6 +27,7 @@ try:
     script_relative_path = Path(sys.argv[0]).resolve().relative_to(Path.cwd())
 except ValueError:
     # Not relative, just use the absolute path
+    # This is needed because otherwise fails in GitHub actions.
     script_relative_path = Path(sys.argv[0]).resolve()
 
 
@@ -110,7 +112,7 @@ class CLI:
         **main_parser_kwargs: Any,
     ) -> None:
         """Initializes a CLI instance."""
-        self._main_command = ParametrizedCommand(name, description, options)
+        self._main_command = ParametrizedCommand(name, description, options, run=run)
         self._subcommands = list(self._init_subcommands(subcommands))
         self._version = version
         self._examples = examples
@@ -229,29 +231,31 @@ class CLI:
         only_render = cli_args.pop("only_render")
 
         # Load config file if exists.
-        config = {}
+        config_file_args = {}
         if config_file is not None:
             logger.info(f"Loading config file from {config_file}.")
-            config = yaml_load(config_file)
+            config_file_args = yaml_load(config_file)
 
-        # Resolve configuration based on cli_args, config file and defaults.
-        # cli_args takes precedence over config file and config file over defaults.
-        common_defaults = self._main_command.defaults()
-        command = self._get_invoked_command(cli_args)
-        defaults_args = command.defaults()
-        defaults_args.update(common_defaults)
-
-        for p in config:
-            if p not in common_defaults.keys() | defaults_args.keys():
+        for p in config_file_args:
+            if p not in cli_args.keys():
                 raise ValueError(
                     f"Invalid configuration file: parameter '{p}'"
                     " is not recognized by any defined command."
                 )
 
-        cli_args.pop(self.KEY_SUBCOMMAND, None)
-        cli_args = {k: v for k, v in cli_args.items() if v is not None}
+        # Resolved invoked command.
+        command = self._get_invoked_command(cli_args)
 
-        config = dict(ChainMap(cli_args, config, defaults_args))
+        # Resolve configuration based on cli_args, config file and defaults.
+        # cli_args takes precedence over config file and config file over defaults.
+        common_defaults = filter_none_values(self._main_command.defaults())
+        defaults_args = filter_none_values(command.defaults())
+        cli_args = filter_none_values(cli_args)
+
+        defaults_args.update(common_defaults)
+        cli_args.pop(self.KEY_SUBCOMMAND, None)
+
+        config = dict(ChainMap(cli_args, config_file_args, defaults_args))
 
         if unparsed:
             config[self.KEY_UNPARSED_ARGS] = unparsed

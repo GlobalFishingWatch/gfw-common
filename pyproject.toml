@@ -10,17 +10,18 @@ name = "gfw-common"
 version = "0.1.0"
 description = "Common place for GFW reusable Python components."
 readme = "README.md"
-license = { text = "Apache License 2.0" }
+license = "Apache-2.0"
 authors = [
-  { name = "Global Fishing Watch", email = "andres@globalfishingwatch.org" },
-  { name = "Global Fishing Watch", email = "matias@globalfishingwatch.org" },
-  { name = "Global Fishing Watch", email = "tomas.link@globalfishingwatch.org" },
-
+  { name = "Arana, Andrés", email = "andres@globalfishingwatch.org" },
+  { name = "Fuentes, Rodrigo", email = "rodrigo.fuentes@globalfishingwatch.org" },
+  { name = "Link, Tomás Juan Link", email = "tomas.link@globalfishingwatch.org" },
+  { name = "Piano, Sergio Matías", email = "matias@globalfishingwatch.org" },
 ]
 maintainers = [
-  { name = "Global Fishing Watch", email = "andres@globalfishingwatch.org" },
-  { name = "Global Fishing Watch", email = "matias@globalfishingwatch.org" },
-  { name = "Global Fishing Watch", email = "tomas.link@globalfishingwatch.org" },
+  { name = "Arana, Andrés", email = "andres@globalfishingwatch.org" },
+  { name = "Fuentes, Rodrigo", email = "rodrigo.fuentes@globalfishingwatch.org" },
+  { name = "Link, Tomás Juan Link", email = "tomas.link@globalfishingwatch.org" },
+  { name = "Piano, Sergio Matías", email = "matias@globalfishingwatch.org" },
 ]
 keywords = [
   "global fishing watch",
@@ -33,7 +34,6 @@ classifiers = [
   "Environment :: Console",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: Apache Software License",
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python",

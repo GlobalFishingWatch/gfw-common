@@ -16,12 +16,15 @@ These components aim to serve as building blocks to accelerate development while
 maintaining high code quality and reducing duplication.
 """
 
+from .bigquery_write_to_partitioned import FakeWriteToBigQuery, WriteToPartitionedBigQuery
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
 from .sample_and_log import SampleAndLogElements
 
 
 __all__ = [
     "FakeReadFromPubSub",
+    "FakeWriteToBigQuery",
     "ReadAndDecodeFromPubSub",
     "SampleAndLogElements",
+    "WriteToPartitionedBigQuery",
 ]

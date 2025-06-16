@@ -96,7 +96,7 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
 
     @classmethod
     def get_client_factory(cls, mocked: bool = False) -> Callable:
-        """Returns a factory for bigquery.Client objects."""
+        """Returns a factory for ReadFromPubSub objects."""
         if mocked:
             return FakeReadFromPubSub
 

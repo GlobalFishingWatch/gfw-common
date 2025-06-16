@@ -103,21 +103,6 @@ class BigQueryHelper:
 
         return self._client_factory(default_query_job_config=query_job, **self._kwargs)
 
-    def begin_session(self) -> Union[str, Any, None]:
-        """Creates a BigQuery session.
-
-        TODO: Remove this method.
-        Use directly create_session=True directly in the query when needed.
-        """
-        job_config = bigquery.job.QueryJobConfig(create_session=True)
-        logger.info("Starting BigQuery session...")
-        query_job = self.client.query("SELECT 1", job_config=job_config)
-
-        session_id = query_job.session_info.session_id
-        logger.info(f"BigQuery session started {session_id}.")
-
-        return session_id
-
     def end_session(self, session_id: str) -> None:
         """Terminates session with given session_id."""
         query_job = self.client.query(f"CALL BQ.ABORT_SESSION('{session_id}')")

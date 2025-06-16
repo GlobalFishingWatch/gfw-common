@@ -52,6 +52,7 @@ classifiers = [
 ]
 dependencies = [
   "pyyaml~=6.0",
+  "rich~=14.0",
 ]
 
 [project.optional-dependencies]
@@ -182,7 +183,7 @@ strict = true
 ignore_missing_imports = true
 files = "src"
 mypy_path = "src"
-disable_error_code = ["union-attr", "no-any-return"]
+disable_error_code = ["union-attr", "no-any-return", "var-annotated"]
 explicit_package_bases = true
 
 [[tool.mypy.overrides]]

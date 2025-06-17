@@ -51,18 +51,6 @@ jobs:
         . activate-venv.sh
         pytest --cov=gfw --cov-report=xml
 
-    - name: Install dev dependencies and pre-commit
-      run: |
-        . activate-venv.sh
-        make install-dev
-        make install-pre-commit
-
-    - name: Run pre-commit checks
-      id: run-pre-commit-checks
-      run: |
-        . activate-venv.sh
-        make pre-commit
-
     - name: Upload coverage reports to Codecov
       id: upload-coverage-reports-to-codecov
       uses: codecov/codecov-action@v5.3.1

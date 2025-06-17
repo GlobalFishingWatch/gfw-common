@@ -87,7 +87,7 @@ make venv
 
 Install the package, dependencies, and pre-commit hooks for local development:
 ```shell
-make install
+make install-all
 ```
 
 Make sure you can run unit tests:

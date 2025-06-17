@@ -1,5 +1,11 @@
 [run]
 branch = True
+source = src/gfw
+
+[paths]
+source =
+    src/gfw
+    */site-packages/gfw
 
 [report]
 include_namespace_packages = true

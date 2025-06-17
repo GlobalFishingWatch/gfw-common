@@ -12,15 +12,15 @@ description = "Common place for GFW reusable Python components."
 readme = "README.md"
 license = "Apache-2.0"
 authors = [
+  { name = "Link, Tomás Juan Link", email = "tomas.link@globalfishingwatch.org" },
   { name = "Arana, Andrés", email = "andres@globalfishingwatch.org" },
   { name = "Fuentes, Rodrigo", email = "rodrigo.fuentes@globalfishingwatch.org" },
-  { name = "Link, Tomás Juan Link", email = "tomas.link@globalfishingwatch.org" },
   { name = "Piano, Sergio Matías", email = "matias@globalfishingwatch.org" },
 ]
 maintainers = [
+  { name = "Link, Tomás Juan Link", email = "tomas.link@globalfishingwatch.org" },
   { name = "Arana, Andrés", email = "andres@globalfishingwatch.org" },
   { name = "Fuentes, Rodrigo", email = "rodrigo.fuentes@globalfishingwatch.org" },
-  { name = "Link, Tomás Juan Link", email = "tomas.link@globalfishingwatch.org" },
   { name = "Piano, Sergio Matías", email = "matias@globalfishingwatch.org" },
 ]
 keywords = [
@@ -39,11 +39,9 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
   "Topic :: Software Development",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
@@ -52,6 +50,8 @@ classifiers = [
 ]
 dependencies = [
   "pyyaml~=6.0",
+  "rich~=14.0",
+  "jinja2~=3.1",
 ]
 
 [project.optional-dependencies]

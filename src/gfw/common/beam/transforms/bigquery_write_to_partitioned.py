@@ -107,12 +107,13 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
         partition_field: Optional[str] = None,
         partition_type: str = "DAY",
         clustering_fields: Optional[List[str]] = None,
+        label: Optional[str] = None,
         bigquery_helper_factory: Callable[..., BigQueryHelper] = BigQueryHelper,
         write_to_bigquery_factory: Callable[..., WriteToBigQuery] = WriteToBigQuery,
         **write_to_bigquery_kwargs: Any,
     ) -> None:
         """Initializes the WriteToPartitionedBigQuery transform with the given parameters."""
-        super().__init__()
+        super().__init__(label=label)
         self._table = table
         self._project = project
         self._schema = schema

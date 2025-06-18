@@ -135,12 +135,12 @@ def test_output_paths_empty_sinks():
 
 def test_pipeline_construction_with_multiple_sources():
     # Create two dummy sources
-    source1 = DummySource()
-    source2 = DummySource()
+    source1 = "Source1" >> DummySource()
+    source2 = "Source2" >> DummySource()
 
     # Create a dummy sink
-    sink1 = DummySinkWithPath(path="gs://my-bucket/output1")
-    sink2 = DummySinkWithPath(path="gs://my-bucket/output2")
+    sink1 = "DummySinkWithPath1" >> DummySinkWithPath(path="gs://my-bucket/output1")
+    sink2 = "DummySinkWithPath2" >> DummySinkWithPath(path="gs://my-bucket/output2")
 
     # Construct the BeamPipeline with the sources and a core transform
     pipeline = BeamPipeline(sources=[source1, source2], sinks=[sink1, sink2])

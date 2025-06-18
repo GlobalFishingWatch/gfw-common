@@ -236,12 +236,8 @@ class CLI:
             logger.info(f"Loading config file from {config_file}.")
             config_file_args = yaml_load(config_file)
 
-        for p in config_file_args:
-            if p not in cli_args.keys():
-                raise ValueError(
-                    f"Invalid configuration file: parameter '{p}'"
-                    " is not recognized by any defined command."
-                )
+        if not self._allow_unknown:
+            self._validate_config_file(config_file_args, cli_args)
 
         # Resolved invoked command.
         command = self._get_invoked_command(cli_args)
@@ -318,6 +314,14 @@ class CLI:
         indent = " " * 4
         examples_str = "\n".join(f"{indent}{e}" for e in self._examples)
         return f"Examples:\n{examples_str}"
+
+    def _validate_config_file(self, config_file: dict[str, Any], args: dict[str, Any]) -> None:
+        for p in config_file:
+            if p not in args.keys():
+                raise ValueError(
+                    f"Invalid configuration file: parameter '{p}'"
+                    " is not recognized by any defined argument."
+                )
 
     def _get_invoked_command(self, args: dict[str, Any]) -> Command:
         subcommand = args.get(self.KEY_SUBCOMMAND)

@@ -1,18 +1,33 @@
 .DEFAULT_GOAL := help
 VENV_NAME:=.venv
+VENV_TEST:=.venv-test
 sources = src
 
 .PHONY: venv  ## Creates virtual environment.
 venv:
 	python -m venv ${VENV_NAME}
 
-
-.PHONY: install  ## Install the package, dependencies, and pre-commit for local development.
-install:
+.PHONY: upgrade-pip  ## Upgrades pip.
+upgrade-pip:
 	python -m pip install -U pip
-	python -m pip install -e .[bq,beam,lint,test,dev,build,docs]
+
+.PHONY: install-dev  ## Install the package and only dev dependencies.
+install-dev: upgrade-pip
+	python -m pip install .[bq,lint,dev,build,docs]
+
+.PHONY: install-test  ## Install the package and only test dependencies.
+install-test: upgrade-pip
+	python -m pip install .[bq,beam,test]
+
+.PHONY: install-pre-commit  ## Install pre-commit.
+install-pre-commit:
 	python -m pre_commit install --install-hooks
 	python -m pre_commit install --hook-type commit-msg
+
+.PHONY: install-all  ## Install the package in editable mode for local development.
+install-all: upgrade-pip
+	python -m pip install -e .[bq,beam,dev,test,lint,build,docs]
+	make install-pre-commit
 
 .PHONY: format  ## Auto-format python source files according with PEP8.
 format:
@@ -87,12 +102,23 @@ servedocs:
 	$(MAKE) -C docs livehtml
 
 .PHONY: build  ## Build a source distribution and a wheel distribution.
-build: all clean
+build: clean
 	python -m build
 
 .PHONY: publish  ## Publish the distribution to PyPI.
 publish: build
 	python -m twine upload dist/* --verbose
+
+.PHONY: publish-test  ## Publish the distribution to TestPyPI.
+publish-test: build
+	python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/* --verbose
+
+.PHONY: test-installed  ## Run tests against installed package in a fresh venv with coverage.
+test-installed:
+	python3.12 -m venv $(VENV_TEST)
+	$(VENV_TEST)/bin/pip install --upgrade pip setuptools wheel
+	$(VENV_TEST)/bin/python -m pip install .[bq,beam,test]
+	$(VENV_TEST)/bin/python -m pytest --cov=gfw --cov-report=term --cov-report=xml
 
 .PHONY: help  ## Display this message
 help:

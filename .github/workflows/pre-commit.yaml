@@ -3,8 +3,6 @@ name: pre-commit
 on:
   workflow_dispatch:
   pull_request:
-  push:
-    branches: [develop, main]
 
 jobs:
   run-pre-commit:
@@ -25,7 +23,7 @@ jobs:
 
     - name: Install dependencies
       id: install-dependencies
-      run: make install
+      run: make install-all
 
     - name: Run pre-commit
       id: run-pre-commit

@@ -87,7 +87,7 @@ make venv
 
 Install the package, dependencies, and pre-commit hooks for local development:
 ```shell
-make install
+make install-all
 ```
 
 Make sure you can run unit tests:
@@ -107,5 +107,10 @@ The [pre-commit hooks] will take care of validating your code before a commit
 in terms of [PEP8] standards, type-checking, miss-pellings, missing documentation, etc.
 If you want/need to do it manually, you have commands in the [Makefile].
 To see options, type `make`.
+
+### How to Release
+
+Creating a tag will automatically trigger a GitHub Action to publish the package to PyPI.
+The tag must match the version declared in [pyproject.toml]; this will be validated by the action.
 
 </div>

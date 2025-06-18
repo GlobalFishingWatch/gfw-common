@@ -24,7 +24,6 @@ from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pvalue import PCollection
 
 from .transforms import SampleAndLogElements
-from .utils import generate_unique_labels
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +42,9 @@ class BeamPipeline:
 
         core:
             The core PTransform that processes the data.
+
+        side_inputs:
+            A PTransform used to read side inputs that will be injected into the core transform.
 
         sinks:
             A list of PTransforms that write the output data.
@@ -77,6 +79,7 @@ class BeamPipeline:
         self,
         sources: Tuple[PTransform[Any, Any], ...] = (),
         core: Optional[PTransform[Any, Any]] = None,
+        side_inputs: Optional[PTransform[Any, Any]] = None,
         sinks: Tuple[PTransform[Any, Any], ...] = (),
         name: str = "",
         version: str = "0.1.0",
@@ -86,6 +89,7 @@ class BeamPipeline:
         """Initializes the BeamPipeline object with sources, core, sinks, and options."""
         self._sources = sources
         self._core = core or beam.Map(lambda x: x)
+        self._side_inputs = side_inputs
         self._sinks = sinks
         self._name = name
         self._version = version
@@ -143,14 +147,12 @@ class BeamPipeline:
         # Create the Beam pipeline
         p = beam.Pipeline(options=self.pipeline_options)
 
-        source_labels = generate_unique_labels(self._sources)
-        sinks_labels = generate_unique_labels(self._sinks)
+        if self._side_inputs is not None:
+            side_inputs = p | self._side_inputs
+            self._core.set_side_inputs(side_inputs)
 
         # Source transformations
-        inputs = [
-            p | label >> transform
-            for label, transform in zip(source_labels, self._sources, strict=True)
-        ]
+        inputs = [p | transform for transform in self._sources]
 
         if len(inputs) > 1:
             inputs = inputs | "JoinSources" >> beam.Flatten()
@@ -161,8 +163,8 @@ class BeamPipeline:
         outputs = inputs | self._core
 
         # Sink transformations
-        for label, sink_transform in zip(sinks_labels, self._sinks, strict=True):
-            outputs | label >> sink_transform
+        for transform in self._sinks:
+            outputs | transform
 
         if logging.getLogger().level == logging.DEBUG:
             inputs | "Log Inputs" >> SampleAndLogElements(message="Input: {e}", sample_size=1)

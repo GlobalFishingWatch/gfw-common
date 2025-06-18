@@ -102,7 +102,7 @@ servedocs:
 	$(MAKE) -C docs livehtml
 
 .PHONY: build  ## Build a source distribution and a wheel distribution.
-build: all clean
+build: clean
 	python -m build
 
 .PHONY: publish  ## Publish the distribution to PyPI.

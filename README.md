@@ -108,4 +108,9 @@ in terms of [PEP8] standards, type-checking, miss-pellings, missing documentatio
 If you want/need to do it manually, you have commands in the [Makefile].
 To see options, type `make`.
 
+### How to Release
+
+Creating a tag will automatically trigger a GitHub Action to publish the package to PyPI.
+The tag must match the version declared in [pyproject.toml]; this will be validated by the action.
+
 </div>

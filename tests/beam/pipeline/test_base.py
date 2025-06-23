@@ -1,6 +1,8 @@
 import apache_beam as beam
-from apache_beam import PTransform
+
 from apache_beam.testing.util import assert_that, equal_to
+from apache_beam.runners.runner import PipelineState
+from apache_beam import PTransform
 
 from apache_beam.options.pipeline_options import (
     PipelineOptions,
@@ -9,7 +11,7 @@ from apache_beam.options.pipeline_options import (
     WorkerOptions
 )
 
-from gfw.common.beam.pipeline import BeamPipeline
+from gfw.common.beam.pipeline import Pipeline, LinearDag
 
 
 class DummySource(PTransform):
@@ -27,23 +29,18 @@ class DummySink(PTransform):
         return pcoll
 
 
-class DummySinkWithPath(PTransform):
-    def __init__(self, path):
-        self.path = path
-
-    def expand(self, pcoll):
-        return pcoll
-
-
-def test_beam_pipeline_run():
-    pipeline = BeamPipeline(
+def test_pipeline_run():
+    dag = LinearDag(
         sources=[DummySource()],
         core=UppercaseTransform(),
         sinks=[DummySink()],
     )
 
-    outputs = pipeline.run()
+    pipeline = Pipeline(dag=dag)
 
+    result, outputs = pipeline.run()
+
+    assert result.state == PipelineState.DONE
     assert_that(outputs, equal_to(["A", "B", "C"]))
 
 
@@ -55,7 +52,7 @@ def test_parsed_args():
         "--temp_location=gs://my-bucket/temp"
     ]
 
-    pipeline = BeamPipeline(unparsed_args=unparsed_args)
+    pipeline = Pipeline(unparsed_args=unparsed_args)
 
     # Get the parsed arguments.
     parsed_args = pipeline.parsed_args
@@ -84,7 +81,7 @@ def test_pipeline_options():
     }
 
     # Create the pipeline instance with mock args and user options.
-    pipeline = BeamPipeline(
+    pipeline = Pipeline(
         unparsed_args=mock_unparsed_args,
         **user_options  # passing user options as additional keyword arguments.
     )
@@ -113,56 +110,6 @@ def test_pipeline_options():
     assert "setup_file" in pipeline_options.view_as(PipelineOptions).get_all_options()
 
 
-def test_output_paths():
-    # Create different sinks with path attributes
-    sink1 = DummySinkWithPath(path="gs://my-bucket/output1")
-    sink2 = DummySinkWithPath(path="gs://my-bucket/output2")
-
-    # Construct the BeamPipeline with the sinks
-    pipeline = BeamPipeline(sinks=[sink1, sink2])
-
-    # Check if the output paths match the expected values
-    assert pipeline.output_paths == [
-        "gs://my-bucket/output1",  # Sink1's path
-        "gs://my-bucket/output2"   # Sink2's path
-    ]
-
-
-def test_output_paths_empty_sinks():
-    pipeline = BeamPipeline()
-    assert pipeline.output_paths == []
-
-
-def test_pipeline_construction_with_multiple_sources():
-    # Create two dummy sources
-    source1 = "Source1" >> DummySource()
-    source2 = "Source2" >> DummySource()
-
-    # Create a dummy sink
-    sink1 = "DummySinkWithPath1" >> DummySinkWithPath(path="gs://my-bucket/output1")
-    sink2 = "DummySinkWithPath2" >> DummySinkWithPath(path="gs://my-bucket/output2")
-
-    # Construct the BeamPipeline with the sources and a core transform
-    pipeline = BeamPipeline(sources=[source1, source2], sinks=[sink1, sink2])
-
-    # Retrieve the pipeline object using the pipeline property
-    p, _ = pipeline.pipeline
-
-
-def test_pipeline_construction_with_debug():
-    import logging
-    old_level = logging.getLogger().level
-    logging.getLogger().setLevel(logging.DEBUG)
-    # ... run test
-
-    pipeline = BeamPipeline(sources=[DummySource()])
-
-    # Retrieve the pipeline object using the pipeline property
-    p, _ = pipeline.pipeline
-
-    logging.getLogger().setLevel(old_level)
-
-
 def test_profiler_enabled_runs_profiler(monkeypatch):
     called = {}
 
@@ -172,12 +119,14 @@ def test_profiler_enabled_runs_profiler(monkeypatch):
         called["version"] = service_version
         called["verbose"] = verbose
 
-    monkeypatch.setattr("gfw.common.beam.pipeline.googlecloudprofiler.start", mock_start)
+    monkeypatch.setattr("gfw.common.beam.pipeline.base.googlecloudprofiler.start", mock_start)
 
-    pipeline = BeamPipeline(
-        sources=[DummySource()],
+    dag = LinearDag(sources=[DummySource()])
+
+    pipeline = Pipeline(
         name="test-profiler-pipeline",
         version="1.2.3",
+        dag=dag,
         runner="DirectRunner",
         dataflow_service_options=["enable_google_cloud_profiler"]
     )

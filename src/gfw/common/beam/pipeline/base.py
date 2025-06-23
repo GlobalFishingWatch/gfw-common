@@ -1,29 +1,20 @@
-"""This module encapsulates a generic Apache Beam pipeline with some builtin features.
-
-Main Features:
-    - Support for multiple sources and sinks.
-    - Built-in integration with Google Cloud Profiler for performance monitoring.
-    - Options for custom pipeline configurations via the constructor and the command line.
-    - Automatic unique label generation for repeated PTransforms to avoid naming conflicts.
-    - Logging of sample elements for inputs and outputs when debug logging is enabled.
-"""
+"""This module encapsulates a Pipeline class to simplify Apache Beam pipelines configuration."""
 
 import json
 import logging
 
 from collections import ChainMap
 from functools import cached_property
-from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import apache_beam as beam
 import googlecloudprofiler
 
-from apache_beam import PTransform
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pvalue import PCollection
+from apache_beam.runners.runner import PipelineResult
 
-from .transforms import SampleAndLogElements
+from gfw.common.beam.pipeline.dag import Dag, LinearDag
 
 
 logger = logging.getLogger(__name__)
@@ -33,22 +24,19 @@ DATAFLOW_SERVICE_OPTIONS = "dataflow_service_options"
 DATAFLOW_ENABLE_PROFILER = "enable_google_cloud_profiler"
 
 
-class BeamPipeline:
-    """A generic Apache Beam pipeline that integrates sources, core transforms, and sinks.
+class Pipeline:
+    """This class simplifies Apache Beam pipeline configuration.
+
+    Features:
+      - Merges unparsed, parsed, and default options.
+      - Supports custom DAG definitions.
+      - Enables Google Cloud Profiler integration.
+      - Automatically adds './setup.py' when 'sdk_container_image' is not specified.
+
+    You can implement your own Dag object to be injected in the constructor,
+    reuse the provided LinearDag, or just override the `apply_dag` method of this class.
 
     Args:
-        sources:
-            A list of PTransforms that read input data.
-
-        core:
-            The core PTransform that processes the data.
-
-        side_inputs:
-            A PTransform used to read side inputs that will be injected into the core transform.
-
-        sinks:
-            A list of PTransforms that write the output data.
-
         name:
             The name of the pipeline.
             Defaults to an empty string.
@@ -56,6 +44,10 @@ class BeamPipeline:
         version:
             The version of the pipeline.
             Defaults to "0.1.0".
+
+        dag:
+            The DAG to be applied to the pipeline.
+            Defaults to an empty LinearDag.
 
         unparsed_args:
             A list of unparsed arguments to pass to Beam options.
@@ -71,28 +63,22 @@ class BeamPipeline:
         pipeline_options:
             The merged pipeline options, including parsed args, user options, and defaults.
 
-        output_paths:
-            A dictionary mapping sink types to their output paths.
+        pipeline:
+            The initialized beam Pipeline object.
     """
 
     def __init__(
         self,
-        sources: Tuple[PTransform[Any, Any], ...] = (),
-        core: Optional[PTransform[Any, Any]] = None,
-        side_inputs: Optional[PTransform[Any, Any]] = None,
-        sinks: Tuple[PTransform[Any, Any], ...] = (),
         name: str = "",
         version: str = "0.1.0",
+        dag: Optional[Dag] = None,
         unparsed_args: Tuple[str, ...] = (),
         **options: Any,
     ) -> None:
         """Initializes the BeamPipeline object with sources, core, sinks, and options."""
-        self._sources = sources
-        self._core = core or beam.Map(lambda x: x)
-        self._side_inputs = side_inputs
-        self._sinks = sinks
         self._name = name
         self._version = version
+        self._dag = dag or LinearDag()
         self._unparsed_args = unparsed_args
         self._options = options
 
@@ -131,58 +117,28 @@ class BeamPipeline:
         return PipelineOptions.from_dictionary(options)
 
     @cached_property
-    def output_paths(self) -> List[Path]:
-        """Resolves and returns a list of output paths for each sink in the pipeline."""
-        paths = []
-        for sink in self._sinks:
-            path = getattr(sink, "path", None)
-            if path is not None:
-                paths.append(path)
+    def pipeline(self) -> beam.Pipeline:
+        """Returns the initialized beam.Pipeline object."""
+        return beam.Pipeline(options=self.pipeline_options)
 
-        return paths
+    def apply_dag(self) -> PCollection:
+        """Applies the provided DAG implementation to the self.pipeline."""
+        return self._dag.apply(self.pipeline)
 
-    @cached_property
-    def pipeline(self) -> tuple[beam.Pipeline, PCollection[Any]]:
-        """Constructs and returns the Apache Beam pipeline object."""
-        # Create the Beam pipeline
-        p = beam.Pipeline(options=self.pipeline_options)
-
-        if self._side_inputs is not None:
-            side_inputs = p | self._side_inputs
-            self._core.set_side_inputs(side_inputs)
-
-        # Source transformations
-        inputs = [p | transform for transform in self._sources]
-
-        if len(inputs) > 1:
-            inputs = inputs | "JoinSources" >> beam.Flatten()
-        else:
-            inputs = inputs[0]
-
-        # Core transformation
-        outputs = inputs | self._core
-
-        # Sink transformations
-        for transform in self._sinks:
-            outputs | transform
-
-        if logging.getLogger().level == logging.DEBUG:
-            inputs | "Log Inputs" >> SampleAndLogElements(message="Input: {e}", sample_size=1)
-            outputs | "Log Outputs" >> SampleAndLogElements(message="Output: {e}", sample_size=1)
-
-        return p, outputs
-
-    def run(self) -> PCollection[Any]:
+    def run(self) -> tuple[PipelineResult, PCollection]:
         """Executes the Apache Beam pipeline."""
         if self._is_profiler_enabled():
-            logger.info("Stating Google Cloud Profiler...")
+            logger.info("Starting Google Cloud Profiler...")
             self._start_profiler()
 
-        p, outputs = self.pipeline
-        result = p.run()
+        # Apply the DAG and store the main output(s).
+        # This can be a PCollection, a tuple, a dict, or None.
+        outputs = self.apply_dag()
+
+        result = self.pipeline.run()
         result.wait_until_finish()
 
-        return outputs
+        return result, outputs
 
     def _is_profiler_enabled(self) -> bool:
         if DATAFLOW_ENABLE_PROFILER in self.pipeline_options.display_data().get(

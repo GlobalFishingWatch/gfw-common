@@ -40,7 +40,7 @@ class CLI:
         - Layered configuration resolution: CLI arguments > YAML config file > command defaults.
         - Rich logging with optional plain-text fallback.
         - Optionally allows unrecognized CLI arguments for custom handling.
-        - Provides builin options to provide config file, disable rich logging, etc.
+        - Provides builtin options to provide config file, disable rich logging, etc.
 
     Args:
         name:
@@ -94,7 +94,8 @@ class CLI:
     HELP_ONLY_RENDER = "Dry run, only renders command line call and prints it."
 
     KEY_SUBCOMMAND = "operation"
-    KEY_UNPARSED_ARGS = "unparsed_args"
+    KEY_UNKNOWN_UNPARSED_ARGS = "unknown_unparsed_args"
+    KEY_UNKNOWN_PARSED_ARGS = "unknown_parsed_args"
 
     def __init__(
         self,
@@ -215,11 +216,12 @@ class CLI:
                 - Result of the executed command.
                 - Configuration dictionary used for execution.
         """
-        unparsed: list[str] = []
+        args = args or ["--help"]
+        unknown_unparsed_args: list[str] = []
         if self._allow_unknown:
-            ns, unparsed = self.main_parser.parse_known_args(args=args or ["--help"])
+            ns, unknown_unparsed_args = self.main_parser.parse_known_args(args=args)
         else:
-            ns = self.main_parser.parse_args(args=args or ["--help"])
+            ns = self.main_parser.parse_args(args=args)
 
         cli_args = vars(ns)
 
@@ -236,8 +238,10 @@ class CLI:
             logger.info(f"Loading config file from {config_file}.")
             config_file_args = yaml_load(config_file)
 
-        if not self._allow_unknown:
-            self._validate_config_file(config_file_args, cli_args)
+        unknown_parsed_args = self._extract_unknown_config_file_args(config_file_args, cli_args)
+
+        for u in unknown_parsed_args:
+            del config_file_args[u]
 
         # Resolved invoked command.
         command = self._get_invoked_command(cli_args)
@@ -253,8 +257,8 @@ class CLI:
 
         config = dict(ChainMap(cli_args, config_file_args, defaults_args))
 
-        if unparsed:
-            config[self.KEY_UNPARSED_ARGS] = unparsed
+        config[self.KEY_UNKNOWN_UNPARSED_ARGS] = unknown_unparsed_args
+        config[self.KEY_UNKNOWN_PARSED_ARGS] = unknown_parsed_args
 
         # Setup logger.
         self._logger_config.setup(verbose=verbose, rich=not no_rich_logging, log_file=log_file)
@@ -315,13 +319,18 @@ class CLI:
         examples_str = "\n".join(f"{indent}{e}" for e in self._examples)
         return f"Examples:\n{examples_str}"
 
-    def _validate_config_file(self, config_file: dict[str, Any], args: dict[str, Any]) -> None:
-        for p in config_file:
-            if p not in args.keys():
-                raise ValueError(
-                    f"Invalid configuration file: parameter '{p}'"
-                    " is not recognized by any defined argument."
-                )
+    def _extract_unknown_config_file_args(
+        self, config_file: dict[str, Any], args: dict[str, Any]
+    ) -> dict[str, Any]:
+        known_keys = set(args.keys())
+        unknown_config_args = {k: v for k, v in config_file.items() if k not in known_keys}
+        if unknown_config_args and not self._allow_unknown:
+            raise ValueError(
+                f"Invalid configuration file: parameters {list(unknown_config_args.keys())}"
+                " are not recognized by any defined argument."
+            )
+
+        return unknown_config_args
 
     def _get_invoked_command(self, args: dict[str, Any]) -> Command:
         subcommand = args.get(self.KEY_SUBCOMMAND)
@@ -344,9 +353,13 @@ class CLI:
             self._resolve_cli_name(command_name),
         ]
 
-        unparsed = config.pop(self.KEY_UNPARSED_ARGS, [])
-        if unparsed:
-            parts.append(" ".join(unparsed))
+        unknown_unparsed = config.pop(self.KEY_UNKNOWN_UNPARSED_ARGS, [])
+        unknown_parsed = config.pop(self.KEY_UNKNOWN_PARSED_ARGS, {})
+
+        config = {**config, **unknown_parsed}
+
+        if unknown_unparsed:
+            parts.append(" ".join(unknown_unparsed))
 
         argument = "--{name}{sep}{value}"
 

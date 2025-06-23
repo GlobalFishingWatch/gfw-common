@@ -82,7 +82,7 @@ def test_execute_raises_on_invalid_config_key(tmp_path, main_command):
     yaml_save(config_path, data={"invalid_param": 123})
 
     with pytest.raises(
-        ValueError, match="Invalid configuration file: parameter 'invalid_param'"
+        ValueError, match=r"Invalid configuration file: parameters \['invalid_param'\]"
     ):
         test_cli.execute(args=["--config-file", str(config_path)])
 
@@ -124,14 +124,24 @@ def test_arguments_precedence(
     assert config[arg] == default_value
 
 
-def test_allow_unknown(main_command, subcommand):
-    unknown = ["--other", "4"]
+def test_allow_unknown(tmp_path, main_command, subcommand):
+    known = ["--number-2", "3"]
+    unknown_unparsed = ["--other", "4"]
+    unknown_parsed = {"other2": 5}
+
+    config_file_arg = []
+    path = tmp_path.joinpath("config.yaml")
+    yaml_save(path, data=unknown_parsed)
+    config_file_arg = ["--config-file", f"{path}"]
+
+    args = known + unknown_unparsed + config_file_arg
 
     test_cli = CLI(**main_command, subcommands=[subcommand], allow_unknown=True)
-    res, config = test_cli.execute(args=["subcommand", "--number-2", "3"] + unknown)
+    res, config = test_cli.execute(args=[subcommand.name] + args)
 
-    assert CLI.KEY_UNPARSED_ARGS in config
-    assert config[CLI.KEY_UNPARSED_ARGS] == unknown
+    assert CLI.KEY_UNKNOWN_UNPARSED_ARGS in config
+    assert config[CLI.KEY_UNKNOWN_UNPARSED_ARGS] == unknown_unparsed
+    assert config[CLI.KEY_UNKNOWN_PARSED_ARGS] == unknown_parsed
 
 
 def test_dont_allow_unknown_fails(main_command, subcommand):

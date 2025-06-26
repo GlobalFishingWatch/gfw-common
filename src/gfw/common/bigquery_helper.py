@@ -20,18 +20,29 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class QueryResult:
-    """Encapsulates the result of a BigQuery query.
+    """A wrapper around a BigQuery QueryJob providing lazy access to query results.
 
-    This class is a wrapper around table.RowIterator.
-    - Automatically converts to dict while iterating results.
-    - Provides len() method.
+    This class encapsulates a BigQuery `QueryJob` and exposes its results via a lazily
+    evaluated `RowIterator`. It automatically converts rows to dictionaries during iteration,
+    and provides convenience methods like `__len__` and `tolist()`.
 
     Args:
-        row_iterator:
-            Result of the query.QueryJob.result() method.
+        query_job (bigquery.job.QueryJob):
+            The original BigQuery QueryJob instance, which can be used to access
+            job metadata such as session IDs, job statistics, and more.
+
+    Usage:
+        Instead of calling `query_job.result()` directly, use this class to iterate over
+        results as dictionaries, get the number of rows, or convert all results to a list.
+
+    Example:
+        result = QueryResult(query_job)
+        for row in result:
+            print(row)  # row is a dict
+        print(len(result))
     """
 
-    row_iterator: bigquery.table.RowIterator
+    query_job: bigquery.job.QueryJob
 
     def __len__(self) -> int:
         """Returns the size of the result."""
@@ -45,6 +56,26 @@ class QueryResult:
         """Returns an iterator over the result."""
         for row in self.row_iterator:
             yield dict(row.items())
+
+    @cached_property
+    def session_id(self) -> Optional[str]:
+        """Returns the session_id of the job.
+
+        Accessing this property triggers job execution if it hasn't started yet.
+        """
+        # Force job start, ensure session_info is populated
+        _ = self.row_iterator
+
+        session_info = self.query_job.session_info
+        if session_info is not None:
+            return session_info.session_id
+
+        return None
+
+    @cached_property
+    def row_iterator(self) -> bigquery.table.RowIterator:
+        """Executes the query job and returns a RowIterator over the results."""
+        return self.query_job.result()
 
     def tolist(self) -> List[Dict[str, Any]]:
         """Converts results to list."""
@@ -62,7 +93,7 @@ class BigQueryHelper:
         dry_run:
             If True, queries jobs will be run in dry run mode.
             For more information, check bigquery documentation:
-                https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfiguration.FIELDS.dry_run
+            https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfiguration.FIELDS.dry_run
 
         **kwargs:
             Extra keyword arguments to be passed to the provided client_factory.
@@ -200,6 +231,7 @@ class BigQueryHelper:
         clustering_fields: Optional[list[str]] = None,
         session_id: Optional[str] = None,
         labels: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ) -> QueryResult:
         """Runs a query.
 
@@ -222,8 +254,12 @@ class BigQueryHelper:
             labels:
                 Labels to apply.
 
+            **kwargs:
+                Extra keyword arguments to be passed to the job.QueryJobConfig constructor.
+
         Returns:
-            The result of the query.
+            An instance wrapping the BigQuery QueryJob, providing convenient access
+            to the query results and metadata.
         """
         connection_properties = []
 
@@ -236,6 +272,7 @@ class BigQueryHelper:
             connection_properties=connection_properties,
             labels=labels or {},
             priority=bigquery.enums.QueryPriority.INTERACTIVE,
+            **kwargs,
         )
 
         if destination is not None:
@@ -248,12 +285,9 @@ class BigQueryHelper:
         logger.debug(sqlparse.format(query_str, reindent=True, keyword_case="upper"))
 
         query_job = self.client.query(query_str, job_config=job_config)
-
         logger.debug(f"BigQuery QueryJob id: {query_job.job_id}.")
-        row_iterator = query_job.result()
-        logger.debug("QueryJob done.")
 
-        return QueryResult(row_iterator)
+        return QueryResult(query_job)
 
     def load_from_json(
         self,

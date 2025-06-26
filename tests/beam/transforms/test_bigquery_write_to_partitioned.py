@@ -176,7 +176,8 @@ def test_expand_converts_float_timestamp_to_beam_timestamp():
         )
 
         # Force use of STORAGE_WRITE_API
-        transform.resolve_write_method = lambda _: beam.io.gcp.bigquery.WriteToBigQuery.Method.STORAGE_WRITE_API
+        write_method = beam.io.gcp.bigquery.WriteToBigQuery.Method.STORAGE_WRITE_API
+        transform.resolve_write_method = lambda _: write_method
 
         result = pcoll | "Apply Transform" >> transform
 

@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from google.cloud import bigquery
 from google.cloud.bigquery import WriteDisposition
 
@@ -112,9 +114,8 @@ def test_create_view_creates_view_and_logs():
 
 def test_run_query_with_session_and_destination():
     helper = BigQueryHelper.mocked(project="test")
-    mock_row_iterator = mock.Mock()
-    mock_row_iterator.total_rows = 1
-    helper.client.query.return_value.result.return_value = mock_row_iterator
+    mock_query_job = mock.MagicMock()
+    helper.client.query.return_value = mock_query_job
     helper.client.project = "test"
 
     result = helper.run_query(
@@ -128,25 +129,27 @@ def test_run_query_with_session_and_destination():
 
     helper.client.query.assert_called_once()
     assert isinstance(result, QueryResult)
-    assert result.row_iterator is mock_row_iterator
+    assert result.query_job is mock_query_job
 
 
 def test_run_query_without_destination():
     helper = BigQueryHelper.mocked(project="test")
-    row_iter = mock.Mock()
-    row_iter.total_rows = 1
-    helper.client.query.return_value.result.return_value = row_iter
+    mock_query_job = mock.MagicMock()
+    helper.client.query.return_value = mock_query_job
     helper.client.project = "test"
 
     result = helper.run_query("SELECT 1")
     assert isinstance(result, QueryResult)
+    assert result.query_job is mock_query_job
 
 
 def test_format_jinja2(tmp_path):
     template_file = tmp_path / "query.sql"
     template_file.write_text("SELECT * FROM {{ table }}")
 
-    rendered = BigQueryHelper.format_jinja2(template_file.name, search_path=tmp_path, table="my_table")
+    rendered = BigQueryHelper.format_jinja2(
+        template_file.name, search_path=tmp_path, table="my_table")
+
     assert rendered.strip() == "SELECT * FROM my_table"
 
 
@@ -161,10 +164,14 @@ def test_create_table_reference_uses_project():
 
 
 def test_query_result_len():
-    iterator = mock.Mock()
-    iterator.total_rows = 42
-    result = QueryResult(iterator)
+    row_iterator = mock.Mock()
+    row_iterator.total_rows = 42
+    query_job = mock.Mock()
+    query_job.result.return_value = row_iterator
+
+    result = QueryResult(query_job)
     assert len(result) == 42
+    query_job.result.assert_called_once()
 
 
 def test_query_result_iter():
@@ -173,35 +180,46 @@ def test_query_result_iter():
     row2 = mock.Mock()
     row2.items.return_value = {"b": 2}.items()
 
-    iterator = mock.MagicMock()
-    iterator.__iter__.return_value = iter([row1, row2])
-    iterator.total_rows = 2
+    row_iterator = mock.MagicMock()
+    row_iterator.__iter__.return_value = iter([row1, row2])
+    row_iterator.total_rows = 2
 
-    result = QueryResult(iterator)
+    query_job = mock.Mock()
+    query_job.result.return_value = row_iterator
+
+    result = QueryResult(query_job)
     assert list(result) == [{"a": 1}, {"b": 2}]
+    query_job.result.assert_called_once()
 
 
 def test_query_result_next_returns_dict():
     row = mock.Mock()
     row.items.return_value = {"b": 2}.items()
-    iterator = mock.MagicMock()
-    iterator.__iter__.return_value = iter([row])
-    iterator.__next__ = lambda self: row
-    iterator.total_rows = 1
+    row_iterator = mock.MagicMock()
+    row_iterator.__iter__.return_value = iter([row])
+    row_iterator.total_rows = 1
 
-    result = QueryResult(iterator)
-    assert next(result) == {"b": 2}
+    query_job = mock.Mock()
+    query_job.result.return_value = row_iterator
+
+    result = QueryResult(query_job)
+    assert next(iter(result)) == {"b": 2}
+    query_job.result.assert_called_once()
 
 
 def test_query_result_to_list():
     row = mock.Mock()
     row.items.return_value = {"a": 1}.items()
-    iterator = mock.MagicMock()
-    iterator.__iter__.return_value = iter([row])
-    iterator.total_rows = 1
+    row_iterator = mock.MagicMock()
+    row_iterator.__iter__.return_value = iter([row])
+    row_iterator.total_rows = 1
 
-    result = QueryResult(iterator)
+    query_job = mock.Mock()
+    query_job.result.return_value = row_iterator
+
+    result = QueryResult(query_job)
     assert result.tolist() == [{"a": 1}]
+    query_job.result.assert_called_once()
 
 
 def test_load_from_json_with_partition_field():
@@ -289,3 +307,14 @@ def test_load_from_json_with_partitioning():
     assert isinstance(job_config.time_partitioning, bigquery.table.TimePartitioning)
     assert job_config.time_partitioning.type_ == "HOUR"
     assert job_config.time_partitioning.field == "id"
+
+
+@pytest.mark.integration
+def test_run_query_creates_session_and_returns_session_id():
+    helper = BigQueryHelper()
+
+    result = helper.run_query("SELECT 1", create_session=True)
+    session_id = result.session_id
+
+    assert session_id is not None
+    assert isinstance(session_id, str)

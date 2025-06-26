@@ -34,7 +34,10 @@ Common place for GFW reusable Python components.
 
 [gfw.common.beam]: src/gfw/common/beam/
 [gfw.common.cli]: src/gfw/common/cli/
+[gfw.common.bigquery_helper.py]: src/gfw/common/bigquery_helper.py
+[gfw.common.datetime]: src/gfw/common/datetime.py
 [gfw.common.decorators.py]: src/gfw/common/decorators.py
+[gfw.common.dictionaries.py]: src/gfw/common/dictionaries.py
 [gfw.common.io.py]: src/gfw/common/io.py
 [gfw.common.iterables.py]: src/gfw/common/iterables.py
 [gfw.common.logging.py]: src/gfw/common/logging.py
@@ -49,23 +52,35 @@ The following table shows a summary of the current supported features:
 
 <div align="center">
 
-| Module                       | Description                                                         |
-| ---------------------------- | ------------------------------------------------------------------- |
-|[gfw.common.beam]             | Common utilities and wrappers for Apache Beam pipelines.            |
-|[gfw.common.cli]              | Lightweight framework around argparse for building CLIs more easily.|
-|[gfw.common.decorators.py]    | Basic function decorators.                                          |
-|[gfw.common.io.py]            | Basic IO functions.                                                 |
-|[gfw.common.iterables.py]     | Iterables utilities.                                                |
-|[gfw.common.logging.py]       | Basic logging configuration.                                        |
-|[gfw.common.serialization.py] | Basic serialization utilities.                                      |
+| Module/Package                 | Description                                                         |
+| ------------------------------ | ------------------------------------------------------------------- |
+|[gfw.common.beam]               | Common utilities and wrappers for Apache Beam pipelines.            |
+|[gfw.common.cli]                | Lightweight framework around argparse for building CLIs more easily.|
+|[gfw.common.bigquery_helper.py] | Wrapper with extended functionality for bigquery.Client.            |
+|[gfw.common.datetime]           | Simple helper functions around stdlib datetime module.              |
+|[gfw.common.decorators.py]      | Basic function decorators.                                          |
+|[gfw.common.dictionaries.py]    | Simple helper functions for dictionary manipulation.                |
+|[gfw.common.io.py]              | Basic IO functions.                                                 |
+|[gfw.common.iterables.py]       | Iterables utilities.                                                |
+|[gfw.common.logging.py]         | Basic logging configuration.                                        |
+|[gfw.common.serialization.py]   | Basic serialization utilities.                                      |
 
 </div>
 
 ## Installation
 
-Just type
+The package offers extras to avoid installing unnecessary dependencies:
+
+- `beam`: includes dependencies for the `gfw.common.beam` package.
+- `bq`: includes dependencies for BigQuery utilities.
+
+For a default installation without extras, run:
 ```shell
 pip install gfw-common
+```
+To install all extras, run:
+```shell
+pip install gfw-common[bq,beam]
 ```
 
 ## Usage

@@ -19,16 +19,18 @@ Common place for GFW reusable Python components.
 
 [commitizen]: https://github.com/commitizen-tools/commitizen
 [Conventional Commits]: https://www.conventionalcommits.org/en/v1.0.0/
-[git-flow]: https://nvie.com/posts/a-successful-git-branching-model/
+[GitHub Flow]: https://githubflow.github.io
+[How to Write a Git Commit Message]: https://cbea.ms/git-commit/
 [PEP8]: https://peps.python.org/pep-0008/
 [pip-tools]: https://pip-tools.readthedocs.io/en/stable/
-[How to Write a Git Commit Message]: https://cbea.ms/git-commit/
+[Semantic Versioning]: https://semver.org
 
 [examples]: examples/
-[GIT-WORKFLOW.md]: GIT-WORKFLOW.md
+[GITHUB-FLOW.md]: GITHUB-FLOW.md
 [Makefile]: Makefile
 [pre-commit hooks]: .pre-commit-config.yaml
 [pyproject.toml]: pyproject.toml
+[release.yaml]: .github/workflows/release.yaml
 
 [gfw.common.beam]: src/gfw/common/beam/
 [gfw.common.cli]: src/gfw/common/cli/
@@ -97,8 +99,8 @@ make test
 
 ### Development Workflow
 
-Regarding the git workflow, we just use [git-flow].
-See [GIT-WORKFLOW.md] for a summary.
+Regarding the git workflow, we follow [GitHub Flow].
+See [GITHUB-FLOW.md] for a quick summary.
 
 Try to write good commit messages.
 See [How to Write a Git Commit Message] guide for details.
@@ -110,7 +112,11 @@ To see options, type `make`.
 
 ### How to Release
 
-Creating a tag will automatically trigger a GitHub Action to publish the package to PyPI.
+Creating a tag will automatically trigger a GitHub Action ([release.yaml]) to publish the package to PyPI.
 The tag must match the version declared in [pyproject.toml]; this will be validated by the action.
+The tag name must follow the format `vX.Y.Z`.
 
 </div>
+
+> [!NOTE]
+In this context, **X**, **Y** and **Z** refer to **MAJOR**, **MINOR** and **PATCH** of [Semantic Versioning].

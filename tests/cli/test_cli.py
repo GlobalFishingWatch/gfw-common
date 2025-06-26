@@ -1,5 +1,4 @@
 from datetime import date
-from unittest.mock import patch
 from types import SimpleNamespace
 
 import pytest

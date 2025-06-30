@@ -2,7 +2,7 @@ import pytest
 
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
-from apache_beam.io.gcp.pubsub import PubsubMessage, ReadFromPubSub
+from apache_beam.io.gcp.pubsub import ReadFromPubSub
 
 from gfw.common.beam.transforms import ReadAndDecodeFromPubSub, FakeReadFromPubSub
 
@@ -57,7 +57,7 @@ def test_read_and_decode_from_pubsub():
         expected = [
             {
                 "data": '{"test": 123}',
-                "metadata": {"key": "value"}
+                "attributes": {"key": "value"}
             }
         ]
 
@@ -87,7 +87,7 @@ def test_read_without_decoding():
         )
 
         # Expect raw PubsubMessage objects
-        assert_that(output, equal_to([PubsubMessage(**pubsub_messages[0])]))
+        assert_that(output, equal_to([pubsub_messages[0]]))
 
 
 def test_invalid_decode_method():

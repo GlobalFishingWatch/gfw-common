@@ -9,7 +9,7 @@ import codecs
 import logging
 
 from functools import cached_property
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 import apache_beam as beam
 
@@ -119,7 +119,7 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
             beam.PCollection:
                 A PCollection of dictionaries where each dictionary contains:
                 - "data": the decoded message string (if decoding is enabled),
-                - "metadata": a dictionary of message attributes (if available).
+                - "attributes": a dictionary of message attributes (if available).
         """
         messages = pcoll | self._read_from_pubsub_factory(
             subscription=self.subscription,
@@ -127,13 +127,14 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
             **self._read_from_pubsub_kwargs,
         )
 
+        return messages | "ToDict" >> beam.Map(self._to_dict)
+
+    def _to_dict(self, message: PubsubMessage) -> dict:
+        data = message.data
         if self._decode:
-            messages = messages | "Decode" >> beam.Map(lambda m: self._decode_pub_sub_message(m))
+            data = message.data.decode(self._decode_method)
 
-        return messages
-
-    def _decode_pub_sub_message(self, message: PubsubMessage) -> Dict[str, Any]:
-        return {"data": message.data.decode(self._decode_method), "metadata": message.attributes}
+        return {"data": data, "attributes": message.attributes}
 
     def _validate_decode_method(self) -> None:
         try:

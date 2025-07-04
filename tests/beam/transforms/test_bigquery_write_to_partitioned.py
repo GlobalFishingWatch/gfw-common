@@ -16,7 +16,7 @@ from apache_beam.testing.util import assert_that, equal_to
 from apache_beam.utils.timestamp import Timestamp
 
 from gfw.common.beam.transforms import FakeWriteToBigQuery, WriteToPartitionedBigQuery
-from gfw.common.bigquery_helper import BigQueryHelper
+from gfw.common.bigquery.helper import BigQueryHelper
 
 
 @pytest.mark.parametrize(

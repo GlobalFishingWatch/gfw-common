@@ -13,7 +13,7 @@ from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam.pvalue import PCollection
 
 from gfw.common.beam.utils import float_to_beam_timestamp
-from gfw.common.bigquery_helper import BigQueryHelper
+from gfw.common.bigquery.helper import BigQueryHelper
 
 
 logger = logging.getLogger(__name__)

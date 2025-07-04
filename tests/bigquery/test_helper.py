@@ -5,7 +5,7 @@ import pytest
 from google.cloud import bigquery
 from google.cloud.bigquery import WriteDisposition
 
-from gfw.common.bigquery_helper import BigQueryHelper, QueryResult
+from gfw.common.bigquery.helper import BigQueryHelper, QueryResult
 
 
 def test_mocked_factory_creates_mock():

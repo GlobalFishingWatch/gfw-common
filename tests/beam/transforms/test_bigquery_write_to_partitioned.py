@@ -19,7 +19,7 @@ from gfw.common.beam.transforms import (
     WriteToPartitionedBigQuery, FakeWriteToBigQuery
 )
 
-from gfw.common.bigquery_helper import BigQueryHelper
+from gfw.common.bigquery.helper import BigQueryHelper
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,6 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, date, time, timezone, timedelta
 
-from gfw.common.datetime import datetime_from_timestamp, datetime_from_string
+from gfw.common.datetime import datetime_from_timestamp, datetime_from_string, datetime_from_date
 
 
 def test_datetime_from_timestamp_utc():
@@ -43,3 +43,34 @@ def test_datetime_from_timestamp_edge_case():
     dt = datetime_from_timestamp(ts)
     expected_dt = datetime(1970, 1, 1, 0, 0, tzinfo=timezone.utc)
     assert dt == expected_dt
+
+
+def test_datetime_from_date_defaults():
+    d = date(2025, 7, 8)
+    dt = datetime_from_date(d)
+    assert dt.year == 2025
+    assert dt.month == 7
+    assert dt.day == 8
+    assert dt.hour == 0
+    assert dt.minute == 0
+    assert dt.second == 0
+    assert dt.tzinfo == timezone.utc
+
+
+def test_datetime_from_date_custom_time():
+    d = date(2025, 7, 8)
+    t = time(15, 30, 45)
+    dt = datetime_from_date(d, t)
+    assert dt.hour == 15
+    assert dt.minute == 30
+    assert dt.second == 45
+    assert dt.tzinfo == timezone.utc
+
+
+def test_datetime_from_date_custom_timezone():
+    d = date(2025, 7, 8)
+    t = time(12, 0)
+    tz = timezone(timedelta(hours=-5))
+    dt = datetime_from_date(d, t, tz)
+    assert dt.hour == 12
+    assert dt.tzinfo == tz

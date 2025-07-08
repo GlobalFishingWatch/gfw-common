@@ -1,6 +1,6 @@
 """Utility functions for working with datetime objects and timezones."""
 
-from datetime import datetime, timezone, tzinfo
+from datetime import date, datetime, time, timezone, tzinfo
 from typing import Union
 
 
@@ -43,3 +43,23 @@ def datetime_from_string(s: str, tz: tzinfo = timezone.utc) -> datetime:
         dt = dt.replace(tzinfo=tz)
 
     return dt
+
+
+def datetime_from_date(d: date, t: time = time(0, 0), tz: timezone = timezone.utc) -> datetime:
+    """Creates datetime from date and optional time (default 00:00:00), with timezone.
+
+    Args:
+        d:
+            Date part of the datetime.
+
+        t:
+            Optional time part. Defaults to 00:00:00.
+
+        tz:
+            Timezone for the resulting datetime.
+            Defaults to UTC.
+
+    Returns:
+        A timezone-aware datetime object.
+    """
+    return datetime.combine(d, t, tzinfo=tz)

@@ -3,7 +3,7 @@
 import logging
 
 from dataclasses import dataclass
-from functools import cached_property, partial
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Union
 from unittest import mock
@@ -118,8 +118,16 @@ class BigQueryHelper:
     @classmethod
     def get_client_factory(cls, mocked: bool = False) -> Callable[..., bigquery.client.Client]:
         """Returns a factory for bigquery.Client objects."""
+
+        def mock_client_factory(*args: Any, **kwargs: Any) -> mock.Mock:
+            # Extract project from kwargs or use default None.
+            # Otherwise project is not set and is needed.
+            project = kwargs.get("project", None)
+            client = mock.create_autospec(bigquery.Client, project=project, instance=True)
+            return client
+
         if mocked:
-            return partial(mock.create_autospec, bigquery.client.Client, instance=True)
+            return mock_client_factory
 
         return bigquery.client.Client
 

@@ -37,7 +37,10 @@ def test_read_and_decode_from_pubsub():
     pubsub_messages = [
         dict(
             data=b'{"test": 123}',
-            attributes={"key": "value"},
+            attributes={
+                "key2": "value2",
+                "key1": "value1",
+            },
         )
     ]
 
@@ -57,7 +60,10 @@ def test_read_and_decode_from_pubsub():
         expected = [
             {
                 "data": '{"test": 123}',
-                "attributes": {"key": "value"}
+                "attributes": {
+                    "key1": "value1",
+                    "key2": "value2",
+                }
             }
         ]
 

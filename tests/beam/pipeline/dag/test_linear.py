@@ -1,10 +1,9 @@
 import apache_beam as beam
+
 from apache_beam import PTransform
 from apache_beam.pvalue import PCollection
 
-
-from gfw.common.beam.pipeline import LinearDag
-from gfw.common.beam.pipeline import Pipeline
+from gfw.common.beam.pipeline import LinearDag, Pipeline
 
 
 class DummySource(PTransform):
@@ -66,6 +65,7 @@ def test_apply_with_side_inputs():
 
 def test_apply_with_debug():
     import logging
+
     old_level = logging.getLogger().level
     logging.getLogger().setLevel(logging.DEBUG)
     # ... run test
@@ -89,7 +89,7 @@ def test_output_paths():
     # Check if the output paths match the expected values
     assert dag.output_paths == [
         "gs://my-bucket/output1",  # Sink1's path
-        "gs://my-bucket/output2"   # Sink2's path
+        "gs://my-bucket/output2",  # Sink2's path
     ]
 
 

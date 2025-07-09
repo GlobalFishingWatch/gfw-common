@@ -1,17 +1,16 @@
 import apache_beam as beam
 
-from apache_beam.testing.util import assert_that, equal_to
-from apache_beam.runners.runner import PipelineState
 from apache_beam import PTransform
-
 from apache_beam.options.pipeline_options import (
+    GoogleCloudOptions,
     PipelineOptions,
     StandardOptions,
-    GoogleCloudOptions,
-    WorkerOptions
+    WorkerOptions,
 )
+from apache_beam.runners.runner import PipelineState
+from apache_beam.testing.util import assert_that, equal_to
 
-from gfw.common.beam.pipeline import Pipeline, LinearDag
+from gfw.common.beam.pipeline import LinearDag, Pipeline
 
 
 class DummySource(PTransform):
@@ -49,7 +48,7 @@ def test_parsed_args():
         "--runner=DataflowRunner",
         "--project=my-project",
         "--region=us-east1",
-        "--temp_location=gs://my-bucket/temp"
+        "--temp_location=gs://my-bucket/temp",
     ]
 
     pipeline = Pipeline(unparsed_args=unparsed_args)
@@ -70,20 +69,20 @@ def test_pipeline_options():
         "--runner=DataflowRunner",
         "--project=my-project",
         "--region=us-east1",
-        "--temp_location=gs://my-bucket/temp"
+        "--temp_location=gs://my-bucket/temp",
     ]
 
     # Simulate additional user-provided options.
     user_options = {
         "max_num_workers": 50,
         "network": "custom-network",
-        "subnetwork": "custom-subnetwork"
+        "subnetwork": "custom-subnetwork",
     }
 
     # Create the pipeline instance with mock args and user options.
     pipeline = Pipeline(
         unparsed_args=mock_unparsed_args,
-        **user_options  # passing user options as additional keyword arguments.
+        **user_options,  # passing user options as additional keyword arguments.
     )
 
     # Get the pipeline_options.
@@ -128,7 +127,7 @@ def test_profiler_enabled_runs_profiler(monkeypatch):
         version="1.2.3",
         dag=dag,
         runner="DirectRunner",
-        dataflow_service_options=["enable_google_cloud_profiler"]
+        dataflow_service_options=["enable_google_cloud_profiler"],
     )
 
     pipeline.run()

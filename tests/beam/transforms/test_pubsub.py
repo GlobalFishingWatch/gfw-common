@@ -1,10 +1,10 @@
 import pytest
 
+from apache_beam.io.gcp.pubsub import ReadFromPubSub
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
-from apache_beam.io.gcp.pubsub import ReadFromPubSub
 
-from gfw.common.beam.transforms import ReadAndDecodeFromPubSub, FakeReadFromPubSub
+from gfw.common.beam.transforms import FakeReadFromPubSub, ReadAndDecodeFromPubSub
 
 
 def test_subscription_property():
@@ -33,28 +33,24 @@ def test_get_client_factory_returns_real():
 
 def test_read_and_decode_from_pubsub():
     """Test ReadAndDecodeFromPubSub with mocked PubSub input and UTF-8 decoding."""
-
     pubsub_messages = [
-        dict(
-            data=b'{"test": 123}',
-            attributes={
+        {
+            "data": b'{"test": 123}',
+            "attributes": {
                 "key2": "value2",
                 "key1": "value1",
             },
-        )
+        }
     ]
 
     with TestPipeline() as p:
-        output = (
-            p
-            | "ReadAndDecode" >> ReadAndDecodeFromPubSub(
-                subscription_id="test-sub",
-                project="test-project",
-                decode=True,
-                decode_method="utf-8",
-                read_from_pubsub_factory=FakeReadFromPubSub,
-                messages=pubsub_messages,
-            )
+        output = p | "ReadAndDecode" >> ReadAndDecodeFromPubSub(
+            subscription_id="test-sub",
+            project="test-project",
+            decode=True,
+            decode_method="utf-8",
+            read_from_pubsub_factory=FakeReadFromPubSub,
+            messages=pubsub_messages,
         )
 
         expected = [
@@ -63,7 +59,7 @@ def test_read_and_decode_from_pubsub():
                 "attributes": {
                     "key1": "value1",
                     "key2": "value2",
-                }
+                },
             }
         ]
 
@@ -72,24 +68,20 @@ def test_read_and_decode_from_pubsub():
 
 def test_read_without_decoding():
     """Test ReadAndDecodeFromPubSub when decoding is disabled."""
-
     pubsub_messages = [
-        dict(
-            data=b'some-bytes',
-            attributes={"source": "test"},
-        )
+        {
+            "data": b"some-bytes",
+            "attributes": {"source": "test"},
+        }
     ]
 
     with TestPipeline() as p:
-        output = (
-            p
-            | "ReadRawPubSub" >> ReadAndDecodeFromPubSub(
-                subscription_id="sub",
-                project="project",
-                decode=False,
-                read_from_pubsub_factory=FakeReadFromPubSub,
-                messages=pubsub_messages,
-            )
+        output = p | "ReadRawPubSub" >> ReadAndDecodeFromPubSub(
+            subscription_id="sub",
+            project="project",
+            decode=False,
+            read_from_pubsub_factory=FakeReadFromPubSub,
+            messages=pubsub_messages,
         )
 
         # Expect raw PubsubMessage objects

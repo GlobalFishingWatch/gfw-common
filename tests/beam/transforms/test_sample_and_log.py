@@ -1,6 +1,8 @@
 import json
-import pytest
+
 import apache_beam as beam
+import pytest
+
 from apache_beam.testing import util
 from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
 
@@ -41,9 +43,7 @@ def test_sample_and_log_with_sample_size(
                 p
                 | "Create input" >> beam.Create(input_data)
                 | SampleAndLogElements(
-                    sample_size=sample_size,
-                    pretty_print=pretty_print,
-                    message=message
+                    sample_size=sample_size, pretty_print=pretty_print, message=message
                 )
             )
 
@@ -58,11 +58,7 @@ def test_sample_and_log_with_sample_size(
     assert len(caplog.records) == expected_size
 
     # Assert that captures logs contain expected messages
-    formatted_elements = [
-        json.dumps(e, indent=4) if pretty_print else e
-        for e
-        in input_data
-    ]
+    formatted_elements = [json.dumps(e, indent=4) if pretty_print else e for e in input_data]
 
     possible_logs = [message.format(e=e) for e in formatted_elements]
 

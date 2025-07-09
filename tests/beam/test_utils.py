@@ -4,11 +4,7 @@ from gfw.common.beam.utils import float_to_beam_timestamp
 
 
 def test_float_to_beam_timestamp():
-    row = {
-        "event_time": 1717777777.123,
-        "other_time": 123456.789,
-        "unchanged_field": "foo"
-    }
+    row = {"event_time": 1717777777.123, "other_time": 123456.789, "unchanged_field": "foo"}
     fields = ["event_time", "other_time"]
 
     result = float_to_beam_timestamp(row, fields)

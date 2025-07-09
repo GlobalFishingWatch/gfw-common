@@ -122,7 +122,13 @@ Issues = "https://github.com/GlobalFishingWatch/gfw-common/issues"
 [tool.ruff]
 fix = true
 line-length = 99
-src = ["src", "tests"]
+src = [
+  "src",
+  "tests",
+]
+exclude = [
+  "examples",
+]
 target-version = "py312"
 
 [tool.ruff.format]
@@ -150,6 +156,16 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"tests/**/*.py" = [
+  "D100",  # Missing docstring in public module
+  "D101",  # Missing docstring in class
+  "D102",  # Missing docstring in method
+  "D103",  # Missing docstring in function
+  "D104",  # Missing docstring in package
+  "D105",  # Missing docstring in magic method
+  "D107",  # Missing docstring in __init__
+  "ANN",   # flake8-annotations
+]
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2

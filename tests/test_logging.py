@@ -46,4 +46,4 @@ def test_log_file(tmp_path):
     logger = logger_config.setup(log_file=tmp_path.joinpath("test.log"))
 
     assert len(logger.handlers) == 2
-    assert logging.FileHandler in set(type(x) for x in logger.handlers)
+    assert logging.FileHandler in {type(x) for x in logger.handlers}

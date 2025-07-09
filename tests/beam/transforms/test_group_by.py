@@ -1,6 +1,6 @@
+import apache_beam as beam
 import pytest
 
-import apache_beam as beam
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
 
@@ -11,13 +11,11 @@ from gfw.common.beam.transforms import GroupBy
     "keys, custom_label, expected_label",
     [
         pytest.param(
-            ["city", "country"], "", "GroupByCityAndCountry",
-            id="without-elements-label"
+            ["city", "country"], "", "GroupByCityAndCountry", id="without-elements-label"
         ),
         pytest.param(
-            ["city", "country"], "Users", "GroupUsersByCityAndCountry",
-            id="with-elements-label"
-        )
+            ["city", "country"], "Users", "GroupUsersByCityAndCountry", id="with-elements-label"
+        ),
     ],
 )
 def test_groupby_label(keys, custom_label, expected_label):

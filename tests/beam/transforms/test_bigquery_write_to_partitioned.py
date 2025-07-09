@@ -9,16 +9,13 @@ from typing import Any
 import apache_beam as beam
 import pytest
 
-from apache_beam.utils.timestamp import Timestamp
 from apache_beam.io.gcp.bigquery import WriteToBigQuery
 from apache_beam.options.pipeline_options import PipelineOptions, StandardOptions
 from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
+from apache_beam.utils.timestamp import Timestamp
 
-from gfw.common.beam.transforms import (
-    WriteToPartitionedBigQuery, FakeWriteToBigQuery
-)
-
+from gfw.common.beam.transforms import FakeWriteToBigQuery, WriteToPartitionedBigQuery
 from gfw.common.bigquery_helper import BigQueryHelper
 
 
@@ -119,7 +116,7 @@ def _run_write_test(
     *,
     sample_data: list[dict[str, Any]],
     expected_bq_params: dict[str, Any],
-    transform_kwargs: dict[str, Any]
+    transform_kwargs: dict[str, Any],
 ) -> None:
     """Helper that runs a Beam pipeline and asserts BQ config and data passthrough."""
     write_to_bigquery_instances: list[FakeWriteToBigQuery] = []
@@ -134,11 +131,12 @@ def _run_write_test(
         _ = (
             p
             | "Create sample data" >> beam.Create(sample_data)
-            | "Write to BQ" >> WriteToPartitionedBigQuery(
+            | "Write to BQ"
+            >> WriteToPartitionedBigQuery(
                 project="test-project",
                 write_to_bigquery_factory=write_to_bigquery_factory,
                 bigquery_helper_factory=BigQueryHelper.mocked,
-                **transform_kwargs
+                **transform_kwargs,
             )
         )
 

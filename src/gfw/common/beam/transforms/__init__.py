@@ -17,6 +17,7 @@ maintaining high code quality and reducing duplication.
 """
 
 from .bigquery_write_to_partitioned import FakeWriteToBigQuery, WriteToPartitionedBigQuery
+from .group_by import GroupBy
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
 from .sample_and_log import SampleAndLogElements
 
@@ -24,6 +25,7 @@ from .sample_and_log import SampleAndLogElements
 __all__ = [
     "FakeReadFromPubSub",
     "FakeWriteToBigQuery",
+    "GroupBy",
     "ReadAndDecodeFromPubSub",
     "SampleAndLogElements",
     "WriteToPartitionedBigQuery",

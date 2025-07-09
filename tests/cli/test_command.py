@@ -1,15 +1,13 @@
 import pytest
 
-from gfw.common.cli import ParametrizedCommand, Option
+from gfw.common.cli import Option, ParametrizedCommand
 
 
 @pytest.fixture
 def command():
     return ParametrizedCommand(
         name="test-command",
-        options=[
-            Option("--option1", type=int, default=1)
-        ],
+        options=[Option("--option1", type=int, default=1)],
     )
 
 

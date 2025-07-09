@@ -1,7 +1,8 @@
 import pytest
+
 from apache_beam.testing.util import BeamAssertException
 
-from gfw.common.beam.testing.utils import equal_to, _default_equals_fn
+from gfw.common.beam.testing.utils import _default_equals_fn, equal_to
 
 
 def test_default_equals_fn():

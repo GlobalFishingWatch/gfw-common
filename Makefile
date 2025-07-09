@@ -31,15 +31,15 @@ install-all: upgrade-pip
 
 .PHONY: format  ## Auto-format python source files according with PEP8.
 format:
-	python -m black $(sources)
-	python -m ruff check --fix $(sources)
-	python -m ruff format $(sources)
+	python -m ruff check --fix
+	python -m ruff format
+	python -m black $(sources) tests
 
 .PHONY: lint  ## Lint python source files.
 lint:
-	python -m ruff check $(sources)
-	python -m ruff format --check $(sources)
-	python -m black $(sources) --check --diff
+	python -m ruff check --no-fix
+	python -m ruff format --check
+	python -m black --check --diff $(sources) tests
 
 .PHONY: codespell  ## Use Codespell to do spell checking.
 codespell:

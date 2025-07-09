@@ -88,7 +88,7 @@ def test_create_table_without_partition_field():
     assert created_table.description == description
 
     # Compare schema field by field
-    for field, expected_field in zip(created_table.schema, schema):
+    for field, expected_field in zip(created_table.schema, schema, strict=False):
         assert field.name == expected_field["name"]
         assert field.field_type == expected_field["type"]
         # Mode is nullable by default in BigQuery SchemaField
@@ -148,7 +148,8 @@ def test_format_jinja2(tmp_path):
     template_file.write_text("SELECT * FROM {{ table }}")
 
     rendered = BigQueryHelper.format_jinja2(
-        template_file.name, search_path=tmp_path, table="my_table")
+        template_file.name, search_path=tmp_path, table="my_table"
+    )
 
     assert rendered.strip() == "SELECT * FROM my_table"
 

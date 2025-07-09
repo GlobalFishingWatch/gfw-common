@@ -1,14 +1,15 @@
-import sys
 import json
+import sys
+
 from datetime import date
-from typing import Any, Sequence
 from types import SimpleNamespace
+from typing import Any, Sequence
 
-from gfw.common.cli import CLI, Command, ParametrizedCommand, Option
+from gfw.common.cli import CLI, Command, Option, ParametrizedCommand
 from gfw.common.cli.validations import valid_date
-
 from gfw.common.logging import LoggerConfig
 from gfw.common.version import __version__
+
 
 HELP_DRY_RUN = "If passed, all queries, if any, will be run in dry run mode."
 HELP_PROJECT = "GCP project id."

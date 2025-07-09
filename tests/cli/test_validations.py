@@ -10,8 +10,7 @@ from gfw.common.cli import validations
     [
         pytest.param(validations.valid_date, "2024/04/01", "2024-04-01", id="date"),
         pytest.param(validations.valid_list, None, "ABC,DEF", id="list"),
-
-    ]
+    ],
 )
 def test_argument_validations(func, invalid_arg, valid_arg):
     parser = argparse.ArgumentParser()

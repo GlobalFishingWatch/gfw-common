@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from gfw.common.cli import CLI, ParametrizedCommand, Option
+from gfw.common.cli import CLI, Option, ParametrizedCommand
 from gfw.common.cli.validations import valid_date, valid_list
 from gfw.common.io import yaml_save
 
@@ -19,19 +19,19 @@ def subcommand():
             Option("--list-3", type=valid_list, default=[]),
             Option("--boolean-2", type=bool, default=False),
         ],
-        run=lambda config, **kwargs: config.number_2*2
+        run=lambda config, **kwargs: config.number_2 * 2,
     )
 
 
 @pytest.fixture
 def main_command():
-    return dict(
-        name="program",
-        options=[
+    return {
+        "name": "program",
+        "options": [
             Option("--number-1", type=int, default=1),
             Option("--date-1", type=valid_date, default=date(2025, 1, 1)),
         ],
-    )
+    }
 
 
 def test_execute_with_subcommands(main_command, subcommand):
@@ -93,9 +93,7 @@ def test_execute_raises_on_invalid_config_key(tmp_path, main_command):
         pytest.param("boolean_2", True, False, id="bool"),
     ],
 )
-def test_arguments_precedence(
-    tmp_path, main_command, subcommand, arg, config_value, cli_value
-):
+def test_arguments_precedence(tmp_path, main_command, subcommand, arg, config_value, cli_value):
     path = tmp_path.joinpath("config.yaml")
     default_value = subcommand.defaults()[arg]
     command_name = subcommand.name
@@ -106,20 +104,20 @@ def test_arguments_precedence(
 
     cli_args = []
     cli_arg = arg.replace("_", "-")
-    if not type(cli_value) is bool:
+    if type(cli_value) is not bool:
         cli_args = [f"--{cli_arg}", f"{cli_value}"]
     elif cli_value is True:
         cli_args = [f"--{cli_arg}"]
 
     test_cli = CLI(**main_command, subcommands=[subcommand])
 
-    _, config = test_cli.execute(args=[command_name] + config_file_arg + cli_args)
+    _, config = test_cli.execute(args=[command_name, *config_file_arg, *cli_args])
     assert config[arg] == cli_value if cli_args else config_value
 
-    _, config = test_cli.execute(args=[command_name] + config_file_arg)
+    _, config = test_cli.execute(args=[command_name, *config_file_arg])
     assert config[arg] == config_value
 
-    _, config = test_cli.execute(args=[command_name] + ["--no-rich-logging"])
+    _, config = test_cli.execute(args=[command_name, "--no-rich-logging"])
     assert config[arg] == default_value
 
 
@@ -136,7 +134,7 @@ def test_allow_unknown(tmp_path, main_command, subcommand):
     args = known + unknown_unparsed + config_file_arg
 
     test_cli = CLI(**main_command, subcommands=[subcommand], allow_unknown=True)
-    res, config = test_cli.execute(args=[subcommand.name] + args)
+    res, config = test_cli.execute(args=[subcommand.name, *args])
 
     assert CLI.KEY_UNKNOWN_UNPARSED_ARGS in config
     assert config[CLI.KEY_UNKNOWN_UNPARSED_ARGS] == unknown_unparsed
@@ -148,7 +146,7 @@ def test_dont_allow_unknown_fails(main_command, subcommand):
 
     test_cli = CLI(**main_command, subcommands=[subcommand])
     with pytest.raises(SystemExit):
-        res, config = test_cli.execute(args=["subcommand", "--number-2", "3"] + unknown)
+        res, config = test_cli.execute(args=["subcommand", "--number-2", "3", *unknown])
 
 
 @pytest.mark.parametrize(
@@ -162,17 +160,15 @@ def test_only_render(main_command, subcommand, use_underscore, sep):
     known = [
         "subcommand",
         f"--only{sep}render",
-        f"--number{sep}2", "2",
+        f"--number{sep}2",
+        "2",
         f"--boolean{sep}2",
     ]
 
     unknown = ["--other", "4"]
 
     test_cli = CLI(
-        **main_command,
-        subcommands=[subcommand],
-        allow_unknown=True,
-        use_underscore=use_underscore
+        **main_command, subcommands=[subcommand], allow_unknown=True, use_underscore=use_underscore
     )
     res, config = test_cli.execute(args=known + unknown)
 

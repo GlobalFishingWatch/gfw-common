@@ -1,9 +1,10 @@
 from unittest.mock import patch
 
 import apache_beam as beam
-from apache_beam.transforms.window import SlidingWindows
-from apache_beam.testing.util import assert_that, equal_to
+
 from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
+from apache_beam.testing.util import assert_that, equal_to
+from apache_beam.transforms.window import SlidingWindows
 
 from gfw.common.beam.transforms import ApplySlidingWindows
 
@@ -45,9 +46,7 @@ def test_sliding_windows_calls_slidingwindows_correctly():
     assign_timestamps = False
 
     transform = ApplySlidingWindows(
-        period=period,
-        offset=offset,
-        assign_timestamps=assign_timestamps
+        period=period, offset=offset, assign_timestamps=assign_timestamps
     )
 
     # Dummy PCollection that supports | operator

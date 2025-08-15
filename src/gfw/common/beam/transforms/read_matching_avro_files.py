@@ -36,11 +36,15 @@ class ReadMatchingAvroFiles(beam.PTransform):
     that needs to perform historical data backfills on time-partitioned Avro files.
 
     Args:
-        base_path:
-            The base path to the Avro files. This can be a local directory
-            (e.g., '/path/to/data'), a GCS bucket (e.g., 'gs://my-bucket/'),
-            or any other Beam-supported filesystem path. The transform will
-            append a date-based wildcard pattern to this path.
+        path:
+            The path to the location of the Avro files.
+            It is assumed that the data is date-partitioned,
+            so this parameter must include a 'date' placeholder. It can be local path,
+            a GCS location, or any other Beam-supported filesystem path.
+            For example:
+                - 'gs://my-bucket/nmea-{date}/*.avro'
+                - 'gs://my-bucket/*{date}*.avro'
+                - '/path/to/data/{date}/*.avro'
 
         start_dt:
             The start datetime of the range, in ISO format (e.g., 'YYYY-MM-DDTHH:MM:SS').
@@ -49,10 +53,13 @@ class ReadMatchingAvroFiles(beam.PTransform):
             The end datetime of the range, in ISO format (e.g., 'YYYY-MM-DDTHH:MM:SS').
             Datetimes equal to this value are considered outside the range.
 
-        path_template:
-            Path template pointing to the folder containing the avro files.
-            Since it is assumed that the data is stored in date-partitioned folders,
-            it must include a 'date' placeholder (e.g., "nmea-{date}").
+        date_format:
+            The strftime/strptime format to use when matching dates in avro files.
+            Defaults to "%Y-%m-%d".
+
+        time_format:
+            The strftime/strptime format to use when matching times in avro files.
+            Defaults to "%H_%M_%SZ".
 
         decode:
             Whether to decode the data from bytes to string.
@@ -76,24 +83,24 @@ class ReadMatchingAvroFiles(beam.PTransform):
             A PCollection of Avro records from the files within the specified datetime range.
     """
 
-    PATTERN_TEMPLATE = "{base_path}/{folder_path}/*.avro"
-
     def __init__(
         self,
-        base_path: str,
+        path: str,
         start_dt: str,
         end_dt: str,
-        path_template: str = "{date}",
+        date_format: str = "%Y-%m-%d",
+        time_format: str = "%H_%M_%SZ",
         decode: bool = True,
         decode_method: str = "utf-8",
         read_all_from_avro_kwargs: Optional[dict[Any, Any]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        self._base_path = base_path
+        self._path = path
         self._start_dt = datetime_from_isoformat(start_dt)
         self._end_dt = datetime_from_isoformat(end_dt)
-        self._path_template = path_template
+        self._date_format = date_format
+        self._time_format = time_format
         self._decode = decode
         self._decode_method = decode_method
         self._read_all_from_avro_kwargs = read_all_from_avro_kwargs or {}
@@ -106,12 +113,7 @@ class ReadMatchingAvroFiles(beam.PTransform):
         patterns = []
 
         while current_date <= end_date:
-            patterns.append(
-                self.PATTERN_TEMPLATE.format(
-                    base_path=self._base_path,
-                    folder_path=self._path_template.format(date=current_date.isoformat()),
-                )
-            )
+            patterns.append(self._path.format(date=current_date.strftime(self._date_format)))
             current_date += timedelta(days=1)
 
         return patterns
@@ -133,10 +135,11 @@ class ReadMatchingAvroFiles(beam.PTransform):
     def is_path_in_range(self, path: str) -> bool:
         """Checks if a path containing a datetime is within the provided datetime range."""
         try:
-            dt = datetime_from_string(path)
+            dt = datetime_from_string(
+                path, date_format=self._date_format, time_format=self._time_format
+            )
         except ValueError as e:
             logger.error(f"Couldn't extract datetime from path: {e}")
-
             return False
 
         res = self._start_dt <= dt < self._end_dt

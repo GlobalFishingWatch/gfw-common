@@ -1,5 +1,7 @@
 import logging
 
+from string import Template
+
 import avro.schema
 import pytest
 
@@ -75,9 +77,16 @@ def test_read_matching_avro_files(avro_files_base_path):
         {"data": "test_data_2", "timestamp": "2025-08-15T04:00:00Z"},
     ]
 
+    path_template = Template("${base_path}/{date}/*.avro")
+    path = path_template.substitute(base_path=avro_files_base_path)
+
     with _TestPipeline() as p:
         output = p | "ReadMatchingAvroFiles" >> ReadMatchingAvroFiles(
-            base_path=avro_files_base_path, start_dt=start_dt, end_dt=end_dt
+            path=path,
+            start_dt=start_dt,
+            end_dt=end_dt,
+            date_format="%Y-%m-%d",
+            time_format="%H_%M_%SZ",
         )
 
         # Assert that the output PCollection matches our expected results
@@ -86,7 +95,7 @@ def test_read_matching_avro_files(avro_files_base_path):
 
 def test_no_datetime_extraction_logs_error(caplog):
     transform = ReadMatchingAvroFiles(
-        base_path="/tmp/some_path",  # doesn't matter for this test
+        path="/tmp/some_path",  # doesn't matter for this test
         start_dt="2025-08-14T09:00:00",
         end_dt="2025-08-15T00:00:00",
     )

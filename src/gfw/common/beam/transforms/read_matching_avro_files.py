@@ -12,7 +12,7 @@ from apache_beam.io import fileio
 from apache_beam.io.avroio import ReadAllFromAvro
 from apache_beam.pvalue import PCollection
 
-from gfw.common.datetime import datetime_from_string, get_datetime_from_string
+from gfw.common.datetime import datetime_from_isoformat, datetime_from_string
 
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,6 @@ class ReadMatchingAvroFiles(beam.PTransform):
             A PCollection of Avro records from the files within the specified datetime range.
     """
 
-    DATETIME_REGEX = r"(\d{4}-\d{2}-\d{2}).*?(\d{2}_\d{2}_\d{2}Z)"
     PATTERN_TEMPLATE = "{base_path}/{folder_path}/*.avro"
 
     def __init__(
@@ -92,8 +91,8 @@ class ReadMatchingAvroFiles(beam.PTransform):
     ) -> None:
         super().__init__(**kwargs)
         self._base_path = base_path
-        self._start_dt = datetime_from_string(start_dt)
-        self._end_dt = datetime_from_string(end_dt)
+        self._start_dt = datetime_from_isoformat(start_dt)
+        self._end_dt = datetime_from_isoformat(end_dt)
         self._path_template = path_template
         self._decode = decode
         self._decode_method = decode_method
@@ -133,11 +132,10 @@ class ReadMatchingAvroFiles(beam.PTransform):
 
     def is_path_in_range(self, path: str) -> bool:
         """Checks if a path containing a datetime is within the provided datetime range."""
-        dt = get_datetime_from_string(path)
-        if dt is None:
-            logger.error(
-                f"Couldn't extract datetime from path: {path} using regex: {self.DATETIME_REGEX}"
-            )
+        try:
+            dt = datetime_from_string(path)
+        except ValueError as e:
+            logger.error(f"Couldn't extract datetime from path: {e}")
 
             return False
 

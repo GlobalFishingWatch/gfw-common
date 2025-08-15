@@ -1,6 +1,12 @@
 from datetime import date, datetime, time, timedelta, timezone
 
-from gfw.common.datetime import datetime_from_date, datetime_from_string, datetime_from_timestamp
+from gfw.common.datetime import (
+    ISOFORMAT_REGEX,
+    datetime_from_date,
+    datetime_from_string,
+    datetime_from_timestamp,
+    get_datetime_from_string,
+)
 
 
 def test_datetime_from_timestamp_utc():
@@ -74,3 +80,20 @@ def test_datetime_from_date_custom_timezone():
     dt = datetime_from_date(d, t, tz)
     assert dt.hour == 12
     assert dt.tzinfo == tz
+
+
+def test_get_datetime_from_string():
+    # Matches regex with Z suffix -> should parse as UTC
+    s = "prefix-2025-08-14_09_30_00Z.avro"
+    dt = get_datetime_from_string(s, regex=ISOFORMAT_REGEX)
+    assert dt == datetime(2025, 8, 14, 9, 30, tzinfo=timezone.utc)
+
+    # Matches regex without timezone info -> should apply provided tz
+    s_no_tz = "prefix-2025-08-14_09_30_00.avro"
+    regex_no_z = r"(\d{4}-\d{2}-\d{2}).*?(\d{2}_\d{2}_\d{2})"
+    custom_tz = timezone(timedelta(hours=-3))
+    dt_no_tz = get_datetime_from_string(s_no_tz, regex=regex_no_z, tz=custom_tz)
+    assert dt_no_tz == datetime(2025, 8, 14, 9, 30, tzinfo=custom_tz)
+
+    # String that doesn't match regex -> should return None
+    assert get_datetime_from_string("no-date-here", regex=ISOFORMAT_REGEX) is None

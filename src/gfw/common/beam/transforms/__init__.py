@@ -20,6 +20,7 @@ from .apply_sliding_windows import ApplySlidingWindows
 from .bigquery_write_to_partitioned import FakeWriteToBigQuery, WriteToPartitionedBigQuery
 from .group_by import GroupBy
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
+from .read_matching_avro_files import ReadMatchingAvroFiles
 from .sample_and_log import SampleAndLogElements
 
 
@@ -29,6 +30,7 @@ __all__ = [
     "FakeWriteToBigQuery",
     "GroupBy",
     "ReadAndDecodeFromPubSub",
+    "ReadMatchingAvroFiles",
     "SampleAndLogElements",
     "WriteToPartitionedBigQuery",
 ]

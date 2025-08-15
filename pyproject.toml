@@ -85,6 +85,7 @@ test = [
   "pytest~=8.3",            # Core testing framework
   "pytest-cov~=6.0",        # Coverage plugin for pytest
   "pytest-mock~=3.14",      # Mocking plugin for pytest
+  "avro~=1.12",             # To create test data"
 ]
 
 # Development workflow and tools

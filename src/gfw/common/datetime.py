@@ -1,16 +1,17 @@
 """Utility functions for working with datetime objects and timezones."""
 
+import logging
 import re
 
 from datetime import date, datetime, time, timezone, tzinfo
-from typing import Union
+from typing import Optional, Union
 
 
-ISOFORMAT_REGEX = r"(\d{4}-\d{2}-\d{2}).*?(\d{2}_\d{2}_\d{2}Z)"
+logger = logging.getLogger(__name__)
 
 
 def datetime_from_timestamp(ts: Union[int, float], tz: tzinfo = timezone.utc) -> datetime:
-    """Convert a Unix timestamp (seconds since epoch) to a timezone-aware datetime object.
+    """Converts a Unix timestamp (seconds since epoch) to a timezone-aware datetime object.
 
     By default, the timestamp is converted to UTC (timezone.utc).
     If you need a different timezone, specify it using the 'tz' argument.
@@ -28,12 +29,12 @@ def datetime_from_timestamp(ts: Union[int, float], tz: tzinfo = timezone.utc) ->
     return datetime.fromtimestamp(ts, tz=tz)
 
 
-def datetime_from_string(s: str, tz: tzinfo = timezone.utc) -> datetime:
-    """Convert a UTC string (e.g., '2025-04-30T10:20:30') to a timezone-aware datetime object.
+def datetime_from_isoformat(s: str, tz: tzinfo = timezone.utc) -> datetime:
+    """Converts a datetime string in ISO format to a timezone-aware datetime object.
 
     Args:
         s:
-            The string to convert, in ISO 8601 format.
+            The string to convert, in ISO 8601 format (e.g., '2025-04-30T10:20:30').
 
         tz:
             The timezone to apply to the resulting datetime, if not present.
@@ -50,7 +51,7 @@ def datetime_from_string(s: str, tz: tzinfo = timezone.utc) -> datetime:
     return dt
 
 
-def datetime_from_date(d: date, t: time = time(0, 0), tz: timezone = timezone.utc) -> datetime:
+def datetime_from_date(d: date, t: Optional[time] = None, tz: timezone = timezone.utc) -> datetime:
     """Creates datetime from date and optional time (default 00:00:00), with timezone.
 
     Args:
@@ -58,7 +59,7 @@ def datetime_from_date(d: date, t: time = time(0, 0), tz: timezone = timezone.ut
             Date part of the datetime.
 
         t:
-            Optional time part. Defaults to 00:00:00.
+            Optional time part.
 
         tz:
             Timezone for the resulting datetime.
@@ -67,39 +68,79 @@ def datetime_from_date(d: date, t: time = time(0, 0), tz: timezone = timezone.ut
     Returns:
         A timezone-aware datetime object.
     """
-    return datetime.combine(d, t, tzinfo=tz)
+    if t is None:
+        t = time(0, 0)
+
+    return datetime.combine(d, t, tzinfo=t.tzinfo or tz)
 
 
-def get_datetime_from_string(
-    s: str, regex: str = ISOFORMAT_REGEX, tz: timezone = timezone.utc
-) -> Union[datetime, None]:
-    """Extracts datetime from a string using an ISO-FORMAT regular expression.
+def datetime_from_string(
+    s: str,
+    date_format: str = "%Y-%m-%d",
+    time_format: str = "%H_%M_%SZ",
+    tz: timezone = timezone.utc,
+) -> datetime:
+    """Extracts a datetime from a string using provided date and time formats.
 
     Args:
         s:
-            Date part of the datetime.
+            The string containing the datetime to extract.
 
-        regex:
-            The regular expression to use.
-            Defaults to regex that matches YYYY-MM-DD and HH_MM_SSZ.
+        date_format:
+            The strftime/strptime format of the date part.
+            Defaults to "%Y-%m-%d".
+
+        time_format:
+            The strftime/strptime format of the time part.
+            Defaults to "%H_%M_%SZ".
 
         tz:
-            The timezone to apply to the resulting datetime, if not present.
+            The timezone to apply if the parsed datetime has no tzinfo.
             Defaults to UTC.
+
+    Raises:
+        ValueError: When a match is not found in the input string.
 
     Returns:
         A timezone-aware datetime object.
     """
-    match = re.search(regex, s)
+    _FORMAT_TOKEN_REGEX = {
+        "%Y": r"\d{4}",
+        "%y": r"\d{2}",
+        "%m": r"\d{2}",
+        "%d": r"\d{2}",
+        "%H": r"\d{2}",
+        "%M": r"\d{2}",
+        "%S": r"\d{2}",
+        "%f": r"\d{6}",
+        "%z": r"[+-]\d{2}:?\d{2}",  # allow +HHMM or +HH:MM
+        "Z": r"Z",
+    }
 
+    def _format_to_regex(fmt: str) -> str:
+        regex = re.escape(fmt)
+        for token, pattern in _FORMAT_TOKEN_REGEX.items():
+            regex = regex.replace(re.escape(token), pattern)
+        return regex
+
+    date_regex = _format_to_regex(date_format)
+    time_regex = _format_to_regex(time_format)
+
+    # Build full regex with two capture groups, with time as optional.
+    regex = rf"({date_regex})(?:.*?({time_regex}))?"
+
+    logger.debug(f"Regex to use: {regex}.")
+
+    match = re.search(regex, s)
     if not match:
-        return None
+        raise ValueError(f"Couldn't find a match with regex '{regex}' for string '{s}'.")
 
     date_str = match.group(1)
-    time_str = match.group(2).replace("_", ":").replace("Z", "+00:00")
-    dt = datetime.fromisoformat(f"{date_str} {time_str}")
+    time_str = match.group(2)
 
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=tz)
+    date = datetime.strptime(date_str, date_format).date()
+    time = None
+    if time_str is not None:
+        time = datetime.strptime(time_str, time_format).timetz()  # Time with preservred timezone.
 
-    return dt
+    return datetime_from_date(date, time, tz=tz)

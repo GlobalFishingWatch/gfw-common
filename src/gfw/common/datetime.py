@@ -78,6 +78,7 @@ def datetime_from_string(
     s: str,
     date_format: str = "%Y-%m-%d",
     time_format: str = "%H_%M_%SZ",
+    allow_no_time: bool = True,
     tz: timezone = timezone.utc,
 ) -> datetime:
     """Extracts a datetime from a string using provided date and time formats.
@@ -94,12 +95,17 @@ def datetime_from_string(
             The strftime/strptime format of the time part.
             Defaults to "%H_%M_%SZ".
 
+        allow_no_time:
+            If True, allows input strings with no time information.
+
         tz:
             The timezone to apply if the parsed datetime has no tzinfo.
             Defaults to UTC.
 
     Raises:
-        ValueError: When a match is not found in the input string.
+        ValueError:
+            - When date is not found in the input string.
+            - When time is not found in the input string and allow_no_time is False.
 
     Returns:
         A timezone-aware datetime object.
@@ -133,14 +139,18 @@ def datetime_from_string(
 
     match = re.search(regex, s)
     if not match:
-        raise ValueError(f"Couldn't find a match with regex '{regex}' for string '{s}'.")
+        raise ValueError(f"Couldn't find a date with regex '{regex}' for string '{s}'.")
 
     date_str = match.group(1)
+    date = datetime.strptime(date_str, date_format).date()
+
     time_str = match.group(2)
 
-    date = datetime.strptime(date_str, date_format).date()
-    time = None
-    if time_str is not None:
+    if time_str is None:
+        if not allow_no_time:
+            raise ValueError(f"Couldn't find a time with regex '{regex}' for string '{s}'.")
+        time = None
+    else:
         time = datetime.strptime(time_str, time_format).timetz()  # Time with preservred timezone.
 
     return datetime_from_date(date, time, tz=tz)

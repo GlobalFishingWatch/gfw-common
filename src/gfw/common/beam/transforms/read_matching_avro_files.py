@@ -61,6 +61,11 @@ class ReadMatchingAvroFiles(beam.PTransform):
             The strftime/strptime format to use when matching times in avro files.
             Defaults to "%H_%M_%SZ".
 
+        allow_no_time:
+            If True, allows paths to not contain time information,
+            and a default of 0 will be applied.
+            If False, it will raise a ValueError.
+
         decode:
             Whether to decode the data from bytes to string.
             Default is True.
@@ -78,6 +83,9 @@ class ReadMatchingAvroFiles(beam.PTransform):
         **kwargs:
             Additional keyword arguments passed to base PTransform class.
 
+    Raises:
+        ValueError: When a path does not contain time information and allow_no_time is False.
+
     Returns:
         PCollection:
             A PCollection of Avro records from the files within the specified datetime range.
@@ -90,6 +98,7 @@ class ReadMatchingAvroFiles(beam.PTransform):
         end_dt: str,
         date_format: str = "%Y-%m-%d",
         time_format: str = "%H_%M_%SZ",
+        allow_no_time: bool = False,
         decode: bool = True,
         decode_method: str = "utf-8",
         read_all_from_avro_kwargs: Optional[dict[Any, Any]] = None,
@@ -101,6 +110,7 @@ class ReadMatchingAvroFiles(beam.PTransform):
         self._end_dt = datetime_from_isoformat(end_dt)
         self._date_format = date_format
         self._time_format = time_format
+        self._allow_no_time = allow_no_time
         self._decode = decode
         self._decode_method = decode_method
         self._read_all_from_avro_kwargs = read_all_from_avro_kwargs or {}
@@ -134,13 +144,12 @@ class ReadMatchingAvroFiles(beam.PTransform):
 
     def is_path_in_range(self, path: str) -> bool:
         """Checks if a path containing a datetime is within the provided datetime range."""
-        try:
-            dt = datetime_from_string(
-                path, date_format=self._date_format, time_format=self._time_format
-            )
-        except ValueError as e:
-            logger.error(f"Couldn't extract datetime from path: {e}")
-            return False
+        dt = datetime_from_string(
+            path,
+            date_format=self._date_format,
+            time_format=self._time_format,
+            allow_no_time=self._allow_no_time,
+        )
 
         res = self._start_dt <= dt < self._end_dt
 

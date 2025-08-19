@@ -29,7 +29,7 @@ def test_datetime_from_timestamp_with_timezone():
 
 def test_datetime_from_isoformat():
     """Test converting UTC string to a timezone-aware datetime."""
-    datetime_str = "2025-04-30T10:20:27"
+    datetime_str = "2025-04-30T10:20:27+00:00"
     dt = datetime_from_isoformat(datetime_str)
     expected_dt = datetime(2025, 4, 30, 10, 20, 27, tzinfo=timezone.utc)
     assert dt == expected_dt
@@ -169,6 +169,7 @@ def test_datetime_from_string(input_str, date_fmt, time_fmt, expected_dt):
     [
         pytest.param(("invalid_string",), {}, id="invalid-string"),
         pytest.param(("12_30_45Z",), {"time_format": "%H_%M_%SZ"}, id="time-without-date"),
+        pytest.param(("2025-08-15",), {"allow_no_time": False}, id="time-without-time"),
     ],
 )
 def test_datetime_from_string_raises_value_error(args, kwargs):

@@ -1,5 +1,3 @@
-import logging
-
 from string import Template
 
 import avro.schema
@@ -102,11 +100,5 @@ def test_no_datetime_extraction_logs_error(caplog):
 
     bad_path = "/path/without/datetime/structure/file.avro"
 
-    with caplog.at_level(logging.ERROR):
-        result = transform.is_path_in_range(bad_path)  # or whatever your method is called
-
-    # It should log the error
-    assert any("Couldn't extract datetime" in msg for msg in caplog.messages)
-
-    # And return False
-    assert result is False
+    with pytest.raises(ValueError):
+        transform.is_path_in_range(bad_path)

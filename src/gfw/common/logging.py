@@ -1,10 +1,11 @@
 """Logging utilities."""
 
 import logging
+import sys
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional, TextIO, Union
 
 from rich.logging import RichHandler
 
@@ -37,6 +38,7 @@ class LoggerConfig:
         verbose: bool = False,
         rich: bool = True,
         log_file: Optional[Union[str, Path]] = None,
+        log_stream: TextIO = sys.stderr,
     ) -> logging.Logger:
         """Initializes and configures the root logger.
 
@@ -49,6 +51,13 @@ class LoggerConfig:
 
             log_file:
                 Path to file in which to save logs.
+
+            log_stream:
+                Destination stream for log output. Defaults to `sys.stderr`.
+                Typically set to `sys.stdout` or `sys.stderr`, but can be any
+                text-mode file-like object (e.g. an open file or `io.StringIO`)
+                that implements a `write(str)` method.
+                Ignored if `rich=True`, since RichHandler manages its own output stream.
         """
         logger = logging.getLogger()
         logger.handlers.clear()
@@ -60,7 +69,7 @@ class LoggerConfig:
             handlers.append(RichHandler())
             fmt = fmt.replace(_TIME_ENTRY, "")
         else:
-            handlers.append(logging.StreamHandler())
+            handlers.append(logging.StreamHandler(log_stream))
 
         if log_file is not None:
             handlers.append(logging.FileHandler(Path(log_file)))

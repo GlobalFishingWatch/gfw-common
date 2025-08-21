@@ -3,8 +3,8 @@
 import codecs
 import logging
 
-from datetime import timedelta
-from typing import Any, Optional, Sequence
+from datetime import datetime, timedelta
+from typing import Any, Callable, Optional, Sequence
 
 import apache_beam as beam
 
@@ -16,6 +16,12 @@ from gfw.common.datetime import datetime_from_isoformat, datetime_from_string
 
 
 logger = logging.getLogger(__name__)
+
+
+class ReadMatchingAvroFilesError(Exception):
+    """Custom exception for errors of `ReadMatchingAvroFiles` PTransform."""
+
+    pass
 
 
 class ReadMatchingAvroFiles(beam.PTransform):
@@ -52,6 +58,25 @@ class ReadMatchingAvroFiles(beam.PTransform):
         end_dt:
             The end datetime of the range, in ISO format (e.g., 'YYYY-MM-DDTHH:MM:SS').
             Datetimes equal to this value are considered outside the range.
+
+        buffer_days:
+            Number of extra whole days to include before the datetime range.
+            Useful to ensure boundary records are not excluded.
+
+        buffer_minutes:
+            Number of extra minutes to include before the datetime range.
+            Provides finer-grained control, to avoid fetching unnecessary files.
+
+        record_time_fn:
+            Function that extracts a event timestamp from a record.
+            It should accept a record dictionary and return a `datetime`.
+            This allows custom logic such as accessing nested fields,
+            parsing strings, or applying fallback values.
+            The extracted timestamp is used for the last filtering step.
+
+        strict:
+            If True, raises an exception if the record_time_fn failed to extract the timestamp.
+            If False, will skip the failing record.
 
         date_format:
             The strftime/strptime format to use when matching dates in avro files.
@@ -91,23 +116,33 @@ class ReadMatchingAvroFiles(beam.PTransform):
             A PCollection of Avro records from the files within the specified datetime range.
     """
 
+    MSG_FAILED_EXTRACTING_TIMESTAMP = "Failed to extract timestamp from record: {}."
+
     def __init__(
         self,
         path: str,
         start_dt: str,
         end_dt: str,
+        buffer_days: int = 1,
+        buffer_minutes: int = 1,
+        record_time_fn: Optional[Callable[[dict], datetime]] = None,
+        strict: bool = False,
         date_format: str = "%Y-%m-%d",
         time_format: str = "%H_%M_%SZ",
         allow_no_time: bool = False,
         decode: bool = True,
         decode_method: str = "utf-8",
-        read_all_from_avro_kwargs: Optional[dict[Any, Any]] = None,
+        read_all_from_avro_kwargs: Optional[dict[str, Any]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
         self._path = path
         self._start_dt = datetime_from_isoformat(start_dt)
         self._end_dt = datetime_from_isoformat(end_dt)
+        self._buffer_days = buffer_days
+        self._buffer_minutes = buffer_minutes
+        self._record_time_fn = record_time_fn
+        self._strict = strict
         self._date_format = date_format
         self._time_format = time_format
         self._allow_no_time = allow_no_time
@@ -118,7 +153,7 @@ class ReadMatchingAvroFiles(beam.PTransform):
         self._validate_decode_method()
 
     def _generate_file_patterns(self) -> Sequence[str]:
-        current_date = self._start_dt.date()
+        current_date = self._start_dt.date() - timedelta(days=self._buffer_days)
         end_date = self._end_dt.date()
         patterns = []
 
@@ -151,12 +186,29 @@ class ReadMatchingAvroFiles(beam.PTransform):
             allow_no_time=self._allow_no_time,
         )
 
-        res = self._start_dt <= dt < self._end_dt
+        start_dt = self._start_dt - timedelta(minutes=self._buffer_minutes)
+        res = start_dt <= dt < self._end_dt
 
         logger.debug(f"Matched path (inside datetime range? = {res}).")
         logger.debug(path)
 
         return res
+
+    def _is_record_in_range(self, record: dict) -> bool:
+        try:
+            dt = self._record_time_fn(record)
+        except Exception as e:
+            if self._strict:
+                raise ReadMatchingAvroFilesError(
+                    f"{self.MSG_FAILED_EXTRACTING_TIMESTAMP.format(e)}"
+                    "Check if your record_time_fn is valid."
+                ) from e
+
+            logger.warning(f"{self.MSG_FAILED_EXTRACTING_TIMESTAMP.format(e)} Skipping record.")
+
+            return False
+
+        return self._start_dt <= dt < self._end_dt
 
     def expand(self, pcoll: PCollection) -> PCollection:
         """Applies the transform to the pipeline root and returns a PCollection of messages.
@@ -175,7 +227,8 @@ class ReadMatchingAvroFiles(beam.PTransform):
         logger.info("Generating file patterns...")
         file_patterns = self._generate_file_patterns()
 
-        logger.info(f"Generated patterns: {file_patterns}")
+        logger.info(f"Generated {len(file_patterns)} file patterns, first: {file_patterns[0]}")
+
         records = (
             pcoll
             | "CreatePatterns" >> beam.Create(file_patterns)
@@ -183,6 +236,8 @@ class ReadMatchingAvroFiles(beam.PTransform):
             | "FilterFilesByTime" >> beam.Filter(lambda m: self.is_path_in_range(m.path))
             | "ReadAvroRecords" >> ReadAllFromAvro(**self._read_all_from_avro_kwargs)
         )
+        if self._record_time_fn:
+            records = records | "FilterRecordsByTime" >> beam.Filter(self._is_record_in_range)
 
         if self._decode:
             records = records | beam.Map(self._decode_records)

@@ -90,6 +90,7 @@ class CLI:
     HELP_CONFIG_FILE = "Path to config file."
     HELP_VERBOSE = "Set logger level to DEBUG."
     HELP_NO_RICH_LOGGING = "Disable rich logging [useful for production environments]."
+    HELP_LOG_TO_STDOUT = "If True, sends logs output to sys.stdout stream."
     HELP_LOG_FILE = "File to send logging output to."
     HELP_ONLY_RENDER = "Dry run, only renders command line call and prints it."
 
@@ -134,6 +135,7 @@ class CLI:
             Option("-c", "--config-file", type=str, default=None, help=cls.HELP_CONFIG_FILE),
             Option("-v", "--verbose", type=bool, default=False, help=cls.HELP_VERBOSE),
             Option("--log-file", type=str, default=None, help=cls.HELP_LOG_FILE),
+            Option("--log-to-stdout", type=bool, default=False, help=cls.HELP_LOG_TO_STDOUT),
             Option("--no-rich-logging", type=bool, default=False, help=cls.HELP_NO_RICH_LOGGING),
             Option("--only-render", type=bool, default=False, help=cls.HELP_ONLY_RENDER),
         ]
@@ -231,6 +233,7 @@ class CLI:
         verbose = cli_args.pop("verbose")
         no_rich_logging = cli_args.pop("no_rich_logging")
         only_render = cli_args.pop("only_render")
+        log_to_stdout = cli_args.pop("log_to_stdout")
 
         # Load config file if exists.
         config_file_args = {}
@@ -261,7 +264,12 @@ class CLI:
         config[self.KEY_UNKNOWN_PARSED_ARGS] = unknown_parsed_args
 
         # Setup logger.
-        self._logger_config.setup(verbose=verbose, rich=not no_rich_logging, log_file=log_file)
+        self._logger_config.setup(
+            verbose=verbose,
+            rich=not no_rich_logging,
+            log_file=log_file,
+            log_stream=sys.stdout if log_to_stdout else sys.stderr,
+        )
 
         # Log relevant information.
         logger.info(f"Starting {self.title}")

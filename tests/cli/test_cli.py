@@ -185,3 +185,25 @@ def test_only_render(main_command, subcommand, use_underscore, sep):
     ).format(sep=sep)
 
     assert res == expected
+
+
+def test_logs_to_stdout(main_command, capsys):
+    cli = CLI(**main_command)
+
+    # run with flag -> logs should go to stdout
+    cli.execute(args=["--log-to-stdout", "--no-rich-logging"])
+    out, err = capsys.readouterr()
+
+    assert "Starting program" in out
+    assert err == ""
+
+
+def test_logs_to_stderr(main_command, capsys):
+    cli = CLI(**main_command)
+
+    # run without flag -> logs should go to stderr
+    cli.execute(args=["--no-rich-logging"])
+    out, err = capsys.readouterr()
+
+    assert "Starting program" in err
+    assert out == ""

@@ -1,11 +1,15 @@
 """Module with reusable PTransforms for reading input PCollections."""
 
+from __future__ import annotations
+
 from typing import Any, Callable, Optional, Sequence
 
 import apache_beam as beam
 
 from apache_beam import io
 from apache_beam.pvalue import PCollection
+
+from gfw.common.query import Query
 
 
 class FakeReadFromBigQuery(io.ReadFromBigQuery):
@@ -83,6 +87,32 @@ class ReadFromBigQuery(beam.PTransform):
             return FakeReadFromBigQuery
 
         return io.ReadFromBigQuery
+
+    @classmethod
+    def from_query(cls, query: Query, use_type: bool = False, **kwargs: Any) -> ReadFromBigQuery:
+        """Creates a ReadFromBigQuery PTransform from a Query object.
+
+        Args:
+            query:
+                An instance of a Query subclass.
+                Its `render()` method is used to produce the SQL query string.
+
+            use_type:
+                If True, sets `output_type` to the query's NamedTuple type.
+
+            **kwargs:
+                Any additional arguments for ReadFromBigQuery constructor.
+
+        Returns:
+            A configured ReadFromBigQuery instance ready to use in a Beam pipeline.
+        """
+        rendered_query = query.render(formatted=False)
+
+        output_type: type = dict
+        if use_type:
+            output_type = query.output_type
+
+        return cls(query=rendered_query, output_type=output_type, **kwargs)
 
     def expand(self, pcoll: PCollection) -> PCollection[Any]:
         """Applies PCollection to read from BigQuery."""

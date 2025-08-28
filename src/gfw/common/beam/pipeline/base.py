@@ -5,14 +5,14 @@ import logging
 
 from collections import ChainMap
 from functools import cached_property
-from typing import Any, Optional, Tuple
+from typing import Any, Callable, Optional, Sequence, Tuple
 
 import apache_beam as beam
 import googlecloudprofiler
 
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.pvalue import PCollection
-from apache_beam.runners.runner import PipelineResult
+from apache_beam.runners.runner import PipelineResult, PipelineState
 
 from gfw.common.beam.pipeline.dag import Dag, LinearDag
 
@@ -49,9 +49,18 @@ class Pipeline:
             The DAG to be applied to the pipeline.
             Defaults to an empty LinearDag.
 
+        pre_hooks:
+            Sequence of callables executed before pipeline run.
+            Each callable receives the pipeline instance as its only argument.
+
+        post_hooks:
+            Sequence of callables executed after pipeline run completes successfully.
+            Each callable receives the pipeline instance as its only argument.
+
         unparsed_args:
             A list of unparsed arguments to pass to Beam options.
             Defaults to an empty tuple.
+
 
         **options:
             Additional options to pass to the Beam pipeline.
@@ -72,6 +81,8 @@ class Pipeline:
         name: str = "",
         version: str = "0.1.0",
         dag: Optional[Dag] = None,
+        pre_hooks: Sequence[Callable[..., None]] = (),
+        post_hooks: Sequence[Callable[..., None]] = (),
         unparsed_args: Tuple[str, ...] = (),
         **options: Any,
     ) -> None:
@@ -79,6 +90,8 @@ class Pipeline:
         self._name = name
         self._version = version
         self._dag = dag or LinearDag()
+        self._pre_hooks = pre_hooks
+        self._post_hooks = post_hooks
         self._unparsed_args = unparsed_args
         self._options = options
 
@@ -98,7 +111,7 @@ class Pipeline:
 
     @cached_property
     def pipeline_options(self) -> PipelineOptions:
-        """Resolves pipelines options.
+        """Resolves pipeline options.
 
         Combines parsed arguments by beam CLI, constructor parameters and defaults into a single
         `PipelineOptions` object.
@@ -131,12 +144,21 @@ class Pipeline:
             logger.info("Starting Google Cloud Profiler...")
             self._start_profiler()
 
+        for hook in self._pre_hooks:
+            hook(self)
+
         # Apply the DAG and store the main output(s).
         # This can be a PCollection, a tuple, a dict, or None.
         outputs = self.apply_dag()
 
         result = self.pipeline.run()
         result.wait_until_finish()
+
+        if result.state == PipelineState.DONE:
+            for hook in self._post_hooks:
+                hook(self)
+        else:
+            logger.warning("Pipeline did not finish successfully; skipping post-hooks.")
 
         return result, outputs
 

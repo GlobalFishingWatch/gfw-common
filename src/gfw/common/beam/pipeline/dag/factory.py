@@ -14,12 +14,14 @@ Classes:
 
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Sequence, Tuple
 
 from apache_beam import PTransform
+from apache_beam.io.gcp import bigquery
 
+from gfw.common.beam.pipeline.base import Pipeline
 from gfw.common.beam.pipeline.dag import Dag, LinearDag
-from gfw.common.beam.transforms import WriteToPartitionedBigQuery
+from gfw.common.beam.transforms import ReadFromBigQuery, WriteToPartitionedBigQuery
 from gfw.common.bigquery.helper import BigQueryHelper
 from gfw.common.pipeline.config import PipelineConfig
 
@@ -34,7 +36,15 @@ class DagFactory(ABC):
         self.config = config
 
     @property
-    def write_to_bigquery_factory(self) -> Callable[..., WriteToPartitionedBigQuery]:
+    def read_from_bigquery_factory(self) -> Callable[..., bigquery.ReadFromBigQuery]:
+        """Returns a factory for ReadFromBigQuery clients.
+
+        Uses mocked clients if configured.
+        """
+        return ReadFromBigQuery.get_client_factory(mocked=self.config.mock_bq_clients)
+
+    @property
+    def write_to_bigquery_factory(self) -> Callable[..., bigquery.WriteToBigQuery]:
         """Returns a factory for WriteToPartitionedBigQuery clients.
 
         Uses mocked clients if configured.
@@ -51,6 +61,16 @@ class DagFactory(ABC):
         """
         client_factory = BigQueryHelper.get_client_factory(mocked=self.config.mock_bq_clients)
         return partial(BigQueryHelper, client_factory=client_factory)
+
+    @property
+    def pre_hooks(self) -> Sequence[Callable[[Pipeline], None]]:
+        """Sequence of callables executed before pipeline run."""
+        return []
+
+    @property
+    def post_hooks(self) -> Sequence[Callable[[Pipeline], None]]:
+        """Sequence of callables executed after pipeline run completes successfully."""
+        return []
 
     @abstractmethod
     def build_dag(self) -> Dag:

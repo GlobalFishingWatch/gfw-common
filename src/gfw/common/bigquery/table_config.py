@@ -8,6 +8,7 @@ Subclasses must implement the schema property.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import date
 from functools import cached_property
 from typing import Any, Optional, Tuple
 
@@ -94,3 +95,11 @@ class TableConfig(ABC):
             bigquery_params["description"] = self.description.render()
 
         return bigquery_params
+
+    def view_query(self) -> str:
+        """Returns the query to perform to create a view for this table."""
+        raise NotImplementedError
+
+    def delete_query(self, start_date: date) -> str:
+        """Returns the query to perform when deleting records from this table."""
+        raise NotImplementedError

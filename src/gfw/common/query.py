@@ -160,10 +160,7 @@ class Query(ABC):
         template = self.jinja_env.get_template(self.template_filename)
 
         template_vars = self.template_vars
-        template_vars["fields"] = self.get_select_fields()
-
         query = template.render(template_vars)
-
         formatted_query = self.format(query)
 
         logger.debug(f"Rendered Query for {self}: ")

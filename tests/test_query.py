@@ -35,7 +35,7 @@ class DummyQuery(Query):
 
     @property
     def template_vars(self):
-        return {"source_table": "my_table"}
+        return {"source_table": "my_table", "fields": self.get_select_fields()}
 
 
 @pytest.fixture

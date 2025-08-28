@@ -3,6 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from jinja2 import Environment
+
 from gfw.common.pipeline.config import ERROR_DATE, PipelineConfig, PipelineConfigError
 
 
@@ -50,3 +52,13 @@ def test_from_namespace_creates_config():
     assert isinstance(cfg, PipelineConfig)
     assert cfg.date_range == ("2023-06-01", "2023-06-30")
     assert cfg.unknown_parsed_args.get("other_option") == "value"
+
+
+def test_top_level_package():
+    cfg = PipelineConfig(date_range=("2023-01-01", "2023-12-31"))
+    assert cfg.top_level_package == "gfw"
+
+
+def test_jinja_env():
+    cfg = PipelineConfig(date_range=("2023-01-01", "2023-12-31"), jinja_folder="common/assets")
+    assert isinstance(cfg.jinja_env, Environment)

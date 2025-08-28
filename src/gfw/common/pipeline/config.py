@@ -10,11 +10,17 @@ Intended for use in CLI-based or programmatic pipeline setups where date ranges
 and additional arguments need to be passed and validated.
 """
 
+from __future__ import annotations
+
 from dataclasses import asdict, dataclass, field
 from datetime import date
 from functools import cached_property
 from types import SimpleNamespace
 from typing import Any
+
+from jinja2 import Environment
+
+from gfw.common.jinja2 import EnvironmentLoader
 
 
 ERROR_DATE = "Dates must be in ISO format. Got: {}."
@@ -40,6 +46,9 @@ class PipelineConfig:
         version:
             Version of the pipeline.
 
+        jinja_folder:
+            The folder that contains the jinja2 templates.
+
         mock_bq_clients:
             If True, all BigQuery interactions will be mocked.
 
@@ -53,21 +62,29 @@ class PipelineConfig:
     date_range: tuple[str, str]
     name: str = ""
     version: str = "0.1.0"
+    jinja_folder: str = "assets/queries"
     mock_bq_clients: bool = False
     unknown_parsed_args: dict[str, Any] = field(default_factory=dict)
     unknown_unparsed_args: tuple[str, ...] = ()
 
     @classmethod
-    def from_namespace(cls, ns: SimpleNamespace) -> "PipelineConfig":
+    def from_namespace(cls, ns: SimpleNamespace, **kwargs: Any) -> PipelineConfig:
         """Creates a PipelineConfig instance from a SimpleNamespace.
 
         Args:
-            ns: Namespace containing attributes matching PipelineConfig fields.
+            ns:
+                Namespace containing attributes matching PipelineConfig fields.
+
+            kwargs:
+                Any additional arguments to be passed to the class constructor.
 
         Returns:
             A new PipelineConfig instance.
         """
-        return cls(**vars(ns))
+        ns_dict = vars(ns)
+        ns_dict.update(kwargs)
+
+        return cls(**ns_dict)
 
     @cached_property
     def parsed_date_range(self) -> tuple[date, date]:
@@ -84,6 +101,21 @@ class PipelineConfig:
             return (date.fromisoformat(start_str), date.fromisoformat(end_str))
         except ValueError as e:
             raise PipelineConfigError(ERROR_DATE.format(self.date_range)) from e
+
+    @cached_property
+    def top_level_package(self) -> str:
+        """Returns the top-level package from this module."""
+        module = self.__class__.__module__
+        package = module.split(".")[0]
+
+        return package
+
+    @cached_property
+    def jinja_env(self) -> Environment:
+        """Returns a default jinja2 environment."""
+        return EnvironmentLoader().from_package(
+            package=self.top_level_package, path=self.jinja_folder
+        )
 
     @property
     def start_date(self) -> date:

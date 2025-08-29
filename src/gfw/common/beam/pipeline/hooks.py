@@ -29,15 +29,22 @@ from gfw.common.bigquery.table_config import TableConfig
 logger = logging.getLogger(__name__)
 
 
-def create_view_hook(table_config: TableConfig, mock: bool = False) -> Callable[[Pipeline], None]:
+def create_view_hook(
+    table_config: TableConfig,
+    project: str,
+    mock: bool = False,
+) -> Callable[[Pipeline], None]:
     """Returns a hook function to create a view of a BigQuery table.
 
     Args:
         table_config:
             TableConfig object containing view details.
 
+        project:
+            The GCP project to use to execute this hook.
+
         mock:
-            If True, uses a mocked client instead of performing real operations.
+            If True, uses a mocked BQ client instead of performing real operations.
 
     Returns:
         A callable hook that accepts a `Pipeline` instance and creates the view.
@@ -48,7 +55,7 @@ def create_view_hook(table_config: TableConfig, mock: bool = False) -> Callable[
         view_query = table_config.view_query()
         logger.info(f"Creating view: {view_id}...")
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
-        bq_client = BigQueryHelper(client_factory=client_factory, project=None)
+        bq_client = BigQueryHelper(client_factory=client_factory, project=project)
         bq_client.create_view(view_id=view_id, view_query=view_query, exists_ok=True)
         logger.info("Done.")
 
@@ -56,21 +63,25 @@ def create_view_hook(table_config: TableConfig, mock: bool = False) -> Callable[
 
 
 def delete_events_hook(
-    table_config: TableConfig, start_date: date, mock: bool = False
+    table_config: TableConfig,
+    project: str,
+    start_date: date,
+    mock: bool = False,
 ) -> Callable[[Pipeline], None]:
-    """Returns a hook function to delete events after a given date.
-
-    Example of a hook that can be executed before or after a pipeline run.
+    """Returns a hook function to delete events from a BigQuery table.
 
     Args:
         table_config:
             TableConfig object containing table details and delete query.
 
+        project:
+            The GCP project to use to execute this hook.
+
         start_date:
             Date after which events should be deleted.
 
         mock:
-            If True, uses a mocked client instead of performing real operations.
+            If True, uses a mocked BQ client instead of performing real operations.
 
     Returns:
         A callable hook that accepts a `Pipeline` instance and deletes events.
@@ -81,7 +92,7 @@ def delete_events_hook(
         logger.info(f"Deleting events from '{table_id}' after '{start_date}'...")
         delete_query = table_config.delete_query(start_date=start_date)
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
-        bq_client = BigQueryHelper(client_factory=client_factory, project=None)
+        bq_client = BigQueryHelper(client_factory=client_factory, project=project)
         bq_client.run_query(query_str=delete_query)
         logger.info("Done.")
 

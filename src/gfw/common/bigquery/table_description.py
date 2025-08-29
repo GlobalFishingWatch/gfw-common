@@ -71,7 +71,7 @@ class TableDescription:
     """
 
     repo_name: str
-    version: str
+    version: str = ""
     title: str = ""
     subtitle: str = ""
     summary: str = TO_BE_COMPLETED

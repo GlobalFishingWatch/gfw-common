@@ -62,6 +62,7 @@ def test_render_query(query):
     FROM `my_table`
     """
     assert query.format(sql) == query.format(expected)
+    assert query.format(sql) == query.render(formatted=True)
 
 
 def test_format_sql(query):
@@ -77,3 +78,23 @@ def test_requires_output_type():
 
     with pytest.raises(TypeError):
         BadQuery()
+
+
+def test_top_level_package(query):
+    assert query.top_level_package == "tests"
+
+
+def test_default_jinja_env():
+    query = DummyQuery()
+    env = query.jinja_env
+
+    assert isinstance(env, Environment)
+
+
+def test_sql_strings():
+    input_strings = ["hello", "world", "O'Reilly"]
+    expected = ["'hello'", "'world'", "'O'Reilly'"]
+
+    result = Query.sql_strings(input_strings)
+
+    assert result == expected

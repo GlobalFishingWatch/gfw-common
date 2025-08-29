@@ -48,5 +48,7 @@ class PipelineFactory:
             version=self.config.version,
             dag=self.dag_factory.build_dag(),
             unparsed_args=self.config.unknown_unparsed_args,
+            pre_hooks=self.dag_factory.pre_hooks,
+            post_hooks=self.dag_factory.post_hooks,
             **self.config.unknown_parsed_args,
         )

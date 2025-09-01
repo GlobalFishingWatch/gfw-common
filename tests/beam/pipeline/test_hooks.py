@@ -22,16 +22,14 @@ def table_config():
 
 
 def test_delete_events_hook(table_config):
-    hook = delete_events_hook(
-        table_config, project="test-project", start_date=date(2024, 1, 1), mock=True
-    )
+    hook = delete_events_hook(table_config, start_date=date(2024, 1, 1), mock=True)
 
-    pipeline = Pipeline()
+    pipeline = Pipeline(project="test-project")
     hook(pipeline)
 
 
 def test_create_view_hook(table_config):
-    hook = create_view_hook(table_config, project="test-project", mock=True)
+    hook = create_view_hook(table_config, mock=True)
 
-    pipeline = Pipeline()
+    pipeline = Pipeline(project="test-project")
     hook(pipeline)

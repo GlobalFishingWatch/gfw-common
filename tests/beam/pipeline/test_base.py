@@ -35,7 +35,9 @@ def test_pipeline_run():
         sinks=[DummySink()],
     )
 
-    pipeline = Pipeline(dag=dag)
+    pipeline = Pipeline(dag=dag, project="test-project")
+
+    assert pipeline.cloud_options.project == "test-project"
 
     result, outputs = pipeline.run()
 
@@ -77,6 +79,7 @@ def test_pipeline_options():
         "max_num_workers": 50,
         "network": "custom-network",
         "subnetwork": "custom-subnetwork",
+        "project": "test-project",
     }
 
     # Create the pipeline instance with mock args and user options.
@@ -128,6 +131,7 @@ def test_profiler_enabled_runs_profiler(monkeypatch):
         dag=dag,
         runner="DirectRunner",
         dataflow_service_options=["enable_google_cloud_profiler"],
+        project="test-project",
     )
 
     pipeline.run()

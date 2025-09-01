@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional, Sequence, Tuple
 import apache_beam as beam
 import googlecloudprofiler
 
-from apache_beam.options.pipeline_options import PipelineOptions
+from apache_beam.options.pipeline_options import GoogleCloudOptions, PipelineOptions
 from apache_beam.pvalue import PCollection
 from apache_beam.runners.runner import PipelineResult, PipelineState
 
@@ -121,6 +121,9 @@ class Pipeline:
         """
         options = dict(ChainMap(self.parsed_args, self._options, self.default_options()))
 
+        if options.get("project") is None:
+            raise ValueError("You must configure a project to run a Beam pipeline.")
+
         if DATAFLOW_SDK_CONTAINER_IMAGE not in options:
             options["setup_file"] = "./setup.py"
 
@@ -128,6 +131,11 @@ class Pipeline:
         logger.info(json.dumps(dict(options), indent=4))
 
         return PipelineOptions.from_dictionary(options)
+
+    @cached_property
+    def cloud_options(self) -> GoogleCloudOptions:
+        """Returns the `GoogleCloudOptions` view of the PipelineOptions."""
+        return self.pipeline_options.view_as(GoogleCloudOptions)
 
     @cached_property
     def pipeline(self) -> beam.Pipeline:

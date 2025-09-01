@@ -39,7 +39,7 @@ def test_apply_with_multiple_sources():
     dag = LinearDag(sources=[source1, source2], sinks=[sink1, sink2])
 
     # Construct the Pipeline with the sources and a core transform
-    pipeline = Pipeline(dag=dag)
+    pipeline = Pipeline(dag=dag, project="test-project")
 
     # Apply the DAG
     pipeline.apply_dag()
@@ -57,7 +57,7 @@ def test_apply_with_side_inputs():
     dag = LinearDag(sources=[source], core=core, side_inputs=side_inputs, sinks=[sink])
 
     # Construct the Pipeline with the sources and a core transform
-    pipeline = Pipeline(dag=dag)
+    pipeline = Pipeline(dag=dag, project="test-project")
 
     # Apply the DAG
     pipeline.apply_dag()
@@ -71,7 +71,7 @@ def test_apply_with_debug():
     # ... run test
 
     dag = LinearDag(sources=[DummySource()])
-    pipeline = Pipeline(dag=dag)
+    pipeline = Pipeline(dag=dag, project="test-project")
 
     # Retrieve the pipeline object using the pipeline property
     pipeline.apply_dag()

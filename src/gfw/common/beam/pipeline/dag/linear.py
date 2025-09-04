@@ -11,8 +11,9 @@ import apache_beam as beam
 from apache_beam import PTransform
 from apache_beam.pvalue import PCollection
 
-from gfw.common.beam.pipeline.dag import Dag
 from gfw.common.beam.transforms import SampleAndLogElements
+
+from .base import Dag
 
 
 class LinearDag(Dag):

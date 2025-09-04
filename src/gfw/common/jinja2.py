@@ -1,4 +1,4 @@
-"""Utilities for creating Jinja2 Environment instances with sensible defaults.
+"""Utilities for creating Jinja2 environments with sensible defaults.
 
 Provides the `EnvironmentLoader` class to simplify environment setup for
 loading templates from Python packages.

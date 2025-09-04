@@ -4,9 +4,12 @@ This module defines the PipelineFactory class, which builds a fully configured
 Pipeline instance from a given PipelineConfig and DagFactory.
 """
 
-from gfw.common.beam.pipeline import Pipeline
-from gfw.common.beam.pipeline.dag.factory import DagFactory
+from typing import Any
+
 from gfw.common.pipeline.config import PipelineConfig
+
+from .base import Pipeline
+from .dag import DagFactory
 
 
 class PipelineFactory:
@@ -18,22 +21,18 @@ class PipelineFactory:
 
         dag_factory:
             Factory that produces the pipeline's DAG.
+
+        kwargs:
+            Any additional parameters to be passed to :class:`Pipeline` constructor.
     """
 
     def __init__(
         self,
         config: PipelineConfig,
         dag_factory: DagFactory,
+        **kwargs: Any,
     ) -> None:
-        """Initializes the factory with config, DAG factory, and optional name.
-
-        Args:
-            config:
-                The pipeline configuration.
-
-            dag_factory:
-                Factory that provides the pipeline DAG.
-        """
+        """Initializes the factory with config, DAG factory, and optional name."""
         self.config = config
         self.dag_factory = dag_factory
 
@@ -48,7 +47,5 @@ class PipelineFactory:
             version=self.config.version,
             dag=self.dag_factory.build_dag(),
             unparsed_args=self.config.unknown_unparsed_args,
-            pre_hooks=self.dag_factory.pre_hooks,
-            post_hooks=self.dag_factory.post_hooks,
             **self.config.unknown_parsed_args,
         )

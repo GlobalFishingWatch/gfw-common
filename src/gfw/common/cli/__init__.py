@@ -1,4 +1,4 @@
-"""Package that contains command-line application utilities."""
+"""Lightweight framework around argparse for building CLIs more easily."""
 
 from .cli import CLI
 from .command import Command, ParametrizedCommand

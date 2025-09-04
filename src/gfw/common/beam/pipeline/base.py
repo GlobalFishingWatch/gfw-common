@@ -14,7 +14,8 @@ from apache_beam.options.pipeline_options import GoogleCloudOptions, PipelineOpt
 from apache_beam.pvalue import PCollection
 from apache_beam.runners.runner import PipelineResult, PipelineState
 
-from gfw.common.beam.pipeline.dag import Dag, LinearDag
+from .dag.base import Dag
+from .dag.linear import LinearDag
 
 
 logger = logging.getLogger(__name__)

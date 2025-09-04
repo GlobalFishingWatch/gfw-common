@@ -21,9 +21,10 @@ import logging
 from datetime import date
 from typing import Callable
 
-from gfw.common.beam.pipeline import Pipeline
 from gfw.common.bigquery.helper import BigQueryHelper
 from gfw.common.bigquery.table_config import TableConfig
+
+from .base import Pipeline
 
 
 logger = logging.getLogger(__name__)

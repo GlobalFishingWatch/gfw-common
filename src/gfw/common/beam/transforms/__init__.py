@@ -14,6 +14,33 @@ Features:
 
 These components aim to serve as building blocks to accelerate development while
 maintaining high code quality and reducing duplication.
+
+.. currentmodule:: gfw.common.beam.transforms
+
+Classes
+-------
+
+.. autosummary::
+   :toctree: ../_autosummary/
+   :template: custom-class-template.rst
+
+   ApplySlidingWindows
+   GroupBy
+   ReadAndDecodeFromPubSub
+   ReadFromBigQuery
+   ReadMatchingAvroFiles
+   SampleAndLogElements
+   WriteToPartitionedBigQuery
+
+Extra classes useful for testing
+--------------------------------
+.. autosummary::
+   :toctree: ../_autosummary/
+   :template: custom-class-template.rst
+
+   FakeReadFromPubSub
+   FakeWriteToBigQuery
+
 """
 
 from .apply_sliding_windows import ApplySlidingWindows

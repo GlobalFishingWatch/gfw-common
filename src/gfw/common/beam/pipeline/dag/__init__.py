@@ -10,10 +10,13 @@ seamlessly with the Pipeline class for streamlined Beam pipeline setup and execu
 """
 
 from .base import Dag
+from .factory import DagFactory, LinearDagFactory
 from .linear import LinearDag
 
 
 __all__ = [
     "Dag",
+    "DagFactory",
     "LinearDag",
+    "LinearDagFactory",
 ]

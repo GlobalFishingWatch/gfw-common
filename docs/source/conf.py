@@ -51,6 +51,7 @@ extensions = [
 # Mappings for sphinx.ext.intersphinx. Projects have to have Sphinx-generated doc! (.inv file)
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
+    "jinja2": ("https://jinja.palletsprojects.com/en/stable/", None),
 }
 
 templates_path = ["_templates"]

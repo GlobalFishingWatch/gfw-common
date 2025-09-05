@@ -6,9 +6,8 @@ Pipeline instance from a given PipelineConfig and DagFactory.
 
 from typing import Any
 
-from gfw.common.pipeline.config import PipelineConfig
-
 from .base import Pipeline
+from .config import PipelineConfig
 from .dag import DagFactory
 
 
@@ -17,10 +16,10 @@ class PipelineFactory:
 
     Attributes:
         config:
-            Configuration for the pipeline, including version and CLI arguments.
+            Configuration for the pipeline.
 
         dag_factory:
-            Factory that produces the pipeline's DAG.
+            Factory that produces the pipeline's :class:`Dag`.
 
         kwargs:
             Any additional parameters to be passed to :class:`Pipeline` constructor.
@@ -33,8 +32,9 @@ class PipelineFactory:
         **kwargs: Any,
     ) -> None:
         """Initializes the factory with config, DAG factory, and optional name."""
-        self.config = config
-        self.dag_factory = dag_factory
+        self._config = config
+        self._dag_factory = dag_factory
+        self._kwargs = kwargs
 
     def build_pipeline(self) -> Pipeline:
         """Constructs and returns a fully configured Pipeline instance.
@@ -43,9 +43,12 @@ class PipelineFactory:
             A pipeline with DAG, version, name, and CLI arguments.
         """
         return Pipeline(
-            name=self.config.name,
-            version=self.config.version,
-            dag=self.dag_factory.build_dag(),
-            unparsed_args=self.config.unknown_unparsed_args,
-            **self.config.unknown_parsed_args,
+            name=self._config.name,
+            version=self._config.version,
+            dag=self._dag_factory.build_dag(),
+            pre_hooks=self._config.pre_hooks,
+            post_hooks=self._config.post_hooks,
+            unparsed_args=self._config.unknown_unparsed_args,
+            **self._config.unknown_parsed_args,
+            **self._kwargs,
         )

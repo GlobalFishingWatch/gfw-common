@@ -13,6 +13,7 @@ Classes
 
    Pipeline
    PipelineFactory
+   PipelineConfig
    Dag
    DagFactory
    LinearDag
@@ -20,6 +21,7 @@ Classes
 """
 
 from .base import Pipeline
+from .config import PipelineConfig
 from .dag import Dag, DagFactory, LinearDag, LinearDagFactory
 from .factory import PipelineFactory
 
@@ -30,5 +32,6 @@ __all__ = [
     "LinearDag",
     "LinearDagFactory",
     "Pipeline",
+    "PipelineConfig",
     "PipelineFactory",
 ]

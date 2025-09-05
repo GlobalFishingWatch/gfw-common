@@ -42,7 +42,6 @@ Subpackage            Description and User Guide
 ``beam``              :doc:`./beam`
 ``bigquery``          BigQuery utilities.
 ``cli``               CLI framework.
-``pipeline``          :doc:`./pipeline`
 ==================    ========================================
 
 .. toctree::
@@ -53,7 +52,6 @@ Subpackage            Description and User Guide
    beam
    bigquery
    cli
-   pipeline
 
 Modules
 -------

@@ -15,7 +15,6 @@ Packages
    gfw.common.beam
    gfw.common.bigquery
    gfw.common.cli
-   gfw.common.pipeline
 
 Modules
 -------

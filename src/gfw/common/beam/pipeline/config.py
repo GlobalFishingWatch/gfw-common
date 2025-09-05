@@ -1,9 +1,7 @@
-"""This module defines the `PipelineConfig` class used to configure data pipeline executions.
+"""Defines the `PipelineConfig` class used to configure data pipeline executions.
 
 It includes:
 - A dataclass `PipelineConfig` that stores date ranges and any unknown arguments.
-- Automatic parsing of date strings into `datetime.date` objects.
-- Utility methods to convert from a `SimpleNamespace` or to a dictionary.
 - A custom exception `PipelineConfigError` for handling invalid configuration inputs.
 
 Intended for use in CLI-based or programmatic pipeline setups where date ranges
@@ -16,7 +14,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import date
 from functools import cached_property
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Callable, Sequence
 
 from jinja2 import Environment
 
@@ -35,6 +33,8 @@ class PipelineConfigError(Exception):
 @dataclass
 class PipelineConfig:
     """Configuration object for data pipeline execution.
+
+    This class is completely generic and independent of any specific pipeline framework.
 
     Args:
         date_range:
@@ -142,3 +142,13 @@ class PipelineConfig:
             A dictionary representation of the configuration.
         """
         return asdict(self)
+
+    @property
+    def pre_hooks(self) -> Sequence[Callable[[Any], None]]:
+        """Sequence of callables executed before pipeline run."""
+        return []
+
+    @property
+    def post_hooks(self) -> Sequence[Callable[[Any], None]]:
+        """Sequence of callables executed after pipeline run completes successfully."""
+        return []

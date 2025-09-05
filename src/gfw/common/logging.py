@@ -23,10 +23,10 @@ class LoggerConfig:
             Logger format.
 
         warning_level:
-            List of packages/modules for which to set the log level as WARNING.
+            List of packages/modules for which to set the log level as ``WARNING``.
 
         error_level:
-            List of packages/modules for which to set the log level as ERROR.
+            List of packages/modules for which to set the log level as ``ERROR``.
     """
 
     format_: str = _DEFAULT_LOG_FORMAT
@@ -44,20 +44,22 @@ class LoggerConfig:
 
         Args:
             verbose:
-                If true, turns logger level to DEBUG.
+                If true, turns logger level to ``DEBUG``.
 
             rich:
-                Whether to use rich library to colorize console output.
+                Whether to use `Rich <https://rich.readthedocs.io/en/stable/>`_ library
+                to colorize console output.
 
             log_file:
                 Path to file in which to save logs.
 
             log_stream:
-                Destination stream for log output. Defaults to `sys.stderr`.
-                Typically set to `sys.stdout` or `sys.stderr`, but can be any
-                text-mode file-like object (e.g. an open file or `io.StringIO`)
-                that implements a `write(str)` method.
-                Ignored if `rich=True`, since RichHandler manages its own output stream.
+                Destination stream for log output. Defaults to :py:attr:`sys.stderr`.
+                Typically set to :py:attr:`sys.stdout` or :py:attr:`sys.stderr`,
+                but can be any text-mode file-like object
+                (e.g. an open file or :class:`io.StringIO`)
+                that implements a ``write(str)`` method.
+                Ignored if ``rich=True``, since ``RichHandler`` manages its own output stream.
         """
         logger = logging.getLogger()
         logger.handlers.clear()

@@ -69,7 +69,7 @@ autodoc_default_options = {
 }
 autoclass_content = "class"
 autodoc_inherit_docstrings = True  # If no docstring, inherit from base class.
-autodoc_typehints = "none"
+autodoc_typehints = "signature"
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

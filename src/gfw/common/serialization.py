@@ -1,8 +1,4 @@
-"""Serialization utilities.
-
-This module provides helper functions to transform specific Python data types
-into JSON-serializable strings, facilitating JSON encoding and storage.
-"""
+"""Serialization utilities."""
 
 from datetime import date
 from typing import Any

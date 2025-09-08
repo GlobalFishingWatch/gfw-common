@@ -31,30 +31,35 @@ def _raise_with_diff(diffs: Sequence[RenderableType]) -> None:
 def equal_to(
     expected: List[Any], equals_fn: Callable[[Any, Any], bool] = _default_equals_fn
 ) -> Callable[[List[Any]], None]:
-    """Drop-in replacement for `apache_beam.testing.util.equal_to` with rich diff output.
+    """Drop-in replacement for :func:`apache_beam.testing.util.equal_to` with rich diff output.
 
     This matcher performs unordered comparison of top-level elements in actual and expected
-    PCollection outputs, just like Apache Beam's `equal_to`. However, it adds a rich diff
-    visualization to help debug mismatches by rendering side-by-side differences.
+    PCollection outputs, just like Apache Beam's :func:`~apache_beam.testing.util.equal_to`.
+    However, it adds a rich diff visualization to help debug mismatches by rendering
+    side-by-side differences.
 
-    Use in tests with `assert_that(pcoll, equal_to(expected))`.
+    Use in tests with ``assert_that(pcoll, equal_to(expected))``.
 
     Note:
         - Only top-level permutations are considered equal:
-          `[1, 2]` and `[2, 1]` are equal, but `[[1, 2]]` and `[[2, 1]]` are not.
+          ``[1, 2]`` and ``[2, 1]`` are equal, but ``[[1, 2]]`` and ``[[2, 1]]`` are not.
 
         - If elements are not directly comparable, a fallback comparison using
           a custom equality function or deep diff is used. This helps handle:
-          1) Collections with types that don't have a deterministic sort order
-             (e.g., pyarrow Tables as of 0.14.1).
-          2) Collections containing elements of different types.
+
+            - Collections with types that don't have a deterministic sort order
+              (e.g., :class:`pyarrow.Tables` as of 0.14.1).
+            - Collections containing elements of different types.
 
     Args:
-        expected: Iterable of expected PCollection elements.
-        equals_fn: Optional function `(expected_item, actual_item) -> bool` to customize equality.
+        expected:
+            Iterable of expected PCollection elements.
+
+        equals_fn:
+            Optional function ``(expected_item, actual_item) -> bool`` to customize equality.
 
     Returns:
-        A matcher function for use with `apache_beam.testing.util.assert_that`.
+        A matcher function for use with :class:`apache_beam.testing.util.assert_that`.
     """
 
     def _matcher(actual: Iterable[Any]) -> None:

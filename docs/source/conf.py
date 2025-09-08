@@ -57,9 +57,9 @@ intersphinx_mapping = {
 templates_path = ["_templates"]
 exclude_patterns = []
 
-autosummary_generate = True
 add_module_names = False  # Remove namespaces from class/method signatures.
 
+autosummary_generate = True
 autosummary_mock_imports = [  # Exclude these from the documentation.
     "gfw.common.assets",
     "gfw.common.version",

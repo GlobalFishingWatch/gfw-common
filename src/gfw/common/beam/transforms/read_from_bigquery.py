@@ -110,7 +110,7 @@ class ReadFromBigQuery(beam.PTransform):
 
         output_type: type = dict
         if use_type:
-            output_type = query.output_type
+            output_type = type(query.output_type)
 
         return cls(query=rendered_query, output_type=output_type, **kwargs)
 

@@ -12,16 +12,16 @@ from .dag import DagFactory
 
 
 class PipelineFactory:
-    """Builds a Beam Pipeline from a configuration object and a DAG factory.
+    """Builds a :class:`Pipeline` instance from :class:`PipelineConfig` and :class:`DagFactory`.
 
-    Attributes:
+    Args:
         config:
             Configuration for the pipeline.
 
         dag_factory:
-            Factory that produces the pipeline's :class:`Dag`.
+            Factory that produces the pipeline's :class:`~gfw.common.beam.pipeline.Dag`.
 
-        kwargs:
+        **kwargs:
             Any additional parameters to be passed to :class:`Pipeline` constructor.
     """
 

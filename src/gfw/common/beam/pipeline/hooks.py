@@ -2,18 +2,8 @@
 
 This module provides helper functions that generate hooks to be executed
 during a pipeline's lifecycle. Hooks are callable functions that take a
-`Pipeline` object and perform arbitrary operations, such as creating views,
-deleting data, or any other custom task.
-
-Hooks can be attached to pipeline steps for pre-processing, post-processing,
-or cleanup tasks.
-
-Functions:
-    create_view_hook:
-        Returns a hook that creates a BigQuery view.
-
-    delete_events_hook:
-        Returns a hook that deletes events from a BigQuery table after a specified date.
+:class:`~gfw.common.beam.pipeline.Pipeline` object and perform arbitrary operations,
+such as creating views, deleting data, or any other custom task.
 """
 
 import logging
@@ -38,13 +28,14 @@ def create_view_hook(
 
     Args:
         table_config:
-            TableConfig object containing view details.
+            :class:`~gfw.common.bigquery.TableConfig` instance containing view details.
 
         mock:
             If True, uses a mocked BQ client instead of performing real operations.
 
     Returns:
-        A callable hook that accepts a `Pipeline` instance and creates the view.
+        A callable hook that accepts a :class:`~gfw.common.beam.pipeline.Pipeline`
+        instance and creates the view.
     """
 
     def _hook(p: Pipeline) -> None:
@@ -68,7 +59,8 @@ def delete_events_hook(
 
     Args:
         table_config:
-            TableConfig object containing table details and delete query.
+            :class:`~gfw.common.bigquery.TableConfig` object containing
+            table detailsand delete query.
 
         start_date:
             Date after which events should be deleted.
@@ -77,7 +69,8 @@ def delete_events_hook(
             If True, uses a mocked BQ client instead of performing real operations.
 
     Returns:
-        A callable hook that accepts a `Pipeline` instance and deletes events.
+        A callable hook that accepts a :class:`~gfw.common.beam.pipeline.Pipeline` instance
+        and deletes events.
     """
 
     def _hook(p: Pipeline) -> None:

@@ -65,12 +65,13 @@ autosummary_mock_imports = [  # Exclude these from the documentation.
     "gfw.common.version",
 ]
 
-autodoc_default_options = {
-    "inherited-members": None,
-}
 autoclass_content = "class"
 autodoc_inherit_docstrings = True  # If no docstring, inherit from base class.
 autodoc_typehints = "signature"
+autodoc_member_order = "bysource"
+autodoc_default_options = {
+    "inherited-members": None,
+}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

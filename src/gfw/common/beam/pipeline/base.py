@@ -26,16 +26,17 @@ DATAFLOW_ENABLE_PROFILER = "enable_google_cloud_profiler"
 
 
 class Pipeline:
-    """This class simplifies Apache Beam pipeline configuration.
+    """Wrapper around :class:`beam.Pipeline` with extended functionality.
 
     Features:
-      - Merges unparsed, parsed, and default options.
-      - Supports custom DAG definitions.
-      - Enables Google Cloud Profiler integration.
-      - Automatically adds './setup.py' when 'sdk_container_image' is not specified.
+        - Merges unparsed, parsed, and default options.
+        - Supports custom DAG definitions.
+        - Enables Google Cloud Profiler integration.
+        - Automatically adds ``./setup.py`` when ``sdk_container_image`` is not specified.
 
     You can implement your own Dag object to be injected in the constructor,
-    reuse the provided LinearDag, or just override the `apply_dag` method of this class.
+    reuse the provided :class:`LinearDag`,
+    or just override the :meth:`apply_dag` method of this class.
 
     Args:
         name:
@@ -44,7 +45,7 @@ class Pipeline:
 
         version:
             The version of the pipeline.
-            Defaults to "0.1.0".
+            Defaults to ``0.1.0``.
 
         dag:
             The DAG to be applied to the pipeline.
@@ -68,7 +69,7 @@ class Pipeline:
 
     Attributes:
         parsed_args:
-            The parsed arguments from the `unparsed_args` list.
+            The parsed arguments from the ``unparsed_args`` list.
 
         pipeline_options:
             The merged pipeline options, including parsed args, user options, and defaults.
@@ -98,7 +99,7 @@ class Pipeline:
 
     @cached_property
     def parsed_args(self) -> dict[str, Any]:
-        """Parses the unparsed arguments using Beam's `PipelineOptions`.
+        """Parses the unparsed arguments using Beam's :class:`PipelineOptions`.
 
         Returns:
             A dictionary of parsed arguments.
@@ -115,7 +116,7 @@ class Pipeline:
         """Resolves pipeline options.
 
         Combines parsed arguments by beam CLI, constructor parameters and defaults into a single
-        `PipelineOptions` object.
+        :class:`PipelineOptions` object.
 
         Returns:
             The merged pipeline options.
@@ -135,12 +136,12 @@ class Pipeline:
 
     @cached_property
     def cloud_options(self) -> GoogleCloudOptions:
-        """Returns the `GoogleCloudOptions` view of the PipelineOptions."""
+        """Returns the :class:`GoogleCloudOptions` view of the :class:`PipelineOptions`."""
         return self.pipeline_options.view_as(GoogleCloudOptions)
 
     @cached_property
     def pipeline(self) -> beam.Pipeline:
-        """Returns the initialized beam.Pipeline object."""
+        """Returns the initialized :class:`beam.Pipeline` object."""
         return beam.Pipeline(options=self.pipeline_options)
 
     def apply_dag(self) -> PCollection:

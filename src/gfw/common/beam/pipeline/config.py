@@ -34,52 +34,44 @@ class PipelineConfigError(Exception):
 class PipelineConfig:
     """Configuration object for data pipeline execution.
 
-    This class is completely generic and independent of any specific pipeline framework.
-
-    Args:
-        date_range:
-            Tuple of start and end dates in ISO format (YYYY-MM-DD).
-
-        name:
-            Name of the pipeline.
-
-        version:
-            Version of the pipeline.
-
-        jinja_folder:
-            The folder that contains the jinja2 templates.
-
-        mock_bq_clients:
-            If True, all BigQuery interactions will be mocked.
-
-        unknown_parsed_args:
-            Parsed CLI or config arguments not explicitly defined in the config.
-
-        unknown_unparsed_args:
-            Raw unparsed CLI arguments.
+    Note:
+        This class is completely generic and independent of any specific pipeline framework.
     """
 
     date_range: tuple[str, str]
+    """Tuple of start and end dates in ISO format (``YYYY-MM-DD``)."""
+
     name: str = ""
+    """Name of the pipeline."""
+
     version: str = "0.1.0"
+    """Version of the pipeline."""
+
     jinja_folder: str = "assets/queries"
+    """The folder that contains the jinja2 templates."""
+
     mock_bq_clients: bool = False
+    """If True, all BigQuery interactions will be mocked."""
+
     unknown_parsed_args: dict[str, Any] = field(default_factory=dict)
+    """Parsed CLI or config arguments not explicitly defined in self."""
+
     unknown_unparsed_args: tuple[str, ...] = ()
+    """Raw unparsed CLI arguments."""
 
     @classmethod
     def from_namespace(cls, ns: SimpleNamespace, **kwargs: Any) -> PipelineConfig:
-        """Creates a PipelineConfig instance from a SimpleNamespace.
+        """Creates a :class:`PipelineConfig` instance from a :class:`types.SimpleNamespace`.
 
         Args:
             ns:
-                Namespace containing attributes matching PipelineConfig fields.
+                Namespace containing attributes matching this :class:`PipelineConfig` fields.
 
-            kwargs:
+            **kwargs:
                 Any additional arguments to be passed to the class constructor.
 
         Returns:
-            A new PipelineConfig instance.
+            A new :class:`PipelineConfig` instance.
         """
         ns_dict = vars(ns)
         ns_dict.update(kwargs)
@@ -88,13 +80,14 @@ class PipelineConfig:
 
     @cached_property
     def parsed_date_range(self) -> tuple[date, date]:
-        """Returns the parsed start and end dates as `datetime.date` objects.
+        """Returns the parsed start and end dates as :class:`~datetime.date` objects.
 
         Raises:
-            PipelineConfigError: If any of the dates are not in valid ISO format.
+            :class:`PipelineConfigError`:
+                If any of the dates are not in valid ISO format.
 
         Returns:
-            A tuple containing start and end dates as `date` objects.
+            A tuple containing parsed start and end dates.
         """
         try:
             start_str, end_str = self.date_range
@@ -122,7 +115,7 @@ class PipelineConfig:
         """Returns the start date of the configured range.
 
         Returns:
-            A `date` object representing the start of the range.
+            A :class:`~datetime.date` object representing the start of the range.
         """
         return self.parsed_date_range[0]
 
@@ -131,17 +124,9 @@ class PipelineConfig:
         """Returns the end date of the configured range.
 
         Returns:
-            A `date` object representing the end of the range.
+            A :class:`~datetime.date` object representing the end of the range.
         """
         return self.parsed_date_range[1]
-
-    def to_dict(self) -> dict[str, Any]:
-        """Converts the PipelineConfig to a dictionary.
-
-        Returns:
-            A dictionary representation of the configuration.
-        """
-        return asdict(self)
 
     @property
     def pre_hooks(self) -> Sequence[Callable[[Any], None]]:
@@ -150,5 +135,13 @@ class PipelineConfig:
 
     @property
     def post_hooks(self) -> Sequence[Callable[[Any], None]]:
-        """Sequence of callables executed after pipeline run completes successfully."""
+        """Sequence of callables executed after successful pipeline run."""
         return []
+
+    def to_dict(self) -> dict[str, Any]:
+        """Converts a :class:`PipelineConfig` instance to dictionary.
+
+        Returns:
+            A dictionary representation of the configuration.
+        """
+        return asdict(self)

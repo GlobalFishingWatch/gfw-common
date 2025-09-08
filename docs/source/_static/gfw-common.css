@@ -97,3 +97,9 @@ div.empty + section>h1 {
 .sig-prename {
   display: none;
 }
+
+hr {
+  border: none;
+  border-top: 2px solid black;
+  margin: 2em 0;   /* extra spacing, optional */
+}

@@ -20,9 +20,9 @@ class LinearDag(Dag):
     """A linear DAG implementation for Apache Beam pipelines.
 
     This DAG:
-    1. Applies multiple sources PTransforms and merges outputs into a single PCollection.
-    2. Applies a single core PTransform, with an optional side inputs PTransform.
-    3. Applies multiple sinks PTransforms.
+        1. Applies multiple sources PTransforms and merges outputs into a single PCollection.
+        2. Applies a single core PTransform, with an optional side inputs PTransform.
+        3. Applies multiple sinks PTransforms.
 
     Args:
         sources:
@@ -50,7 +50,7 @@ class LinearDag(Dag):
         side_inputs: Optional[PTransform[Any, Any]] = None,
         sinks: Tuple[PTransform[Any, Any], ...] = (),
     ) -> None:
-        """Initializes the LinearDag object."""
+        """Initializes the :class:`LinearDag` object."""
         self._sources = sources
         self._core = core or beam.Map(lambda x: x)
         self._sinks = sinks

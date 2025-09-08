@@ -10,6 +10,7 @@ Classes
 .. autosummary::
    :toctree: ../_autosummary/
    :template: custom-class-template.rst
+   :signatures: none
 
    Pipeline
    PipelineFactory
@@ -18,6 +19,18 @@ Classes
    DagFactory
    LinearDag
    LinearDagFactory
+
+Modules
+-------
+
+.. autosummary::
+   :toctree: ../_autosummary/
+   :template: custom-module-template.rst
+   :signatures: none
+
+   hooks
+
+----
 """
 
 from .base import Pipeline

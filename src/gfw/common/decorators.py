@@ -57,10 +57,11 @@ def timing(
             Only used for logging.
 
     Returns:
-        A wrapper around the original callable.
-        The wrapper returns a 2D tuple with:
-            * Whatever the original callable returns.
-            * The elapsed time.
+        :class:`Callable`:
+            A wrapper around the original callable that returns a 2D tuple with:
+
+            - Whatever the original callable returns.
+            - The elapsed time.
     """
 
     @wraps(f)

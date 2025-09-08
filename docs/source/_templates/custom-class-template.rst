@@ -4,9 +4,8 @@
 
 .. autoclass:: {{ objname }}
    :members:
-   :show-inheritance:
-   :inherited-members:
-   :special-members: __call__, __add__, __mul__
+   :no-inherited-members:
+   :no-special-members:
 
    {% block methods %}
    {% if methods %}
@@ -14,6 +13,7 @@
 
    .. autosummary::
       :nosignatures:
+      :no-inherited-members:
    {% for item in methods %}
       {%- if not item.startswith('_') %}
       ~{{ name }}.{{ item }}
@@ -27,6 +27,7 @@
    .. rubric:: {{ _('Attributes') }}
 
    .. autosummary::
+      :no-inherited-members:
    {% for item in attributes %}
       ~{{ name }}.{{ item }}
    {%- endfor %}

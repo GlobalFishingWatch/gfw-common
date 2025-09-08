@@ -25,18 +25,18 @@ class ReadMatchingAvroFilesError(Exception):
 
 
 class ReadMatchingAvroFiles(beam.PTransform):
-    """A generic PTransform to filter and read Avro files from any Beam-supported filesystem.
+    """Wrapper around :class:`~beam.io.avroio.ReadAllFromAvro` with filtering.
 
     This transform's primary function is to intelligently filter filenames
     based on a time range. It works by:
 
     1. **Generating Date-based Patterns**: It first generates a list of file
-       patterns for each day within the specified `start_dt` and `end_dt`. This
-       efficiently prunes the search space for large, time-partitioned datasets.
+       patterns for each day within the specified ``start_dt`` and ``end_dt``.
+       This efficiently prunes the search space for large, time-partitioned datasets.
 
     2. **Precise Datetime Filtering**: After matching the daily patterns, it
        applies a second, more precise filter to ensure that only files with a
-       timestamp strictly within the `start_dt` and `end_dt` are processed.
+       timestamp strictly within the ``start_dt`` and ``end_dt`` are processed.
 
     This PTransform is a generic and reusable component for any data pipeline
     that needs to perform historical data backfills on time-partitioned Avro files.
@@ -45,18 +45,18 @@ class ReadMatchingAvroFiles(beam.PTransform):
         path:
             The path to the location of the Avro files.
             It is assumed that the data is date-partitioned,
-            so this parameter must include a 'date' placeholder. It can be local path,
+            so this parameter must include a ``date`` placeholder. It can be local path,
             a GCS location, or any other Beam-supported filesystem path.
             For example:
-                - 'gs://my-bucket/nmea-{date}/*.avro'
-                - 'gs://my-bucket/*{date}*.avro'
-                - '/path/to/data/{date}/*.avro'
+                - ``gs://my-bucket/nmea-{date}/*.avro``
+                - ``gs://my-bucket/*{date}*.avro``
+                - ``/path/to/data/{date}/*.avro``
 
         start_dt:
-            The start datetime of the range, in ISO format (e.g., 'YYYY-MM-DDTHH:MM:SS').
+            The start datetime of the range, in ISO format (e.g., ``YYYY-MM-DDTHH:MM:SS``).
 
         end_dt:
-            The end datetime of the range, in ISO format (e.g., 'YYYY-MM-DDTHH:MM:SS').
+            The end datetime of the range, in ISO format (e.g., ``YYYY-MM-DDTHH:MM:SS``).
             Datetimes equal to this value are considered outside the range.
 
         buffer_days:
@@ -69,27 +69,27 @@ class ReadMatchingAvroFiles(beam.PTransform):
 
         record_time_fn:
             Function that extracts a event timestamp from a record.
-            It should accept a record dictionary and return a `datetime`.
+            It should accept a record dictionary and return a :class:`~datetime.datetime`.
             This allows custom logic such as accessing nested fields,
             parsing strings, or applying fallback values.
             The extracted timestamp is used for the last filtering step.
 
         strict:
-            If True, raises an exception if the record_time_fn failed to extract the timestamp.
+            If True, raises an exception if the ``record_time_fn`` failed to extract the timestamp.
             If False, will skip the failing record.
 
         date_format:
             The strftime/strptime format to use when matching dates in avro files.
-            Defaults to "%Y-%m-%d".
+            Defaults to ``%Y-%m-%d``.
 
         time_format:
             The strftime/strptime format to use when matching times in avro files.
-            Defaults to "%H_%M_%SZ".
+            Defaults to ``%H_%M_%SZ``.
 
         allow_no_time:
             If True, allows paths to not contain time information,
             and a default of 0 will be applied.
-            If False, it will raise a ValueError.
+            If False, it will raise a :class:`ValueError`.
 
         decode:
             Whether to decode the data from bytes to string.
@@ -97,19 +97,20 @@ class ReadMatchingAvroFiles(beam.PTransform):
 
         decode_method:
             The method used to decode the message data.
-            Supported methods include standard encodings like "utf-8", "ascii", etc.
-            Default is "utf-8".
+            Supported methods include standard encodings like ``utf-8``, ``ascii``, etc.
+            Default is ``utf-8``.
 
         read_all_from_avro_kwargs:
-            Any additional keyword arguments to be passed to Beam's `ReadAllFromAvro` class.
-            Check official documentation:
-            https://beam.apache.org/releases/pydoc/2.64.0/apache_beam.io.avroio.html#apache_beam.io.avroio.ReadAllFromAvro
+            Any additional keyword arguments to be passed to Beam's :class:`ReadAllFromAvro` class.
+            Check `official Apache Beam documentation
+            <https://beam.apache.org/releases/pydoc/2.64.0/apache_beam.io.avroio.html#apache_beam.io.avroio.ReadAllFromAvro>`_.
 
         **kwargs:
             Additional keyword arguments passed to base PTransform class.
 
     Raises:
-        ValueError: When a path does not contain time information and allow_no_time is False.
+        :class:`ValueError`:
+            When a path does not contain time information and ``allow_no_time`` is False.
 
     Returns:
         PCollection:
@@ -215,14 +216,17 @@ class ReadMatchingAvroFiles(beam.PTransform):
 
         Args:
             pcoll:
-                An input PCollection. This is expected to be a `PBegin` when used with a real
-                or mocked `ReadFromPubSub`, since Pub/Sub sources begin from the pipeline root.
+                An input PCollection.
+                This is expected to be a :class:`PBegin` when used with a real
+                or mocked :class:`ReadFromPubSub`,
+                since Pub/Sub sources begin from the pipeline root.
 
         Returns:
-            beam.PCollection:
-                A PCollection of dictionaries where each dictionary contains:
-                - "data": the decoded message string (if decoding is enabled),
-                - "attributes": a dictionary of message attributes (if available).
+            :class:`beam.PCollection`:
+                A PCollection of dictionaries where each dictionary contains the following keys:
+
+                - ``data``: The decoded message string (if decoding is enabled).
+                - ``attributes``: A dictionary of message attributes (if available).
         """
         logger.info("Generating file patterns...")
         file_patterns = self._generate_file_patterns()

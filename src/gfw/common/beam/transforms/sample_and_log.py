@@ -19,26 +19,19 @@ logger = logging.getLogger(__name__)
 class SampleAndLogElements(PTransform):
     """A Beam PTransform that logs elements of a PCollection.
 
-    Main Features:
-    - Logs elements from a PCollection for debugging and observability.
-    - Optionally samples a fixed number of elements to avoid log overload.
-    - Supports windowing for sampling in unbounded pipelines.
-    - Pretty-prints JSON-serializable elements for readability.
-    - Returns the original PCollection unmodified, preserving pipeline.
-
     Args:
         sample_size:
             The number of elements to log. If not provided, logs all elements.
 
         window_size:
             The window duration in seconds used when sampling unbounded sources;
-            only applicable when `sample_size` is set.
+            only applicable when ``sample_size`` is set.
 
         pretty_print:
             If True, formats each element as pretty-printed JSON when possible.
 
         message:
-            A custom string format for the log message. Must contain the placeholder {e}.
+            A custom string format for the log message. Must contain the placeholder ``{e}``.
     """
 
     def __init__(
@@ -54,7 +47,7 @@ class SampleAndLogElements(PTransform):
         self._message = message
 
     def expand(self, pcoll: PCollection) -> PCollection:
-        """Log elements of a PCollection, optionally sampling N elements."""
+        """Log elements of a PCollection, optionally sampling a ``sample_size`` elements."""
         samples = pcoll
         if self._sample_size:
             samples = (

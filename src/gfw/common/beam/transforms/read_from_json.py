@@ -14,7 +14,7 @@ class ReadFromJson(beam.PTransform):
     """Beam transform to read a PCollection from a JSON file.
 
     This transform loads a local JSON or JSONLines file eagerly (outside the pipeline),
-    then injects the resulting records into the pipeline using `beam.Create`.
+    then injects the resulting records into the pipeline using :class:`beam.Create`.
 
     Useful for testing, prototyping, or controlled ingestion.
 
@@ -23,13 +23,13 @@ class ReadFromJson(beam.PTransform):
             Path to the local file to read.
 
         coder:
-            Callable to apply to each decoded record. Defaults to `dict`.
+            Callable to apply to each decoded record. Defaults to :class:`dict`.
 
         lines:
             If True, interprets the input as newline-delimited JSON (JSONLines).
 
         create_kwargs:
-            Optional dictionary of keyword arguments to pass to `beam.Create`.
+            Optional dictionary of keyword arguments to pass to :class:`beam.Create`.
             Use this to control serialization, type hints, etc.
 
         **kwargs:
@@ -40,9 +40,11 @@ class ReadFromJson(beam.PTransform):
             If the input file does not exist at pipeline construction time.
 
     Example:
-        >>> with beam.Pipeline() as p:
-        ...     pcoll = p | ReadFromJson("data/input.json", lines=True)
-        ...     pcoll | beam.Map(print)
+        .. code-block:: python
+
+            with beam.Pipeline() as p:
+                pcoll = p | ReadFromJson("data/input.json", lines=True)
+                pcoll | beam.Map(print)
     """
 
     def __init__(
@@ -61,7 +63,7 @@ class ReadFromJson(beam.PTransform):
         self._create_kwargs = create_kwargs or {}
 
     def expand(self, p: PCollection) -> PCollection:
-        """Apply transform to pipeline 'p': create PCollection from loaded JSON data."""
+        """Apply transform to pipeline ``p``: create PCollection from loaded JSON data."""
         # Why not use beam.io.ReadFromJson instead of (beam.Create + json_load)?
         # Because ReadFromJson returns BeamSchema objects, not plain dicts,
         # and requires conversion like: dict(x._asdict()).

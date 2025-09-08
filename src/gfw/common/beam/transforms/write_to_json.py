@@ -54,28 +54,30 @@ class WriteToJson(beam.PTransform):
             )
         )
         """
-        Why not use beam.io.WriteToJson?
+        Why not use :class:`beam.io.WriteToJson`?
         `WriteToJson` has issues writing to local files.
         WriteToJson raises a ValueError when the path does not point to a GCS location.
         It works when used together with `ReadFromBigQuery` and a GCS location is specified there.
         This makes it unreliable for local development or testing.
 
-        Additionally, it internally relies on `pandas.DataFrame.to_json`, which introduces extra
-        dependencies and may not preserve the original structure of dict-like records.
+        Additionally, it internally relies on :meth:`pandas.DataFrame.to_json`,
+        which introduces extra dependencies and may not preserve the original structure of
+        dict-like records.
         https://beam.apache.org/releases/pydoc/current/apache_beam.io.textio.html#apache_beam.io.textio.WriteToJson
 
-        Example usage:
-            from apache_beam.io.fileio import default_file_naming
+        Example usage of :class:`beam.io.WriteToJson`:
+            .. code-block:: python
+                from apache_beam.io.fileio import default_file_naming
 
-            file_naming = default_file_naming(prefix=self._output_prefix, suffix=".json")
-            return pcoll | beam.io.WriteToJson(
-                self._output_dir.as_posix(),
-                file_naming=file_naming,
-                lines=True,
-                indent=4,
-            )
+                file_naming = default_file_naming(prefix=self._output_prefix, suffix=".json")
+                return pcoll | beam.io.WriteToJson(
+                    self._output_dir.as_posix(),
+                    file_naming=file_naming,
+                    lines=True,
+                    indent=4,
+                )
 
-        For these reasons, we use `WriteToText` + `json.dumps`, which is lightweight, predictable,
-        and preserves control over formatting and encoding.
+        For these reasons, we use :class:`beam.io.WriteToText` + :func:``json.dumps``,
+        which is lightweight, predictable, and preserves control over formatting and encoding.
         https://beam.apache.org/releases/pydoc/current/apache_beam.io.textio.html#apache_beam.io.textio.WriteToText
         """

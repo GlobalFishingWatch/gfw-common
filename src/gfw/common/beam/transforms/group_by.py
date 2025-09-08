@@ -1,6 +1,6 @@
 """Custom Apache Beam GroupBy transform with automatic labeling.
 
-This module defines a wrapper around Beam's native `GroupBy` PTransform that adds
+This module defines a wrapper around Beam's native :class:`GroupBy` PTransform that adds
 a dynamically generated label based on the grouping keys. This helps improve
 pipeline readability and simplifies debugging, especially in Dataflow graphs
 where stage names are important for traceability.
@@ -20,34 +20,36 @@ logger = logging.getLogger(__name__)
 
 
 class GroupBy(beam.PTransform):
-    """A labeled wrapper around Apache Beam's `GroupBy` transform for grouping by keys.
+    """Wrapper around :class:`beam.GroupBy` with automatic labeling.
 
-    This transform wraps Beam's native `GroupBy` and adds an automatically generated
+    This transform wraps Beam's native :class:`beam.GroupBy` and adds an automatically generated
     label based on the grouping keys. For example, grouping by `["user", "country"]`
-    with `elements="Sessions"` results in a label like `"GroupSessionsByUserAndCountry"`.
+    with `elements="Sessions"` results in a label like ``GroupSessionsByUserAndCountry``.
 
-    If `dict_fields=True` (default), string positional fields are interpreted as dictionary keys
-    and wrapped with `operator.itemgetter`. If False, strings are treated as attribute names.
+    If ``dict_fields=True`` (default), string positional fields are interpreted as dictionary keys
+    and wrapped with :func:`operator.itemgetter`. If False, strings are treated as attribute names.
 
     Example:
-    pcoll | GroupBy("user", "country", elements="Sessions")
+        .. code-block:: python
+
+            pcoll | GroupBy("user", "country", elements="Sessions")
 
     Args:
         *fields:
-            Positional key fields to group by. If these are strings and `dict_fields=True`,
+            Positional key fields to group by. If these are strings and ``dict_fields=True``,
             they will be interpreted as dictionary keys.
 
         elements:
-            A human-readable label describing the grouped elements (e.g., "Messages" or
-            "Sessions"). It is used to generate the step label.
+            A human-readable label describing the grouped elements (e.g., ``Messages`` or
+            ``Sessions``). It is used to generate the step label.
 
         dict_fields:
             If True (default), string fields are interpreted as dictionary keys and
-            wrapped with `itemgetter`. Set to False to use Beam's default behavior
+            wrapped with :func:`operator.itemgetter`. Set to False to use Beam's default behavior
             (attribute access).
 
         **kwargs:
-            Same as beam.GroupBy interface.
+            Same as :class:`beam.GroupBy` interface.
     """
 
     def __init__(
@@ -72,8 +74,8 @@ class GroupBy(beam.PTransform):
         Constructs a label string combining the human-readable element description and
         the grouping keys, formatted in a CamelCase style joined by 'And'.
 
-        For example, keys ['user', 'country'] and elements 'Sessions' result in
-        'GroupSessionsByUserAndCountry'.
+        For example, keys ``['user', 'country']`` and elements 'Sessions' result in
+        ``GroupSessionsByUserAndCountry``.
 
         Args:
             keys:

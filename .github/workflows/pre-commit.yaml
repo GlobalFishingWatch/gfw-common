@@ -23,7 +23,9 @@ jobs:
 
     - name: Install dependencies
       id: install-dependencies
-      run: make install-all
+      run: |
+        make install
+        make install-pre-commit
 
     - name: Run pre-commit
       id: run-pre-commit

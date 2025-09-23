@@ -136,9 +136,9 @@ def test_allow_unknown(tmp_path, main_command, subcommand):
     test_cli = CLI(**main_command, subcommands=[subcommand], allow_unknown=True)
     res, config = test_cli.execute(args=[subcommand.name, *args])
 
-    assert CLI.KEY_UNKNOWN_UNPARSED_ARGS in config
-    assert config[CLI.KEY_UNKNOWN_UNPARSED_ARGS] == unknown_unparsed
-    assert config[CLI.KEY_UNKNOWN_PARSED_ARGS] == unknown_parsed
+    assert CLI._KEY_UNKNOWN_UNPARSED_ARGS in config
+    assert config[CLI._KEY_UNKNOWN_UNPARSED_ARGS] == unknown_unparsed
+    assert config[CLI._KEY_UNKNOWN_PARSED_ARGS] == unknown_parsed
 
 
 def test_dont_allow_unknown_fails(main_command, subcommand):

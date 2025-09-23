@@ -1,4 +1,20 @@
-"""Lightweight framework around argparse for building CLIs more easily."""
+"""Lightweight framework around argparse for building CLIs more easily.
+
+.. currentmodule:: gfw.common.cli
+
+Classes
+-------
+
+.. autosummary::
+   :toctree: ../_autosummary/
+   :template: custom-class-template.rst
+   :signatures: none
+
+   CLI
+   Command
+   ParametrizedCommand
+   Option
+"""
 
 from .cli import CLI
 from .command import Command, ParametrizedCommand

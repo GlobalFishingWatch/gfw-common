@@ -32,34 +32,34 @@ except ValueError:
 
 
 class CLI:
-    """Wrapper around argparse for building CLIs more easily.
+    """Wrapper around :mod:`argparse` for building CLIs more easily.
 
     Key Features:
         - Supports a single command or multiple subcommands CLI.
         - Common CLI options can be easily defined once and shared across subcommands.
-        - Layered configuration resolution: CLI arguments > YAML config file > command defaults.
+        - Configuration resolution: ``CLI arguments > config file > command defaults``.
         - Rich logging with optional plain-text fallback.
         - Optionally allows unrecognized CLI arguments for custom handling.
         - Provides builtin options to provide config file, disable rich logging, etc.
 
     Args:
         name:
-            The main command to be run on the command line (e.g., `my-cli`).
+            The main command to be run on the command line (e.g., ``my-cli``).
 
         description:
             A brief message describing what the CLI application does.
 
         options:
-            A tuple of `Option` instances representing CLI arguments for the main command.
+            A tuple of :class:`Option` instances representing CLI arguments for the main command.
             These options are inherited by every subcommand, if any.
 
         run:
             Callable to be run when no subcommands are defined.
 
         subcommands:
-            A sequence containing either `Command` instances or `Command` subclasses.
+            A sequence containing either :class:`Command` instances or types.
             Each item represents a subcommand to be registered in the CLI.
-            If a subclass is provided, it will be instantiated automatically.
+            If a type is provided, it will be instantiated automatically.
             This allows flexibility in defining subcommands either by
             passing already created instances or by passing the command classes themselves.
 
@@ -70,7 +70,7 @@ class CLI:
             Example command-line usages shown in the help footer.
 
         formatter:
-            Callable that returns a argparse.HelpFormatter for customizing help text.
+            Callable that returns a :class:`~argparse.HelpFormatter` for customizing help text.
 
         logger_config:
             LoggerConfig instance to control logging behavior.
@@ -79,24 +79,25 @@ class CLI:
             If True, unknown CLI arguments are allowed.
 
         use_underscore:
-            If True, converts hyphens in the option name to underscores (e.g., `--log_file`).
-            If False (default), converts underscores to hyphens (e.g., `--log-file`).
+            If True, converts hyphens in the option name to underscores (e.g., ``--log_file``).
+            If False (default), converts underscores to hyphens (e.g., ``--log-file``).
             This controls the naming convention of the CLI argument.
 
         **main_parser_kwargs:
-            Extra arguments passed to ArgumentParser constructor of the main command.
+            Extra arguments passed to :class:`~argparse.ArgumentParser` constructor
+            of the main command.
     """
 
-    HELP_CONFIG_FILE = "Path to config file."
-    HELP_VERBOSE = "Set logger level to DEBUG."
-    HELP_NO_RICH_LOGGING = "Disable rich logging [useful for production environments]."
-    HELP_LOG_TO_STDOUT = "If True, sends logs output to sys.stdout stream."
-    HELP_LOG_FILE = "File to send logging output to."
-    HELP_ONLY_RENDER = "Dry run, only renders command line call and prints it."
+    _HELP_CONFIG_FILE = "Path to config file."
+    _HELP_VERBOSE = "Set logger level to DEBUG."
+    _HELP_NO_RICH_LOGGING = "Disable rich logging [useful for production environments]."
+    _HELP_LOG_TO_STDOUT = "If True, sends logs output to sys.stdout stream."
+    _HELP_LOG_FILE = "File to send logging output to."
+    _HELP_ONLY_RENDER = "Dry run, only renders command line call and prints it."
 
-    KEY_SUBCOMMAND = "operation"
-    KEY_UNKNOWN_UNPARSED_ARGS = "unknown_unparsed_args"
-    KEY_UNKNOWN_PARSED_ARGS = "unknown_parsed_args"
+    _KEY_SUBCOMMAND = "operation"
+    _KEY_UNKNOWN_UNPARSED_ARGS = "unknown_unparsed_args"
+    _KEY_UNKNOWN_PARSED_ARGS = "unknown_parsed_args"
 
     def __init__(
         self,
@@ -126,18 +127,14 @@ class CLI:
 
     @classmethod
     def builtin_options(cls) -> list[Option]:
-        """Defines built-in CLI options used across commands.
-
-        Returns:
-            A list of Option instances for config file, logging, etc.
-        """
+        """Defines built-in CLI options used across commands."""
         return [
-            Option("-c", "--config-file", type=str, default=None, help=cls.HELP_CONFIG_FILE),
-            Option("-v", "--verbose", type=bool, default=False, help=cls.HELP_VERBOSE),
-            Option("--log-file", type=str, default=None, help=cls.HELP_LOG_FILE),
-            Option("--log-to-stdout", type=bool, default=False, help=cls.HELP_LOG_TO_STDOUT),
-            Option("--no-rich-logging", type=bool, default=False, help=cls.HELP_NO_RICH_LOGGING),
-            Option("--only-render", type=bool, default=False, help=cls.HELP_ONLY_RENDER),
+            Option("-c", "--config-file", type=str, default=None, help=cls._HELP_CONFIG_FILE),
+            Option("-v", "--verbose", type=bool, default=False, help=cls._HELP_VERBOSE),
+            Option("--log-file", type=str, default=None, help=cls._HELP_LOG_FILE),
+            Option("--log-to-stdout", type=bool, default=False, help=cls._HELP_LOG_TO_STDOUT),
+            Option("--no-rich-logging", type=bool, default=False, help=cls._HELP_NO_RICH_LOGGING),
+            Option("--only-render", type=bool, default=False, help=cls._HELP_ONLY_RENDER),
         ]
 
     @cached_property
@@ -184,7 +181,7 @@ class CLI:
         if self._subcommands:
             subp = parser.add_subparsers(
                 title="Available subcommands",
-                dest=self.KEY_SUBCOMMAND,
+                dest=self._KEY_SUBCOMMAND,
                 metavar="<command>",
                 required=True,
             )
@@ -208,13 +205,13 @@ class CLI:
 
         Args:
             args:
-                Command-line arguments (defaults to sys.argv[1:]).
+                Command-line arguments (defaults to ``sys.argv[1:]``).
 
-            kwargs:
-                Extra keyword arguments passed to the command's `run` method.
+            **kwargs:
+                Extra keyword arguments passed to the command's :meth:`~Command.run` method.
 
         Returns:
-            Tuple containing:
+            Tuple:
                 - Result of the executed command.
                 - Configuration dictionary used for execution.
         """
@@ -256,12 +253,12 @@ class CLI:
         cli_args = filter_none_values(cli_args)
 
         defaults_args.update(common_defaults)
-        cli_args.pop(self.KEY_SUBCOMMAND, None)
+        cli_args.pop(self._KEY_SUBCOMMAND, None)
 
         config = dict(ChainMap(cli_args, config_file_args, defaults_args))
 
-        config[self.KEY_UNKNOWN_UNPARSED_ARGS] = unknown_unparsed_args
-        config[self.KEY_UNKNOWN_PARSED_ARGS] = unknown_parsed_args
+        config[self._KEY_UNKNOWN_UNPARSED_ARGS] = unknown_unparsed_args
+        config[self._KEY_UNKNOWN_PARSED_ARGS] = unknown_parsed_args
 
         # Setup logger.
         self._logger_config.setup(
@@ -341,7 +338,7 @@ class CLI:
         return unknown_config_args
 
     def _get_invoked_command(self, args: dict[str, Any]) -> Command:
-        subcommand = args.get(self.KEY_SUBCOMMAND)
+        subcommand = args.get(self._KEY_SUBCOMMAND)
         if subcommand is None:
             return self._main_command
 
@@ -361,8 +358,8 @@ class CLI:
             self._resolve_cli_name(command_name),
         ]
 
-        unknown_unparsed = config.pop(self.KEY_UNKNOWN_UNPARSED_ARGS, [])
-        unknown_parsed = config.pop(self.KEY_UNKNOWN_PARSED_ARGS, {})
+        unknown_unparsed = config.pop(self._KEY_UNKNOWN_UNPARSED_ARGS, [])
+        unknown_parsed = config.pop(self._KEY_UNKNOWN_PARSED_ARGS, {})
 
         config = {**config, **unknown_parsed}
 

@@ -204,6 +204,6 @@ class Pipeline:
             "temp_location": "gs://pipe-temp-us-east-ttl7/dataflow_temp",
             "staging_location": "gs://pipe-temp-us-east-ttl7/dataflow_staging",
             "region": "us-east1",
-            "network": "gfw-internal-network",
             "subnetwork": "regions/us-east1/subnetworks/gfw-internal-us-east1",
+            "network": "gfw-internal-network",
         }

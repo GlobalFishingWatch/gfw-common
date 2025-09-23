@@ -66,8 +66,10 @@ autosummary_mock_imports = [  # Exclude these from the documentation.
 ]
 
 autoclass_content = "class"
+autodoc_class_signature = "mixed"
+autodoc_typehints_description_target = "documented_params"
 autodoc_inherit_docstrings = True  # If no docstring, inherit from base class.
-autodoc_typehints = "signature"
+autodoc_typehints = "description"  # ["description", "signature", "none", "both"]
 autodoc_member_order = "bysource"
 autodoc_default_options = {
     "inherited-members": None,

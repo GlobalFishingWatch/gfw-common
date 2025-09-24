@@ -134,7 +134,7 @@ def test_allow_unknown(tmp_path, main_command, subcommand):
     args = known + unknown_unparsed + config_file_arg
 
     test_cli = CLI(**main_command, subcommands=[subcommand], allow_unknown=True)
-    res, config = test_cli.execute(args=[subcommand.name, *args])
+    _, config = test_cli.execute(args=[subcommand.name, *args])
 
     assert CLI._KEY_UNKNOWN_UNPARSED_ARGS in config
     assert config[CLI._KEY_UNKNOWN_UNPARSED_ARGS] == unknown_unparsed
@@ -146,7 +146,7 @@ def test_dont_allow_unknown_fails(main_command, subcommand):
 
     test_cli = CLI(**main_command, subcommands=[subcommand])
     with pytest.raises(SystemExit):
-        res, config = test_cli.execute(args=["subcommand", "--number-2", "3", *unknown])
+        test_cli.execute(args=["subcommand", "--number-2", "3", *unknown])
 
 
 @pytest.mark.parametrize(
@@ -170,7 +170,7 @@ def test_only_render(main_command, subcommand, use_underscore, sep):
     test_cli = CLI(
         **main_command, subcommands=[subcommand], allow_unknown=True, use_underscore=use_underscore
     )
-    res, config = test_cli.execute(args=known + unknown)
+    res, _ = test_cli.execute(args=known + unknown)
 
     expected = (
         "program \\"

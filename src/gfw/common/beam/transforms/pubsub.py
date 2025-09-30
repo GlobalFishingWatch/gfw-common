@@ -21,7 +21,18 @@ logger = logging.getLogger(__name__)
 
 
 class FakeReadFromPubSub(beam.PTransform[Any, Any]):
-    """A fake ReadFromPubSub to simulate Pub/Sub messages in tests."""
+    """A fake ReadFromPubSub to simulate Pub/Sub messages in tests.
+
+    Args:
+        messages:
+            A list of dictionaries representing Pub/Sub messages. Each
+            dictionary is passed as keyword arguments to
+            :class:`apache_beam.io.gcp.pubsub.PubsubMessage`.
+
+    Note:
+        Any additional ``*args`` and ``**kwargs`` are accepted for API
+        compatibility with :class:`ReadFromPubSub`, but are ignored.
+    """
 
     def __init__(
         self,
@@ -37,13 +48,14 @@ class FakeReadFromPubSub(beam.PTransform[Any, Any]):
 
 
 class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
-    """A custom PTransform for reading from Pub/Sub and optionally decoding messages.
+    """Wrapper around :class:`~beam.ReadFromPubSub` with optional decoding.
 
     It supports the following features:
-    - Reading from a specific Pub/Sub subscription.
-    - Optionally including message attributes.
-    - Decoding message data using a specified method (default is UTF-8).
-    - Allowing the use of a custom or mocked `ReadFromPubSub` transform for testing purposes.
+        - Reading from a specific Pub/Sub subscription.
+        - Optionally including message attributes.
+        - Decoding message data using a specified method (default is ``UTF-8``).
+        - Allowing the use of a custom or mocked :class:`beam.ReadFromPubSub`
+          transform for testing purposes.
 
     Args:
         subscription_id:
@@ -59,16 +71,16 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
 
         decode_method:
             The method used to decode the message data.
-            Supported methods include standard encodings like "utf-8", "ascii", etc.
-            Default is "utf-8".
+            Supported methods include standard encodings like ``utf-8``, ``ascii``, etc.
+            Default is ``utf-8``.
 
         read_from_pubsub_factory:
-            A factory function to create a ReadFromPubSub instance.
-            This is useful for testing when a custom or mocked ReadFromPubSub
-            implementation is needed. Default is the Beam ReadFromPubSub class.
+            A factory function to create a :class:`~beam.ReadFromPubSub` instance.
+            This is useful for testing when a custom or mocked :class:`beam.ReadFromPubSub`
+            implementation is needed. Default is the Beam :class:`beam.ReadFromPubSub` class.
 
         **read_from_pubsub_kwargs:
-            Additional keyword arguments passed to the `ReadFromPubSub` transform.
+            Additional keyword arguments passed to the :class:`~beam.ReadFromPubSub` transform.
             These can be used to specify custom parameters for the reading operation.
     """
 
@@ -96,7 +108,7 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
 
     @classmethod
     def get_client_factory(cls, mocked: bool = False) -> Callable:
-        """Returns a factory for ReadFromPubSub objects."""
+        """Returns a factory for :class:`~beam.ReadFromPubSub` objects."""
         if mocked:
             return FakeReadFromPubSub
 
@@ -112,8 +124,9 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
 
         Args:
             pcoll:
-                An input PCollection. This is expected to be a `PBegin` when used with a real
-                or mocked `ReadFromPubSub`, since Pub/Sub sources begin from the pipeline root.
+                An input PCollection. This is expected to be a ``PBegin`` when used with a real
+                or mocked :class:`ReadFromPubSub`,
+                since Pub/Sub sources begin from the pipeline root.
 
         Returns:
             beam.PCollection:

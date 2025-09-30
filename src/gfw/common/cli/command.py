@@ -36,11 +36,11 @@ class Command(ABC):
     must follow to be compatible with the CLI framework.
 
     Subclasses must provide the command's name, description, options, and
-    implement the `run` method which contains the command's logic.
+    implement the :meth:`run` method which contains the command's logic.
 
     Properties:
         name:
-            The name of the command (used as the CLI argument, e.g., `mycli <name>`).
+            The name of the command (used as the CLI argument, e.g., ``mycli <name>``).
             For subcommands, this distinguishes them from the main command.
 
         description:
@@ -58,7 +58,10 @@ class Command(ABC):
     @property
     @abstractmethod
     def name(self) -> str:
-        """The command's name."""
+        """The name of the command (used as the CLI argument, e.g., ``mycli <name>``).
+
+        For subcommands, this distinguishes them from the main command.
+        """
 
     @property
     @abstractmethod
@@ -97,16 +100,17 @@ class ParametrizedCommand(Command):
 
     Args:
         name:
-            The name of the command (CLI argument).
+            The name of the command (used as a CLI argument).
 
         help:
             A brief help message describing what the command does.
 
         options:
-            A list of `Option` instances representing CLI arguments specific to this command.
+            A list of :class:`Option` instances representing CLI arguments
+            specific to this command.
 
         run:
-            Callable executed when the command is invoked.
+            :class:`Callable` executed when the command is invoked.
             It should accept keyword arguments matching the options.
     """
 

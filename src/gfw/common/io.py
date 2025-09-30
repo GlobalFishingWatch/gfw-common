@@ -9,13 +9,35 @@ import yaml
 
 
 def yaml_load(filename: str, **kwargs: Any) -> Any:
-    """Loads YAML file from filesystem."""
+    """Loads a YAML file from the filesystem.
+
+    Args:
+        filename:
+            Path to the YAML file to be loaded.
+
+        **kwargs:
+            Additional keyword arguments passed to :func:`yaml.safe_load`.
+
+    Returns:
+        The Python object resulting from parsing the YAML file.
+    """
     with Path(filename).open("r") as f:
         return yaml.safe_load(f, **kwargs)
 
 
 def yaml_save(path: str, data: dict[str, Any], **kwargs: Any) -> None:
-    """Saves dictionary to YAML file."""
+    """Saves a dictionary to a YAML file.
+
+    Args:
+        path:
+            Path where the YAML file will be written.
+
+        data:
+            Dictionary or other serializable Python object to save.
+
+        **kwargs:
+            Additional keyword arguments passed to :func:`yaml.dump`.
+    """
     with open(path, "w") as outfile:
         yaml.dump(data, outfile, default_flow_style=False, **kwargs)
 

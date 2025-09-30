@@ -15,10 +15,11 @@ def filter_none_values(mapping: Mapping[K, V]) -> Dict[K, V]:
     """Return a new dictionary excluding keys with None values.
 
     Args:
-        mapping (Mapping[K, V]): Input mapping.
+        mapping:
+            Input mapping.
 
     Returns:
-        Dict[K, V]: A new dictionary with all keys having non-None values.
+        A new dictionary with all keys having non-None values.
     """
     return {k: v for k, v in mapping.items() if v is not None}
 

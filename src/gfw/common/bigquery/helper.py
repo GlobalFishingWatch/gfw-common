@@ -20,29 +20,33 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class QueryResult:
-    """A wrapper around a BigQuery QueryJob providing lazy access to query results.
+    """Wrapper around :class:`bigquery.job.QueryJob` with lazy access to results.
 
-    This class encapsulates a BigQuery `QueryJob` and exposes its results via a lazily
-    evaluated `RowIterator`. It automatically converts rows to dictionaries during iteration,
-    and provides convenience methods like `__len__` and `tolist()`.
+    This class encapsulates :attr:`query_job` instance and exposes its
+    results via a lazily evaluated :class:`bigquery.table.RowIterator`.
+    It automatically converts rows to dictionaries during iteration,
+    and provides convenience methods like :meth:`__len__` and :meth:`tolist()`.
 
     Args:
-        query_job (bigquery.job.QueryJob):
-            The original BigQuery QueryJob instance, which can be used to access
+        query_job:
+            The original :class:`~bigquery.job.QueryJob`, which can be used to access
             job metadata such as session IDs, job statistics, and more.
 
     Usage:
-        Instead of calling `query_job.result()` directly, use this class to iterate over
+        Instead of calling ``query_job.result()`` directly, use this class to iterate over
         results as dictionaries, get the number of rows, or convert all results to a list.
 
     Example:
-        result = QueryResult(query_job)
-        for row in result:
-            print(row)  # row is a dict
-        print(len(result))
+        .. code-block:: python
+
+            result = QueryResult(query_job)
+            for row in result:
+                print(row)  # row is a dict
+            print(len(result))
     """
 
     query_job: bigquery.job.QueryJob
+    """The encapsulated :class:`~bigquery.job.QueryJob` instance."""
 
     def __len__(self) -> int:
         """Returns the size of the result."""
@@ -59,7 +63,7 @@ class QueryResult:
 
     @cached_property
     def session_id(self) -> Optional[str]:
-        """Returns the session_id of the job.
+        """Returns the ``session_id`` of the job.
 
         Accessing this property triggers job execution if it hasn't started yet.
         """
@@ -74,7 +78,7 @@ class QueryResult:
 
     @cached_property
     def row_iterator(self) -> bigquery.table.RowIterator:
-        """Executes the query job and returns a RowIterator over the results."""
+        """Executes the query job and returns a :class:`bigquery.table.RowIterator`."""
         return self.query_job.result()
 
     def tolist(self) -> List[Dict[str, Any]]:
@@ -83,20 +87,20 @@ class QueryResult:
 
 
 class BigQueryHelper:
-    """This class is a wrapper around bigquery.Client with extended functionality.
+    """Wrapper around :class:`bigquery.Client` with extended functionality.
 
     Args:
         client_factory:
             A callable to create bigquery client objects.
-            Defaults to the canonical client.Client constructor.
+            Defaults to the canonical :class:`bigquery.Client` factory.
 
         dry_run:
             If True, queries jobs will be run in dry run mode.
-            For more information, check bigquery documentation:
-            https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfiguration.FIELDS.dry_run
+            For more information, check `bigquery documentation
+            <https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfiguration.FIELDS.dry_run>`_.
 
         **kwargs:
-            Extra keyword arguments to be passed to the provided client_factory.
+            Extra keyword arguments to be passed to the provided ``client_factory``.
     """
 
     def __init__(
@@ -112,12 +116,12 @@ class BigQueryHelper:
 
     @classmethod
     def mocked(cls, **kwargs: Any) -> "BigQueryHelper":
-        """Returns a mocked BigQueryHelper object."""
+        """Returns a :class:`BigQueryHelper` instance with a mocked client."""
         return cls(client_factory=cls.get_client_factory(mocked=True), **kwargs)
 
     @classmethod
     def get_client_factory(cls, mocked: bool = False) -> Callable[..., bigquery.Client]:
-        """Returns a factory for bigquery.Client objects."""
+        """Returns a factory for :class:`bigquery.Client` objects."""
 
         def bigquery_client_mock_factory(
             project: Optional[str] = None, **kwargs: Any
@@ -134,7 +138,7 @@ class BigQueryHelper:
 
     @cached_property
     def client(self) -> bigquery.client.Client:
-        """Returns the instance of bigquery.Client to be used."""
+        """Returns the instance of :class:`bigquery.Client` to be used."""
         query_job = bigquery.job.QueryJobConfig()
         query_job.dry_run = self._dry_run
 
@@ -144,7 +148,7 @@ class BigQueryHelper:
         return self._client_factory(default_query_job_config=query_job, **self._kwargs)
 
     def end_session(self, session_id: str) -> None:
-        """Terminates session with given session_id."""
+        """Terminates session with given ``session_id``."""
         query_job = self.client.query(f"CALL BQ.ABORT_SESSION('{session_id}')")
         _ = query_job.result()
 
@@ -163,7 +167,7 @@ class BigQueryHelper:
 
         Args:
             table:
-                Table name like 'dataset.table'.
+                Table name like ``dataset.table``.
 
             description:
                 Text to include in the table's description field.
@@ -175,8 +179,8 @@ class BigQueryHelper:
                 Name of field to use for time partitioning.
 
             partition_type:
-                The type of partitioning to use (e.g., "DAY", "HOUR").
-                Defaults to "DAY".
+                The type of partitioning to use (e.g., ``DAY``, ``HOUR``).
+                Defaults to ``DAY``.
 
             clustering_fields:
                 A list of fields to use for clustering the BigQuery table (optional).
@@ -185,7 +189,7 @@ class BigQueryHelper:
                 Dictionary of labels to audit costs.
 
             **kwargs:
-                Extra keyword arguments to be passed to the client.create_table method.
+                Extra keyword arguments to be passed to the :meth:`client.create_table` method.
 
         Returns:
             The created table.
@@ -211,13 +215,13 @@ class BigQueryHelper:
 
         Args:
             view_id:
-                The destination view: "dataset.view_id".
+                The destination view, e.g. ``dataset.view_id``.
 
             view_query:
                 The query to perform to create the view.
 
             **kwargs:
-                Extra keyword arguments to be passed to the client.create_table method.
+                Extra keyword arguments to be passed to the :meth:`client.create_table` method.
 
         Returns:
             A table object representing the view.
@@ -264,7 +268,7 @@ class BigQueryHelper:
                 Labels to apply.
 
             **kwargs:
-                Extra keyword arguments to be passed to the job.QueryJobConfig constructor.
+                Extra keyword arguments to be passed to :class:`job.QueryJobConfig` constructor.
 
         Returns:
             An instance wrapping the BigQuery QueryJob, providing convenient access
@@ -319,11 +323,11 @@ class BigQueryHelper:
                 The field to use for partitioning the BigQuery table (optional).
 
             partition_type:
-                The type of partitioning to use (e.g., "DAY", "HOUR").
-                Defaults to "DAY".
+                The type of partitioning to use (e.g., ``DAY``, ``HOUR``).
+                Defaults to ``DAY``.
 
             **kwargs:
-                Extra keyword arguments to be passed to the job.LoadJobConfig constructor.
+                Extra keyword arguments to be passed to the :class:`job.LoadJobConfig` constructor.
         """
         job_config = bigquery.job.LoadJobConfig(**kwargs)
 
@@ -345,11 +349,11 @@ class BigQueryHelper:
     def format_jinja2(
         template_path: Path, search_path: Union[list[Path], Path] = Path("./"), **kwargs: Any
     ) -> str:
-        """Render a jinja2 template with the given keyword arguments.
+        """Render a Jinja2 template with the given keyword arguments.
 
         Args:
             template_path:
-                The path to the jinja2 template.
+                The path to the Jinja2 template.
 
             search_path:
                 The base directory in which to search for the template path.

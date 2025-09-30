@@ -5,7 +5,7 @@ import pytest
 
 from jinja2 import Environment
 
-from gfw.common.pipeline.config import ERROR_DATE, PipelineConfig, PipelineConfigError
+from gfw.common.beam.pipeline.config import ERROR_DATE, PipelineConfig, PipelineConfigError
 
 
 def test_parsed_date_range_valid():

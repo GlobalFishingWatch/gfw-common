@@ -102,9 +102,14 @@ make venv
 ./.venv/bin/activate
 ```
 
-Install the package, dependencies, and pre-commit hooks for local development:
+Install pre-commit hooks for local development:
 ```shell
-make install-all
+make install-pre-commit
+```
+
+Install dependencies and package in editable mode for local development:
+```shell
+make install
 ```
 
 Make sure you can run unit tests:

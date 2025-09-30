@@ -1,8 +1,6 @@
 from unittest.mock import Mock
 
-from gfw.common.beam.pipeline import Pipeline
-from gfw.common.beam.pipeline.factory import PipelineFactory
-from gfw.common.pipeline.config import PipelineConfig
+from gfw.common.beam.pipeline import Pipeline, PipelineConfig, PipelineFactory
 
 
 def test_build_pipeline_creates_pipeline():

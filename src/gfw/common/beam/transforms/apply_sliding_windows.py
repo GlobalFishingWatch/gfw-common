@@ -9,10 +9,7 @@ from apache_beam.transforms.window import SlidingWindows, TimestampedValue
 
 
 class ApplySlidingWindows(beam.PTransform):
-    """A PTransform that applies sliding windows to a PCollection.
-
-    Optionally assigns event-time timestamps based on a configurable field
-    before applying the windowing strategy.
+    """Applies sliding windows, optionally assigning event timestamps.
 
     Args:
         period:

@@ -8,7 +8,7 @@ from apache_beam.pvalue import PCollection
 
 
 class Dag(ABC):
-    """Base class for DAG construction logic."""
+    """Abstract base class for DAG construction logic."""
 
     @abstractmethod
     def apply(self, pipeline: beam.Pipeline) -> PCollection:

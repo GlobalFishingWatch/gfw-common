@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 def datetime_from_timestamp(ts: Union[int, float], tz: tzinfo = timezone.utc) -> datetime:
-    """Converts a Unix timestamp (seconds since epoch) to a timezone-aware datetime object.
+    """Converts a Unix timestamp to a timezone-aware :class:`datetime <datetime.datetime>`.
 
-    By default, the timestamp is converted to UTC (timezone.utc).
-    If you need a different timezone, specify it using the 'tz' argument.
+    By default, the timestamp is converted to **UTC**.
+    If you need a different timezone, specify it using the ``tz`` argument.
 
     Args:
         ts:
@@ -24,24 +24,25 @@ def datetime_from_timestamp(ts: Union[int, float], tz: tzinfo = timezone.utc) ->
             The timezone to apply. Defaults to UTC.
 
     Returns:
-        A timezone-aware datetime object corresponding to the given timestamp.
+        A timezone-aware :class:`datetime <datetime.datetime>`
+            object corresponding to the given timestamp.
     """
     return datetime.fromtimestamp(ts, tz=tz)
 
 
 def datetime_from_isoformat(s: str, tz: tzinfo = timezone.utc) -> datetime:
-    """Converts a datetime string in ISO format to a timezone-aware datetime object.
+    """Converts a datetime string to a timezone-aware :class:`datetime <datetime.datetime>`.
 
     Args:
         s:
-            The string to convert, in ISO 8601 format (e.g., '2025-04-30T10:20:30').
+            The string to convert, in **ISO 8601** format (e.g., ``2025-04-30T10:20:30``).
 
         tz:
-            The timezone to apply to the resulting datetime, if not present.
-            Defaults to UTC.
+            The timezone to apply to the resulting :class:`datetime <datetime.datetime>`,
+            if not present. Defaults to UTC.
 
     Returns:
-        A timezone-aware datetime object.
+        A timezone-aware :class:`datetime <datetime.datetime>` object.
     """
     dt = datetime.fromisoformat(s)
 
@@ -52,7 +53,7 @@ def datetime_from_isoformat(s: str, tz: tzinfo = timezone.utc) -> datetime:
 
 
 def datetime_from_date(d: date, t: Optional[time] = None, tz: timezone = timezone.utc) -> datetime:
-    """Creates datetime from date and optional time (default 00:00:00), with timezone.
+    """Creates :class:`datetime <datetime.datetime>` from a :class:`datetime.date` object.
 
     Args:
         d:
@@ -62,11 +63,11 @@ def datetime_from_date(d: date, t: Optional[time] = None, tz: timezone = timezon
             Optional time part.
 
         tz:
-            Timezone for the resulting datetime.
+            Timezone for the resulting :class:`datetime <datetime.datetime>`.
             Defaults to UTC.
 
     Returns:
-        A timezone-aware datetime object.
+        A timezone-aware :class:`datetime <datetime.datetime>` object.
     """
     if t is None:
         t = time(0, 0)
@@ -81,7 +82,7 @@ def datetime_from_string(
     allow_no_time: bool = True,
     tz: timezone = timezone.utc,
 ) -> datetime:
-    """Extracts a datetime from a string using provided date and time formats.
+    """Extracts a zone-aware :class:`datetime <datetime.datetime>` from a string.
 
     Args:
         s:
@@ -89,11 +90,11 @@ def datetime_from_string(
 
         date_format:
             The strftime/strptime format of the date part.
-            Defaults to "%Y-%m-%d".
+            Defaults to ``%Y-%m-%d``.
 
         time_format:
             The strftime/strptime format of the time part.
-            Defaults to "%H_%M_%SZ".
+            Defaults to ``%H_%M_%SZ``.
 
         allow_no_time:
             If True, allows input strings with no time information.
@@ -105,10 +106,10 @@ def datetime_from_string(
     Raises:
         ValueError:
             - When date is not found in the input string.
-            - When time is not found in the input string and allow_no_time is False.
+            - When time is not found in the input string and ``allow_no_time`` is False.
 
     Returns:
-        A timezone-aware datetime object.
+        A timezone-aware :class:`datetime <datetime.datetime>` object.
     """
     _FORMAT_TOKEN_REGEX = {
         "%Y": r"\d{4}",

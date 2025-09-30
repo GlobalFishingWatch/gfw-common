@@ -29,33 +29,34 @@ class FakeReadFromBigQuery(io.ReadFromBigQuery):
 
 
 class ReadFromBigQuery(beam.PTransform):
-    """Beam transform to read Pcollection from BigQuery table.
+    """Wrapper around :class:`~beam.io.ReadFromBigQuery` with optional casting.
 
     Args:
         query:
             The query to execute.
 
         output_type:
-            The Beam type hint for the output (e.g., a NamedTuple).
+            The Beam type hint for the output (e.g., a :class:`~typing.NamedTuple`).
             If not provided, defaults to dict.
 
         method:
-            The method to use to read from BigQuery. It may be EXPORT or DIRECT_READ.
+            The method to use to read from BigQuery. It may be ``EXPORT`` or ``DIRECT_READ``.
 
         use_standard_sql:
             Specifies whether to use BigQuery's standard SQL dialect for this query.
             Defaults to True.
 
         read_from_bigquery_factory:
-            A factory function used to create a `ReadFromBigQuery` instance.
+            A factory function used to create a :class:`~beam.io.ReadFromBigQuery` instance.
             This is primarily useful for testing, where you may want to inject a custom or fake
-            implementation instead of using the real `ReadFromBigQuery` transform.
-            If not provided, the default `ReadFromBigQuery` class will be used.
+            implementation instead of using the real transform.
+            If not provided, the default class will be used.
 
         write_to_bigquery_kwargs:
-            Any additional keyword arguments to be passed to Beam's `ReadFromBigQuery` class.
-            Check official documentation:
-            https://beam.apache.org/releases/pydoc/2.64.0/apache_beam.io.gcp.bigquery.html#apache_beam.io.gcp.bigquery.ReadFromBigQuery.
+            Any additional keyword arguments to be passed to
+            :class:`~beam.io.ReadFromBigQuery` class.
+            Check `official Apache Beam documentation
+            <https://beam.apache.org/releases/pydoc/2.64.0/apache_beam.io.gcp.bigquery.html#apache_beam.io.gcp.bigquery.ReadFromBigQuery>`_.
 
         **kwargs:
             Additional keyword arguments passed to base PTransform class.
@@ -94,23 +95,24 @@ class ReadFromBigQuery(beam.PTransform):
 
         Args:
             query:
-                An instance of a Query subclass.
-                Its `render()` method is used to produce the SQL query string.
+                An instance of a :class:`~gfw.common.query.Query` subclass.
+                Its :meth:`render <gfw.common.query.Query.render>`
+                method is used to produce the SQL query string.
 
             use_type:
-                If True, sets `output_type` to the query's NamedTuple type.
+                If True, sets PTransform type to the provided ``output_type``.
 
             **kwargs:
-                Any additional arguments for ReadFromBigQuery constructor.
+                Any additional arguments for :class:`~beam.io.ReadFromBigQuery` constructor.
 
         Returns:
-            A configured ReadFromBigQuery instance ready to use in a Beam pipeline.
+            A configured :class:`~beam.io.ReadFromBigQuery` instance.
         """
         rendered_query = query.render(formatted=False)
 
         output_type: type = dict
         if use_type:
-            output_type = query.output_type
+            output_type = type(query.output_type)
 
         return cls(query=rendered_query, output_type=output_type, **kwargs)
 

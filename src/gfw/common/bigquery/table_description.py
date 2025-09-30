@@ -1,6 +1,6 @@
 """Provides a class for generating structured BigQuery table descriptions.
 
-This module defines the `TableDescription` dataclass, which produces
+This module defines the :class:`TableDescription` dataclass, which produces
 a standardized, human-readable description string for use in
 BigQuery table metadata. The description includes a title, subtitle,
 summary, caveats, and a formatted list of relevant parameters.
@@ -36,47 +36,39 @@ TO_BE_COMPLETED = "To be completed."
 
 @dataclass
 class TableDescription:
-    """Generates a structured description for BigQuery table metadata.
-
-    Attributes:
-        repo_name:
-            GitHub repository name (used for URLs and headers).
-
-        version:
-            Version of the project or schema.
-
-        title:
-            Title of the table or dataset.
-
-        subtitle:
-            Subtitle or one-line summary.
-
-        summary:
-            High-level summary of the table's purpose.
-
-        caveats:
-            Known limitations or notes about the data.
-
-        relevant_params:
-            A dictionary of key parameters relevant to the table's content or generation.
-            The keys are parameter names (strings), and the values can be any type convertible
-            to string.
-
-            When rendered, the parameters are formatted as aligned key-value pairs with colons
-            aligned in a vertical column, for example:
-
-                param1      : value1
-                long_param2 : value2
-                x           : 42
-    """
+    """Generates a structured description for BigQuery table metadata."""
 
     repo_name: str
+    """GitHub repository name (used for URLs and headers)."""
+
     version: str = ""
+    """Version of the project generating this table."""
+
     title: str = ""
+    """Title of the table or dataset."""
+
     subtitle: str = ""
+    """Subtitle or one-line summary."""
+
     summary: str = TO_BE_COMPLETED
+    """High-level summary of the table's purpose."""
+
     caveats: str = TO_BE_COMPLETED
+    """Known limitations or notes about the data."""
+
     relevant_params: dict[str, Any] = field(default_factory=dict)
+    """Key parameters relevant to the table's content generation.
+
+    The keys are parameter names (strings), and the values can be any type convertible
+    to string.
+
+    When rendered, the parameters are shown as a bullet list of key-value pairs,
+    for example:
+
+        - param1: value1
+        - long_param2: value2
+        - x: 42
+    """
 
     def render(self) -> str:
         """Renders the description for use in BigQuery table metadata.
@@ -98,8 +90,5 @@ class TableDescription:
         if not self.relevant_params:
             return TO_BE_COMPLETED
 
-        longest = max(len(key) for key in self.relevant_params)
-
-        return "\n".join(
-            f"{key.ljust(longest)} : {value}" for key, value in self.relevant_params.items()
-        )
+        items = sorted(self.relevant_params.items())
+        return "\n".join(f"- {k}: {v}" for k, v in items)

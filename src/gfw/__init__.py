@@ -1,7 +1,11 @@
-"""Global Fishing Watch (GFW) common package.
+"""Global Fishing Watch (GFW) namespace package.
 
-This package provides shared utilities, abstractions, and helpers for data
-processing, validation, and orchestration tasks across GFW pipelines.
+The ``gfw`` namespace groups together related Python packages developed by
+GFW. Each subpackage provides functionality for a different domain, but all
+share the common namespace. This design allows multiple packages to be
+distributed independently while coexisting under ``gfw``.
 
-Intended to be reusable across multiple GFW projects and environments.
+This distribution provides the ``gfw.common`` subpackage, which contains
+shared utilities, abstractions, and helpers for data processing, validation,
+and orchestration tasks across GFW pipelines.
 """

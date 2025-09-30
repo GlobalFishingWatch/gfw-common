@@ -20,8 +20,8 @@ def test_render_with_relevant_params():
     assert "This is a test summary." in rendered
     assert "No caveats." in rendered
     # Check that relevant params are formatted properly
-    assert "source  : AIS" in rendered
-    assert "country : AR" in rendered
+    assert "- source: AIS" in rendered
+    assert "- country: AR" in rendered
 
 
 def test_render_without_relevant_params():

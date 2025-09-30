@@ -24,10 +24,9 @@ install-pre-commit:
 	python -m pre_commit install --install-hooks
 	python -m pre_commit install --hook-type commit-msg
 
-.PHONY: install-all  ## Install the package in editable mode for local development.
-install-all: upgrade-pip
+.PHONY: install  ## Install the package in editable mode for local development.
+install: upgrade-pip
 	python -m pip install -e .[bq,beam,dev,test,lint,build,docs]
-	make install-pre-commit
 
 .PHONY: format  ## Auto-format python source files according with PEP8.
 format:

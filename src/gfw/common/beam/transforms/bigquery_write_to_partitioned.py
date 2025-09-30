@@ -33,24 +33,26 @@ class FakeWriteToBigQuery(WriteToBigQuery):
 
 
 class WriteToPartitionedBigQuery(PTransform[Any, Any]):
-    """A custom Apache Beam transform that writes to a partitioned BigQuery table.
+    """Wrapper around :class:`WriteToBigQuery` with extended functionality.
 
     This transform abstracts the complexity of BigQuery's partitioning and clustering options,
     as well as other additional options.
 
     Key Features:
+
     - Provides a simpler interface to:
-        - Partition the table based on a specific field (e.g., 'timestamp') and type (e.g. 'DAY').
-        - Cluster the table based on specified fields for performance optimization.
-        - Add a description for the table's metadata.
-        - Define a schema using a list of dictionaries.
+        * Partitioning on a specific field (e.g., ``timestamp``) and type (e.g. ``DAY``).
+        * Clustering on specified fields for performance optimization.
+        * Add a description for the table's metadata.
+        * Define a schema using a list of dictionaries.
     - Automatically selects writing method based on pipeline mode (streaming vs. batch) and runner.
 
     Args:
         table:
-            The BigQuery table to write to (in the format `project:dataset.table`).
+            The BigQuery table to write to (in the format ``project:dataset.table``).
 
-        project (str): The ID of the project containing this table or :data:`None`
+        project:
+            The ID of the project containing this table or :data:`None`
             if the table reference is specified entirely by the table argument.
 
         description:
@@ -60,42 +62,48 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
             The schema for the BigQuery table.
 
         partition_field:
-            The field to use for partitioning the BigQuery table (optional).
+            The field to use for partitioning the BigQuery table.
 
         partition_type:
-            The type of partitioning to use (e.g., "DAY", "HOUR").
-            Defaults to "DAY".
+            The type of partitioning to use (e.g., ``DAY``, ``HOUR``).
+            Defaults to ``DAY``.
 
         clustering_fields:
-            A list of fields to use for clustering the BigQuery table (optional).
+            A list of fields to use for clustering the BigQuery table.
 
         bigquery_helper_factory:
-            Factory for creating `BigQueryHelper` to handle table creation. While `WriteToBigQuery`
-            can create tables, it has limitations with `STORAGE_WRITE_API` and `STREAMING_INSERTS`:
-            - `STORAGE_WRITE_API` ignores time partitioning and fails to set descriptions.
-            - `STREAMING_INSERTS` sets time partitioning but fails to set descriptions.
+            Factory for :class:`~gfw.common.bigquery.BigQueryHelper` objects
+            to handle table creation. While :class:`beam.io.WriteToBigQuery`
+            can create tables, it has limitations with:
+
+            - ``STORAGE_WRITE_API`` ignores time partitioning and fails to set descriptions.
+            - ``STREAMING_INSERTS`` sets time partitioning but fails to set descriptions.
 
         write_to_big_query_factory:
-            A factory function used to create a `WriteToBigQuery` instance.
+            A factory function used to create a :class:`beam.io.WriteToBigQuery` instance.
             This is primarily useful for testing, where you may want to inject a custom or fake
-            implementation instead of using the real `WriteToBigQuery` transform.
-            If not provided, the default `WriteToBigQuery` class will be used.
+            implementation instead of using the real transform.
+            If not provided, the default class will be used.
 
         **write_to_bigquery_kwargs:
-            Any additional keyword arguments to be passed directly to the `WriteToBigQuery` class.
-            Check official documentation:
-            https://beam.apache.org/releases/pydoc/2.64.0/apache_beam.io.gcp.bigquery.html#apache_beam.io.gcp.bigquery.WriteToBigQuery.
+            Any additional keyword arguments to be passed to
+            :class:`beam.io.WriteToBigQuery` class.
+            Check `official Apache Beam documentation
+            <https://beam.apache.org/releases/pydoc/2.64.0/apache_beam.io.gcp.bigquery.html#apache_beam.io.gcp.bigquery.WriteToBigQuery>`_.
 
     Example:
-            >>> from pipe_nmea.common.beam.transforms import bigquery
-            >>> pcoll | "Write" >> bigquery.WriteToPartitionedBigQuery(
-            ...     table="project:dataset.table",
-            ...     description="My table",
-            ...     schema=[{"name": "timestamp", "type": "TIMESTAMP", "mode": "REQUIRED"}, ...],
-            ...     partition_field="timestamp",
-            ...     partition_type="DAY",
-            ...     clustering_fields=["field1", "field2"],
-            ... )
+        .. code-block:: python
+
+            from pipe_nmea.common.beam.transforms import bigquery
+
+            pcoll | "Write" >> bigquery.WriteToPartitionedBigQuery(
+                table="project:dataset.table",
+                description="My table",
+                schema=[{"name": "timestamp", "type": "TIMESTAMP", "mode": "REQUIRED"}, ...],
+                partition_field="timestamp",
+                partition_type="DAY",
+                clustering_fields=["field1", "field2"],
+            )
     """
 
     def __init__(
@@ -127,7 +135,7 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
 
     @classmethod
     def get_client_factory(cls, mocked: bool = False) -> Callable:
-        """Returns a factory for bigquery.Client objects."""
+        """Returns a factory for :class:`beam.WriteToBigQuery` objects."""
         if mocked:
             return FakeWriteToBigQuery
 
@@ -135,13 +143,14 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
 
     @cached_property
     def schema(self) -> Union[dict[str, Any], None]:
-        """Returns the BigQuery schema in the format expected by `WriteToBigQuery`.
+        """Returns the BigQuery schema in the format expected by :class:`beam.WriteToBigQuery`.
 
-        The provided schema as a list of dictionaries (e.g., [{"name": ..., "type": ..., ...}]),
+        The provided schema as a list of dictionaries
+        (e.g., ``[{"name": ..., "type": ..., ...}]``),
         is wrapped in a dictionary under the `"fields"` key.
 
         Returns:
-            A dictionary of the form `{"fields": [...]}`.
+            A dictionary of the form ``{"fields": [...]}``.
         """
         if self._schema is not None:
             return {"fields": self._schema}
@@ -156,8 +165,9 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
     def expand(self, pcoll: PCollection[dict[str, Any]]) -> PCollection[dict[str, Any]]:
         """Writes the input PCollection to BigQuery, creating the table if it does not exist.
 
-        Before applying the `WriteToBigQuery` transform, this method ensures that the target table
-        is created with the specified schema, partitioning, and clustering configurations.
+        Before applying the :class:`WriteToBigQuery` transform,
+        this method ensures that the target table is created with the specified schema,
+        partitioning, and clustering configurations.
 
         Args:
             pcoll:
@@ -206,15 +216,15 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
         """Resolves the appropriate write method to use to write to BigQuery.
 
         The selection logic is based on the StandardOptions of the pipeline
-        in which WriteToBigQuery transform is used.
+        in which :class:`beam.WriteToBigQuery` transform is used.
 
-        The default behavior differs from the one in WriteToBigQuery,
-        where 'STREAMING_INSERTS' is used for streaming pipelines.
-        Here, we prefer 'STORAGE_WRITE_API' for streaming pipelines,
+        The default behavior differs from the one in :class:`beam.WriteToBigQuery`,
+        where ``STREAMING_INSERTS`` is used for streaming pipelines.
+        Here, we prefer ``STORAGE_WRITE_API`` for streaming pipelines,
         which is Google's recommended method for high-throughput, low-latency streaming writes.
 
-        As of Apache Beam 2.64, 'STORAGE_API_AT_LEAST_ONCE' is not available in python,
-        but 'STORAGE_WRITE_API' can be used for at-least-once semantics.
+        As of Apache Beam 2.64, ``STORAGE_API_AT_LEAST_ONCE`` is not available in python,
+        but ``STORAGE_WRITE_API`` can be used for at-least-once semantics.
 
         See https://cloud.google.com/dataflow/docs/guides/write-to-bigquery.
 
@@ -224,7 +234,7 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
 
         Returns:
             A string representing the selected write method.
-            One of ("STREAMING_INSERTS", "FILE_LOADS", "STORAGE_WRITE_API").
+            One of ``("STREAMING_INSERTS", "FILE_LOADS", "STORAGE_WRITE_API")``.
         """
         runner = (standard_options.runner or "").lower()
 

@@ -21,10 +21,10 @@ def binary_search_first_ge(
     start_value: Any,
     key: Callable[[Any], Any],
 ) -> int:
-    """Find index of first item in sorted `items` whose key >= `start_value` using binary search.
+    """Find index of first item in sorted list whose ``key`` >= ``start_value``.
 
     This function performs a binary search to efficiently locate the leftmost index
-    where the key of the item is greater than or equal to `start_value`.
+    where the key of the item is greater than or equal to ``start_value``.
 
     Args:
         items:

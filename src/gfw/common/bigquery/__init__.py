@@ -1,13 +1,24 @@
 """BigQuery utilities and configuration classes.
 
-This package provides dataclasses and helpers to define BigQuery table
-schemas, configurations, and descriptions. It supports standardized
-table metadata generation, schema management, and parameter preparation
-for BigQuery operations.
+.. currentmodule:: gfw.common.bigquery
 
-Modules include:
-- table_description: Structured, human-readable BigQuery table descriptions.
-- table_config: Abstract base classes for BigQuery table configurations.
-- helper/client: Utilities to interact with BigQuery, including table creation
-  and data writes.
+Classes
+-------
+
+.. autosummary::
+   :toctree: ../_autosummary/
+   :template: custom-class-template.rst
+   :signatures: none
+
+   BigQueryHelper
+   QueryResult
+   TableConfig
+   TableDescription
 """
+
+from .helper import BigQueryHelper, QueryResult
+from .table_config import TableConfig
+from .table_description import TableDescription
+
+
+__all__ = ["BigQueryHelper", "QueryResult", "TableConfig", "TableDescription"]

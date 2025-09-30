@@ -1,15 +1,4 @@
-"""Serialization utilities for converting Python objects into JSON-compatible formats.
-
-This module provides helper functions to transform specific Python data types
-into JSON-serializable strings, facilitating JSON encoding and storage.
-
-Currently supported types:
-- datetime.date: serialized to ISO 8601 format string.
-
-Functions:
-- to_json: Converts supported objects to JSON-serializable strings or raises
-  NotImplementedError for unsupported types.
-"""
+"""Serialization utilities."""
 
 from datetime import date
 from typing import Any

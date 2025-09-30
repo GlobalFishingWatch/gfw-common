@@ -37,14 +37,8 @@ class TableConfig(ABC):
     clustering_fields: Optional[Tuple[str, ...]] = None
     """Optional tuple of fields for clustering."""
 
-    project: Optional[str] = None
-    """GCP project ID (optional)."""
-
     view_suffix: Optional[str] = "view"
     """Suffix to use when constructing the view ID."""
-
-    write_disposition: str = "WRITE_APPEND"
-    """Write mode (e.g., ``WRITE_APPEND``, ``WRITE_TRUNCATE``)."""
 
     @cached_property
     def view_id(self) -> str:
@@ -60,8 +54,7 @@ class TableConfig(ABC):
         """Returns parameters for BigQuery table creation or write operations.
 
         This dictionary is intended to be unpacked as keyword arguments into
-        :class:`~gfw.common.beam.transforms.WriteToPartitionedBigQuery`
-        or :meth:`BigQueryHelper.create_table <gfw.common.bigquery.BigQueryHelper.create_table>`.
+        :meth:`BigQueryHelper.create_table <gfw.common.bigquery.BigQueryHelper.create_table>`.
 
         Args:
             include_description:
@@ -73,11 +66,9 @@ class TableConfig(ABC):
         bigquery_params = {
             "table": self.table_id,
             "schema": self.schema,
-            "project": self.project,
             "partition_type": self.partition_type,
             "partition_field": self.partition_field,
             "clustering_fields": self.clustering_fields,
-            "write_disposition": self.write_disposition,
         }
 
         if include_description and self.description is not None:

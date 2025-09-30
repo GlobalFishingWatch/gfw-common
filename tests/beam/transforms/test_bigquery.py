@@ -1,4 +1,4 @@
-"""Unit tests for WriteToPartitionedBigQuery PTransform.
+"""Unit tests for WriteToBigQueryWrapper PTransform.
 
 These tests verify that the transform configures the WriteToBigQuery
 with expected parameters and passes data through unchanged using a fake.
@@ -15,8 +15,7 @@ from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
 from apache_beam.utils.timestamp import Timestamp
 
-from gfw.common.beam.transforms import FakeWriteToBigQuery, WriteToPartitionedBigQuery
-from gfw.common.bigquery.helper import BigQueryHelper
+from gfw.common.beam.transforms import FakeWriteToBigQuery, WriteToBigQueryWrapper
 
 
 @pytest.mark.parametrize(
@@ -31,28 +30,28 @@ from gfw.common.bigquery.helper import BigQueryHelper
     ],
 )
 def test_resolve_write_method(streaming: bool, runner: str, expected_method: str) -> None:
-    """Test WriteToPartitionedBigQuery.resolve_write_method."""
+    """Test WriteToBigQueryWrapper.resolve_write_method."""
     options = StandardOptions()
     options.view_as(StandardOptions).streaming = streaming
     if runner:
         options.view_as(StandardOptions).runner = runner
 
-    method = WriteToPartitionedBigQuery.resolve_write_method(options)
+    method = WriteToBigQueryWrapper.resolve_write_method(options)
     assert method == expected_method
 
 
 def test_get_client_factory_mocked_true():
-    factory = WriteToPartitionedBigQuery.get_client_factory(mocked=True)
+    factory = WriteToBigQueryWrapper.get_client_factory(mocked=True)
     assert factory is FakeWriteToBigQuery
 
 
 def test_get_client_factory_mocked_false():
-    factory = WriteToPartitionedBigQuery.get_client_factory(mocked=False)
+    factory = WriteToBigQueryWrapper.get_client_factory(mocked=False)
     assert factory is WriteToBigQuery
 
 
 def test_timestamp_fields():
-    transform = WriteToPartitionedBigQuery(
+    transform = WriteToBigQueryWrapper(
         table="project:dataset.table",
         schema=[
             {"name": "event_time", "type": "TIMESTAMP", "mode": "REQUIRED"},
@@ -65,47 +64,28 @@ def test_timestamp_fields():
     assert transform.timestamp_fields == ["event_time", "created_at"]
 
 
-def test_with_optionals() -> None:
-    """Test WriteToPartitionedBigQuery with schema, partitioning, clustering and description."""
+def test_with_schema() -> None:
+    """Test WriteToBigQueryWrapper with schema."""
     sample_data = [{"name": "Alice"}, {"name": "Bob"}]
     table = "project:dataset.table"
     schema = [{"name": "name", "type": "STRING"}]
-    partition_type = "HOUR"
-    partition_field = "timestamp"
-    description = "My Great Table"
-    clustering_fields = ["source", "error"]
-
-    expected_bq_params = {
-        "timePartitioning": {"field": partition_field, "type": partition_type},
-        "clustering": {"fields": clustering_fields},
-    }
 
     _run_write_test(
         sample_data=sample_data,
-        expected_bq_params=expected_bq_params,
         transform_kwargs={
             "table": table,
             "schema": schema,
-            "partition_field": partition_field,
-            "partition_type": partition_type,
-            "description": description,
-            "clustering_fields": clustering_fields,
         },
     )
 
 
-def test_without_optionals() -> None:
-    """Test WriteToPartitionedBigQuery with only required arguments."""
+def test_without_schema() -> None:
+    """Test WriteToBigQueryWrapper with only required arguments."""
     sample_data = [{"name": "Alice"}, {"name": "Bob"}]
     table = "dataset.table"
 
-    expected_bq_params = {
-        "timePartitioning": {"type": "DAY"},
-    }
-
     _run_write_test(
         sample_data=sample_data,
-        expected_bq_params=expected_bq_params,
         transform_kwargs={
             "table": table,
         },
@@ -115,7 +95,6 @@ def test_without_optionals() -> None:
 def _run_write_test(
     *,
     sample_data: list[dict[str, Any]],
-    expected_bq_params: dict[str, Any],
     transform_kwargs: dict[str, Any],
 ) -> None:
     """Helper that runs a Beam pipeline and asserts BQ config and data passthrough."""
@@ -132,10 +111,9 @@ def _run_write_test(
             p
             | "Create sample data" >> beam.Create(sample_data)
             | "Write to BQ"
-            >> WriteToPartitionedBigQuery(
+            >> WriteToBigQueryWrapper(
                 project="test-project",
                 write_to_bigquery_factory=write_to_bigquery_factory,
-                bigquery_helper_factory=BigQueryHelper.mocked,
                 **transform_kwargs,
             )
         )
@@ -163,13 +141,12 @@ def test_expand_converts_float_timestamp_to_beam_timestamp():
     with _TestPipeline() as p:
         pcoll = p | "Create" >> beam.Create(input_data)
 
-        transform = WriteToPartitionedBigQuery(
+        transform = WriteToBigQueryWrapper(
             table="project.dataset.table",
             schema=[
                 {"name": "ts", "type": "TIMESTAMP"},
                 {"name": "value", "type": "INTEGER"},
             ],
-            bigquery_helper_factory=BigQueryHelper.mocked,
             write_to_bigquery_factory=lambda **kwargs: beam.Map(lambda x: x),  # no-op sink
         )
 
@@ -180,3 +157,17 @@ def test_expand_converts_float_timestamp_to_beam_timestamp():
         result = pcoll | "Apply Transform" >> transform
 
         assert_that(result, equal_to(expected))
+
+
+def test_float_to_beam_timestamp():
+    row = {"event_time": 1717777777.123, "other_time": 123456.789, "unchanged_field": "foo"}
+    fields = ["event_time", "other_time"]
+
+    result = WriteToBigQueryWrapper.float_to_beam_timestamp(row, fields)
+
+    assert isinstance(result["event_time"], Timestamp)
+    assert isinstance(result["other_time"], Timestamp)
+
+    assert result["event_time"] == Timestamp(1717777777.123)
+    assert result["other_time"] == Timestamp(123456.789)
+    assert result["unchanged_field"] == "foo"

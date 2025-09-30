@@ -83,3 +83,33 @@ def delete_events_hook(
         logger.info("Done.")
 
     return _hook
+
+
+def create_table_hook(
+    table_config: TableConfig,
+    mock: bool = False,
+) -> Callable[[Pipeline], None]:
+    """Returns a hook function to create a BigQuery table.
+
+    Args:
+        table_config:
+            :class:`~gfw.common.bigquery.TableConfig` instance containing view details.
+
+        mock:
+            If True, uses a mocked BQ client instead of performing real operations.
+
+    Returns:
+        A callable hook that accepts a :class:`~gfw.common.beam.pipeline.Pipeline`
+        instance and creates the view.
+    """
+
+    def _hook(p: Pipeline) -> None:
+        view_id = table_config.table_id
+        logger.info(f"Creating table: {view_id}...")
+        client_factory = BigQueryHelper.get_client_factory(mocked=mock)
+        bq_client = BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
+        params = table_config.to_bigquery_params()
+        bq_client.create_table(**params, exists_ok=True)
+        logger.info("Done.")
+
+    return _hook

@@ -43,7 +43,7 @@ Extra classes useful for testing
 """
 
 from .apply_sliding_windows import ApplySlidingWindows
-from .bigquery_write_to_partitioned import FakeWriteToBigQuery, WriteToPartitionedBigQuery
+from .bigquery import FakeWriteToBigQuery, WriteToBigQueryWrapper
 from .group_by import GroupBy
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
 from .read_from_bigquery import ReadFromBigQuery
@@ -63,6 +63,6 @@ __all__ = [
     "ReadFromJson",
     "ReadMatchingAvroFiles",
     "SampleAndLogElements",
+    "WriteToBigQueryWrapper",
     "WriteToJson",
-    "WriteToPartitionedBigQuery",
 ]

@@ -1,4 +1,4 @@
-"""Module containing an Apache Beam transform for writing data to a partitioned BigQuery table."""
+"""Wrapper around WriteToBigQuery with some extended functionality."""
 
 import logging
 
@@ -11,9 +11,7 @@ from apache_beam import PTransform
 from apache_beam.io.gcp.bigquery import WriteToBigQuery
 from apache_beam.options.pipeline_options import StandardOptions
 from apache_beam.pvalue import PCollection
-
-from gfw.common.beam.utils import float_to_beam_timestamp
-from gfw.common.bigquery.helper import BigQueryHelper
+from apache_beam.utils.timestamp import Timestamp
 
 
 logger = logging.getLogger(__name__)
@@ -32,52 +30,26 @@ class FakeWriteToBigQuery(WriteToBigQuery):
         return pcoll
 
 
-class WriteToPartitionedBigQuery(PTransform[Any, Any]):
+class WriteToBigQueryWrapper(PTransform[Any, Any]):
     """Wrapper around :class:`WriteToBigQuery` with extended functionality.
 
-    This transform abstracts the complexity of BigQuery's partitioning and clustering options,
-    as well as other additional options.
-
     Key Features:
-
-    - Provides a simpler interface to:
-        * Partitioning on a specific field (e.g., ``timestamp``) and type (e.g. ``DAY``).
-        * Clustering on specified fields for performance optimization.
-        * Add a description for the table's metadata.
-        * Define a schema using a list of dictionaries.
+    - Provides a simpler interface define a schema using a list of dictionaries.
     - Automatically selects writing method based on pipeline mode (streaming vs. batch) and runner.
+    - Automatically converts TIMESTAMP fields to Timestamp objects when needed
+        (streaming with ``STORAGE_WRITE_API``).
 
     Args:
         table:
             The BigQuery table to write to (in the format ``project:dataset.table``).
 
-        project:
-            The ID of the project containing this table or :data:`None`
-            if the table reference is specified entirely by the table argument.
-
-        description:
-            The description to use in the metadata of the BigQuery table.
-
         schema:
             The schema for the BigQuery table.
 
-        partition_field:
-            The field to use for partitioning the BigQuery table.
-
-        partition_type:
-            The type of partitioning to use (e.g., ``DAY``, ``HOUR``).
-            Defaults to ``DAY``.
-
-        clustering_fields:
-            A list of fields to use for clustering the BigQuery table.
-
-        bigquery_helper_factory:
-            Factory for :class:`~gfw.common.bigquery.BigQueryHelper` objects
-            to handle table creation. While :class:`beam.io.WriteToBigQuery`
-            can create tables, it has limitations with:
-
-            - ``STORAGE_WRITE_API`` ignores time partitioning and fails to set descriptions.
-            - ``STREAMING_INSERTS`` sets time partitioning but fails to set descriptions.
+        convert_timestamps:
+            If True, converts ``TIMESTAMP`` fields to Timestamp objects when a streaming pipeline
+            is using ``STORAGE_WRITE_API`` method, which requires Apache Beam Timestamp objects.
+            See https://beam.apache.org/documentation/io/built-in/google-bigquery/.
 
         write_to_big_query_factory:
             A factory function used to create a :class:`beam.io.WriteToBigQuery` instance.
@@ -98,38 +70,24 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
 
             pcoll | "Write" >> bigquery.WriteToPartitionedBigQuery(
                 table="project:dataset.table",
-                description="My table",
                 schema=[{"name": "timestamp", "type": "TIMESTAMP", "mode": "REQUIRED"}, ...],
-                partition_field="timestamp",
-                partition_type="DAY",
-                clustering_fields=["field1", "field2"],
             )
     """
 
     def __init__(
         self,
         table: str,
-        project: Optional[str] = None,
-        description: str = "",
         schema: Optional[list[dict[str, str]]] = None,
-        partition_field: Optional[str] = None,
-        partition_type: str = "DAY",
-        clustering_fields: Optional[List[str]] = None,
         label: Optional[str] = None,
-        bigquery_helper_factory: Callable[..., BigQueryHelper] = BigQueryHelper,
+        convert_timestamps: bool = False,
         write_to_bigquery_factory: Callable[..., WriteToBigQuery] = WriteToBigQuery,
         **write_to_bigquery_kwargs: Any,
     ) -> None:
         """Initializes the WriteToPartitionedBigQuery transform with the given parameters."""
         super().__init__(label=label)
         self._table = table
-        self._project = project
         self._schema = schema
-        self._description = description
-        self._partition_field = partition_field
-        self._partition_type = partition_type
-        self._clustering_fields = clustering_fields or []
-        self._bigquery_helper_factory = bigquery_helper_factory
+        self._convert_timestamps = convert_timestamps
         self._write_to_bigquery_factory = write_to_bigquery_factory
         self._write_to_bigquery_kwargs = write_to_bigquery_kwargs
 
@@ -186,28 +144,14 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
             "method", self.resolve_write_method(pcoll.pipeline.options.view_as(StandardOptions))
         )
 
-        logger.debug("BigQuery write method: {}".format(method))
+        logger.info("BigQuery write method: {}".format(method))
 
-        logger.debug("Creating table (if doesn't exist): {}".format(self._table))
-        bigquery_helper = self._bigquery_helper_factory(project=self._project)
-        bigquery_helper.create_table(
-            table=self._table,
-            description=self._description,
-            schema=self._schema,
-            partition_type=self._partition_type,
-            partition_field=self._partition_field,
-            clustering_fields=self._clustering_fields,
-            exists_ok=True,
-        )
-
-        if method == WriteToBigQuery.Method.STORAGE_WRITE_API:
-            # 'STORAGE_WRITE_API' requires Apache Beam Timestamp objects.
-            # See https://beam.apache.org/documentation/io/built-in/google-bigquery/
-            pcoll = pcoll | "Float to Timestamp" >> beam.Map(
-                lambda x: float_to_beam_timestamp(x, self.timestamp_fields)
+        if method == WriteToBigQuery.Method.STORAGE_WRITE_API and self._convert_timestamps:
+            pcoll = pcoll | "FloatToTimestamp" >> beam.Map(
+                lambda x: self.float_to_beam_timestamp(x, self.timestamp_fields)
             )
 
-        return pcoll | "Write to BigQuery" >> self._write_to_bigquery_factory(
+        return pcoll | "WriteToBigQuery" >> self._write_to_bigquery_factory(
             table=self._table, schema=self.schema, method=method, **write_to_bigquery_kwargs
         )
 
@@ -245,3 +189,22 @@ class WriteToPartitionedBigQuery(PTransform[Any, Any]):
             return WriteToBigQuery.Method.STORAGE_WRITE_API
 
         return WriteToBigQuery.Method.FILE_LOADS
+
+    @staticmethod
+    def float_to_beam_timestamp(row: dict[str, Any], fields: list[str]) -> dict[str, Any]:
+        """Converts in-place specified fields in a dictionary from float to Beam Timestamp objects.
+
+        Args:
+            row:
+                A dictionary containing data with potential float values.
+
+            fields:
+                A tuple of field names to be converted to Timestamp.
+
+        Returns:
+            The input dictionary with specified fields converted to Timestamp objects.
+        """
+        for field in fields:
+            row[field] = Timestamp(row[field])
+
+        return row

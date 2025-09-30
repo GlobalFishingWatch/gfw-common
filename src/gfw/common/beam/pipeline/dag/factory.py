@@ -13,7 +13,7 @@ from apache_beam import PTransform
 from apache_beam.io.gcp import bigquery
 
 from gfw.common.beam.pipeline.config import PipelineConfig
-from gfw.common.beam.transforms import ReadFromBigQuery, WriteToPartitionedBigQuery
+from gfw.common.beam.transforms import ReadFromBigQuery, WriteToBigQueryWrapper
 from gfw.common.bigquery.helper import BigQueryHelper
 
 from .base import Dag
@@ -43,7 +43,7 @@ class DagFactory(ABC):
 
         Uses mocked clients if configured.
         """
-        return WriteToPartitionedBigQuery.get_client_factory(mocked=self.config.mock_bq_clients)
+        return WriteToBigQueryWrapper.get_client_factory(mocked=self.config.mock_bq_clients)
 
     @property
     def bigquery_helper_factory(self) -> Callable[..., BigQueryHelper]:

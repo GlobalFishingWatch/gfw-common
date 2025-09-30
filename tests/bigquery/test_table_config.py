@@ -15,7 +15,6 @@ def config():
     return DummyTableConfig(
         table_id="project.dataset.table",
         schema_file="schema.json",
-        project="my-project",
         partition_field="timestamp",
         clustering_fields=("vessel_id",),
         description=TableDescription(
@@ -39,11 +38,9 @@ def test_to_bigquery_params_with_description(config):
 
     assert result["table"] == config.table_id
     assert result["schema"] == config.schema
-    assert result["project"] == config.project
     assert result["partition_type"] == config.partition_type
     assert result["partition_field"] == config.partition_field
     assert result["clustering_fields"] == config.clustering_fields
-    assert result["write_disposition"] == config.write_disposition
     assert "description" in result
     assert "AIS" in result["description"]
     assert "country" in result["description"]

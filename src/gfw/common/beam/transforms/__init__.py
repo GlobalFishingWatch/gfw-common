@@ -27,7 +27,7 @@ Classes
    ReadFromJson
    ReadMatchingAvroFiles
    SampleAndLogElements
-   WriteToPartitionedBigQuery
+   WriteToBigQueryWrapper
    WriteToJson
 
 Extra classes useful for testing

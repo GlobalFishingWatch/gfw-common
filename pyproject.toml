@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # Project metadata.
 [project]
 name = "gfw-common"
-version = "0.1.0rc16"
+version = "0.1.0"
 description = "Common place for GFW reusable Python components."
 readme = "README.md"
 license = "Apache-2.0"
@@ -119,7 +119,7 @@ docs = [
 
 [project.urls]
 Homepage = "https://github.com/GlobalFishingWatch/gfw-common"
-Documentation = "https://globalfishingwatch.github.io/gfw-common/"
+Documentation = "https://gfw-common.readthedocs.io/en/latest"
 Changelog = "https://github.com/GlobalFishingWatch/gfw-common/blob/main/CHANGELOG.md"
 Repository = "https://github.com/GlobalFishingWatch/gfw-common"
 Issues = "https://github.com/GlobalFishingWatch/gfw-common/issues"

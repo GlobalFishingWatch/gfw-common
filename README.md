@@ -8,7 +8,7 @@
     <img src="https://codecov.io/gh/GlobalFishingWatch/gfw-common/graph/badge.svg?token=bpFiU6qtrd"/>
   </a>
   <a>
-    <img alt="Python versions" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue">
+    <img alt="Python versions" src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue">
   </a>
   <a>
     <img alt="Last release" src="https://img.shields.io/github/v/release/GlobalFishingWatch/gfw-common">
@@ -34,7 +34,7 @@ Common place for GFW reusable Python components.
 
 [gfw.common.beam]: src/gfw/common/beam/
 [gfw.common.cli]: src/gfw/common/cli/
-[gfw.common.bigquery_helper.py]: src/gfw/common/bigquery_helper.py
+[gfw.common.bigquery]: src/gfw/common/bigquery/
 [gfw.common.datetime]: src/gfw/common/datetime.py
 [gfw.common.decorators.py]: src/gfw/common/decorators.py
 [gfw.common.dictionaries.py]: src/gfw/common/dictionaries.py
@@ -42,6 +42,8 @@ Common place for GFW reusable Python components.
 [gfw.common.iterables.py]: src/gfw/common/iterables.py
 [gfw.common.logging.py]: src/gfw/common/logging.py
 [gfw.common.serialization.py]: src/gfw/common/serialization.py
+
+[documentation pages]: https://gfw-common.readthedocs.io/en/latest
 
 
 ## Introduction
@@ -56,7 +58,7 @@ The following table shows a summary of the current supported features:
 | ------------------------------ | ------------------------------------------------------------------- |
 |[gfw.common.beam]               | Common utilities and wrappers for Apache Beam pipelines.            |
 |[gfw.common.cli]                | Lightweight framework around argparse for building CLIs more easily.|
-|[gfw.common.bigquery_helper.py] | Wrapper with extended functionality for bigquery.Client.            |
+|[gfw.common.bigquery]           | Common utilities and wrappers for BigQuery interactions.            |
 |[gfw.common.datetime]           | Simple helper functions around stdlib datetime module.              |
 |[gfw.common.decorators.py]      | Basic function decorators.                                          |
 |[gfw.common.dictionaries.py]    | Simple helper functions for dictionary manipulation.                |
@@ -66,6 +68,8 @@ The following table shows a summary of the current supported features:
 |[gfw.common.serialization.py]   | Basic serialization utilities.                                      |
 
 </div>
+
+For more information and API reference, check the [documentation pages].
 
 ## Installation
 

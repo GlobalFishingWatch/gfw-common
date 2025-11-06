@@ -1,4 +1,3 @@
-import json
 import sys
 
 from datetime import date
@@ -6,10 +5,10 @@ from types import SimpleNamespace
 from typing import Any, Sequence
 
 from gfw.common.cli import CLI, Command, Option, ParametrizedCommand
+from gfw.common.cli.actions import NestedKeyValueAction
 from gfw.common.cli.validations import valid_date
 from gfw.common.logging import LoggerConfig
 from gfw.common.version import __version__
-
 
 HELP_DRY_RUN = "If passed, all queries, if any, will be run in dry run mode."
 HELP_PROJECT = "GCP project id."
@@ -38,14 +37,22 @@ class ParseCommand(Command):
         print("Timeout is:", config.timeout)
 
 
+def run(config):
+    print(f"Hello!. partition-date is: {config.partition_date}")
+    print(f"Labels (type {type(config.labels)}): {config.labels}")
+
+
 normalize_command = ParametrizedCommand(
     name="normalize",
     description="Normalize tables.",
     options=[
         Option("--partition-date", type=valid_date, default=date(2022, 9, 1), help="Date."),
-        Option("--labels", type=json.loads, default=DEFAULT_LABELS, help=HELP_LABELS),
+        Option(
+            "--labels",
+            type=str,
+            nargs="*", action=NestedKeyValueAction, default=DEFAULT_LABELS, help=HELP_LABELS),
     ],
-    run=lambda config, **kwargs: print(f"Hello!. partition-date is: {config.partition_date}")
+    run=run
 )
 
 
@@ -74,7 +81,7 @@ def cli(args):
                 "apache_beam.utils.subprocess_server",
             ]
         ),
-        allow_unknown=False,
+        allow_unknown=True,
         use_underscore=False,
     )
 

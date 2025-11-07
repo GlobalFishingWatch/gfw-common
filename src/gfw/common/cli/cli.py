@@ -5,12 +5,12 @@ import json
 import logging
 import sys
 
-from collections import ChainMap
 from functools import cached_property
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Iterator, Optional, Sequence, Tuple, Type, Union
 
+from gfw.common.collections import DeepChainMap
 from gfw.common.dictionaries import filter_none_values
 from gfw.common.io import yaml_load
 from gfw.common.logging import LoggerConfig
@@ -255,7 +255,7 @@ class CLI:
         defaults_args.update(common_defaults)
         cli_args.pop(self._KEY_SUBCOMMAND, None)
 
-        config = dict(ChainMap(cli_args, config_file_args, defaults_args))
+        config = DeepChainMap(cli_args, config_file_args, defaults_args).to_dict()
 
         config[self._KEY_UNKNOWN_UNPARSED_ARGS] = unknown_unparsed_args
         config[self._KEY_UNKNOWN_PARSED_ARGS] = unknown_parsed_args

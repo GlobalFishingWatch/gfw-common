@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from gfw.common.cli import CLI, Option, ParametrizedCommand
+from gfw.common.cli import CLI, Command, Option, ParametrizedCommand
 from gfw.common.cli.validations import valid_date, valid_list
 from gfw.common.io import yaml_save
 
@@ -18,6 +18,7 @@ def subcommand():
             Option("--list-2", type=valid_list, default=["ABC", "EFG"]),
             Option("--list-3", type=valid_list, default=[]),
             Option("--boolean-2", type=bool, default=False),
+            Option("--boolean-3", type=bool, default=False),
         ],
         run=lambda config, **kwargs: config.number_2 * 2,
     )
@@ -34,9 +35,42 @@ def main_command():
     }
 
 
+class InheritedCommand(Command):
+    @property
+    def description(self):
+        return ""
+
+    @property
+    def name(self):
+        return "subcommand"
+
+    @property
+    def options(self):
+        return []
+
+    def run(self, config, **kwargs):
+        pass
+
+
 def test_execute_with_subcommands(main_command, subcommand):
     test_cli = CLI(**main_command, subcommands=[subcommand])
     test_cli.execute(args=["subcommand", "--number-2", "3"])
+
+
+def test_execute_with_static_subcommands(main_command):
+    test_cli = CLI(**main_command, subcommands=[InheritedCommand])
+    test_cli.execute(args=["subcommand"])
+
+
+def test_execute_with_invalid_subcommands(main_command):
+    class Invalid:
+        pass
+
+    with pytest.raises(TypeError):
+        CLI(**main_command, subcommands=[Invalid])
+
+    with pytest.raises(TypeError):
+        CLI(**main_command, subcommands=[Invalid()])
 
 
 def test_execute_without_subcommands(main_command):

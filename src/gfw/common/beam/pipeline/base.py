@@ -8,7 +8,6 @@ from functools import cached_property
 from typing import Any, Callable, Optional, Sequence, Tuple
 
 import apache_beam as beam
-import googlecloudprofiler
 
 from apache_beam.options.pipeline_options import GoogleCloudOptions, PipelineOptions
 from apache_beam.pvalue import PCollection
@@ -22,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 DATAFLOW_SDK_CONTAINER_IMAGE = "sdk_container_image"
 DATAFLOW_SERVICE_OPTIONS = "dataflow_service_options"
-DATAFLOW_ENABLE_PROFILER = "enable_google_cloud_profiler"
 
 
 class Pipeline:
@@ -150,10 +148,6 @@ class Pipeline:
 
     def run(self) -> tuple[PipelineResult, PCollection]:
         """Executes the Apache Beam pipeline."""
-        if self._is_profiler_enabled():
-            logger.info("Starting Google Cloud Profiler...")
-            self._start_profiler()
-
         for hook in self._pre_hooks:
             hook(self)
 
@@ -171,26 +165,6 @@ class Pipeline:
             logger.warning("Pipeline did not finish successfully; skipping post-hooks.")
 
         return result, outputs
-
-    def _is_profiler_enabled(self) -> bool:
-        if DATAFLOW_ENABLE_PROFILER in self.pipeline_options.display_data().get(
-            DATAFLOW_SERVICE_OPTIONS, []
-        ):
-            return True
-
-        return False
-
-    def _start_profiler(self) -> None:
-        try:
-            googlecloudprofiler.start(
-                service=self._name,
-                service_version=self._version,
-                # verbose is the logging level.
-                # 0-error, 1-warning, 2-info, 3-debug. It defaults to 0 (error) if not set.
-                verbose=2,
-            )
-        except (ValueError, NotImplementedError) as e:
-            logger.warning(f"Profiler couldn't start: {e}")
 
     @staticmethod
     def default_options() -> dict[str, Any]:

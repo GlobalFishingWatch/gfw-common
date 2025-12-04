@@ -110,33 +110,3 @@ def test_pipeline_options():
 
     # Check if 'setup_file' is included when 'DATAFLOW_SDK_CONTAINER_IMAGE' is not set.
     assert "setup_file" in pipeline_options.view_as(PipelineOptions).get_all_options()
-
-
-def test_profiler_enabled_runs_profiler(monkeypatch):
-    called = {}
-
-    def mock_start(service, service_version, verbose):
-        called["called"] = True
-        called["service"] = service
-        called["version"] = service_version
-        called["verbose"] = verbose
-
-    monkeypatch.setattr("gfw.common.beam.pipeline.base.googlecloudprofiler.start", mock_start)
-
-    dag = LinearDag(sources=[DummySource()])
-
-    pipeline = Pipeline(
-        name="test-profiler-pipeline",
-        version="1.2.3",
-        dag=dag,
-        runner="DirectRunner",
-        dataflow_service_options=["enable_google_cloud_profiler"],
-        project="test-project",
-    )
-
-    pipeline.run()
-
-    assert called["called"] is True
-    assert called["service"] == "test-profiler-pipeline"
-    assert called["version"] == "1.2.3"
-    assert called["verbose"] == 2

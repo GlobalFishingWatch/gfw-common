@@ -30,7 +30,7 @@ class PipelineConfigError(Exception):
     pass
 
 
-@dataclass
+@dataclass(frozen=True, kw_only=True)
 class PipelineConfig:
     """Configuration object for data pipeline execution.
 

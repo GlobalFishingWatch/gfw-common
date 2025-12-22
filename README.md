@@ -100,10 +100,15 @@ First, clone the repository.
 git clone https://github.com/GlobalFishingWatch/gfw-common.git
 ```
 
+Install [uv](https://docs.astral.sh/uv/) for faster installs:
+```shell
+./install-uv.sh
+```
+
 Create virtual environment and activate it:
 ```shell
-make venv
-./.venv/bin/activate
+uv venv
+source .venv/bin/activate
 ```
 
 Install pre-commit hooks for local development:

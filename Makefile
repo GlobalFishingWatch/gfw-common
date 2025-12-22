@@ -3,66 +3,71 @@ VENV_NAME:=.venv
 VENV_TEST:=.venv-test
 sources = src
 
+PYTHON:=python
+PTYHON_RUN:=uv run
+PIP:=uv pip
+
+
 .PHONY: venv  ## Creates virtual environment.
 venv:
-	python -m venv ${VENV_NAME}
+	${PYTHON} -m venv ${VENV_NAME}
 
 .PHONY: upgrade-pip  ## Upgrades pip.
 upgrade-pip:
-	python -m pip install -U pip
+	${PIP} install -U pip
 
 .PHONY: install-dev  ## Install the package and only dev dependencies.
-install-dev: upgrade-pip
-	python -m pip install .[bq,lint,dev,build,docs]
+install: upgrade-pip
+	${PIP} install .[bq,lint,dev,build,docs]
 
 .PHONY: install-test  ## Install the package and only test dependencies.
 install-test: upgrade-pip
-	python -m pip install .[bq,beam,test]
+	${PIP} install .[bq,beam,test]
 
 .PHONY: install-pre-commit  ## Install pre-commit.
 install-pre-commit:
-	python -m pre_commit install --install-hooks
-	python -m pre_commit install --hook-type commit-msg
+	${PYTHON} -m pre_commit install --install-hooks
+	${PYTHON} -m pre_commit install --hook-type commit-msg
 
 .PHONY: install  ## Install the package in editable mode for local development.
 install: upgrade-pip
-	python -m pip install -e .[bq,beam,dev,test,lint,build,docs]
+	${PIP} install -e .[bq,beam,dev,test,lint,build,docs]
 
 .PHONY: format  ## Auto-format python source files according with PEP8.
 format:
-	python -m ruff check --fix
-	python -m ruff format
-	python -m black $(sources) tests
+	${PYTHON} -m ruff check --fix
+	${PYTHON} -m ruff format
+	${PYTHON} -m black $(sources) tests
 
 .PHONY: lint  ## Lint python source files.
 lint:
-	python -m ruff check --no-fix
-	python -m ruff format --check
-	python -m black --check --diff $(sources) tests
+	${PYTHON} -m ruff check --no-fix
+	${PYTHON} -m ruff format --check
+	${PYTHON} -m black --check --diff $(sources) tests
 
 .PHONY: codespell  ## Use Codespell to do spell checking.
 codespell:
-	python -m codespell_lib
+	${PYTHON} -m codespell_lib
 
 .PHONY: typecheck  ## Perform type-checking.
 typecheck:
-	python -m mypy
+	${PYTHON} -m mypy
 
 .PHONY: audit  ## Use pip-audit to scan for known vulnerabilities.
 audit:
-	python -m pip_audit .
+	${PYTHON} -m pip_audit .
 
 .PHONY: test  ## Run all unit tests and generate a coverage report.
 test:
-	python -m pytest -m "not integration" --cov-report term --cov-report=xml --cov=$(sources)
+	${PYTHON} -m pytest -m "not integration" --cov-report term --cov-report=xml --cov=$(sources)
 
 .PHONY: test-integration  ## Run only integration tests (if configured) without generate a coverage report.
 test-integration:
-	python -m pytest -m "integration" -rs -n auto --dist=loadscope --maxfail=5 --durations=10 --tb=short
+	${PYTHON} -m pytest -m "integration" -rs -n auto --dist=loadscope --maxfail=5 --durations=10 --tb=short
 
 .PHONY: pre-commit  ## Run all pre-commit hooks.
 pre-commit:
-	python -m pre_commit run --all-files
+	${PTYHON_RUN} pre-commit run --all-files
 
 .PHONY: all  ## Run the standard set of checks performed in CI.
 all: lint codespell typecheck audit test
@@ -102,15 +107,15 @@ servedocs:
 
 .PHONY: build  ## Build a source distribution and a wheel distribution.
 build: clean
-	python -m build
+	${PYTHON} -m build
 
 .PHONY: publish  ## Publish the distribution to PyPI.
 publish: build
-	python -m twine upload dist/* --verbose
+	${PYTHON} -m twine upload dist/* --verbose
 
 .PHONY: publish-test  ## Publish the distribution to TestPyPI.
 publish-test: build
-	python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/* --verbose
+	${PYTHON} -m twine upload --repository-url https://test.pypi.org/legacy/ dist/* --verbose
 
 .PHONY: test-installed  ## Run tests against installed package in a fresh venv with coverage.
 test-installed:

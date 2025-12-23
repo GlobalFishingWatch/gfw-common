@@ -1,3 +1,5 @@
+import argparse
+
 from datetime import date
 from types import SimpleNamespace
 
@@ -13,7 +15,8 @@ def subcommand():
     return ParametrizedCommand(
         name="subcommand",
         options=[
-            Option("--number-2", type=int, default=2),
+            Option("--number-2", type=int, required=True),
+            Option("--number-3", type=int, default=3),
             Option("--date-2", type=valid_date, default=date(2025, 1, 2)),
             Option("--list-2", type=valid_list, default=["ABC", "EFG"]),
             Option("--list-3", type=valid_list, default=[]),
@@ -78,6 +81,22 @@ def test_execute_without_subcommands(main_command):
     test_cli.execute(args=["--number-1", "4"])
 
 
+def test_execute_with_missing_required_args(main_command, subcommand, capsys):
+    test_cli = CLI(**main_command, subcommands=[subcommand])
+    with pytest.raises(argparse.ArgumentTypeError) as excinfo:
+        test_cli.execute(args=["subcommand", "--boolean-2"])
+
+    assert "Missing required arguments" in str(excinfo.value)
+
+
+def test_execute_with_required_args_in_config(tmp_path, main_command, subcommand, capsys):
+    config_path = tmp_path / "config.yaml"
+    yaml_save(config_path, data={"number_2": 123})
+
+    test_cli = CLI(**main_command, subcommands=[subcommand])
+    test_cli.execute(args=["subcommand", "--boolean-2", "--config-file", str(config_path)])
+
+
 def test_main_command_run_is_called_with_correct_args():
     called = {}
 
@@ -123,7 +142,7 @@ def test_execute_raises_on_invalid_config_key(tmp_path, main_command):
 @pytest.mark.parametrize(
     "arg, config_value, cli_value",
     [
-        pytest.param("number_2", 5, 3, id="string"),
+        pytest.param("number_3", 5, 3, id="string"),
         pytest.param("boolean_2", True, False, id="bool"),
     ],
 )
@@ -136,22 +155,24 @@ def test_arguments_precedence(tmp_path, main_command, subcommand, arg, config_va
     yaml_save(path, data={arg: config_value})
     config_file_arg = ["--config-file", f"{path}"]
 
+    required_args = ["--number-2", "1"]
+
     cli_args = []
     cli_arg = arg.replace("_", "-")
     if type(cli_value) is not bool:
-        cli_args = [f"--{cli_arg}", f"{cli_value}"]
+        cli_args.extend([f"--{cli_arg}", f"{cli_value}"])
     elif cli_value is True:
-        cli_args = [f"--{cli_arg}"]
+        cli_args.extend([f"--{cli_arg}"])
 
     test_cli = CLI(**main_command, subcommands=[subcommand])
 
-    _, config = test_cli.execute(args=[command_name, *config_file_arg, *cli_args])
+    _, config = test_cli.execute(args=[command_name, *config_file_arg, *required_args, *cli_args])
     assert config[arg] == cli_value if cli_args else config_value
 
-    _, config = test_cli.execute(args=[command_name, *config_file_arg])
+    _, config = test_cli.execute(args=[command_name, *config_file_arg, *required_args])
     assert config[arg] == config_value
 
-    _, config = test_cli.execute(args=[command_name, "--no-rich-logging"])
+    _, config = test_cli.execute(args=[command_name, "--no-rich-logging", *required_args])
     assert config[arg] == default_value
 
 
@@ -210,12 +231,13 @@ def test_only_render(main_command, subcommand, use_underscore, sep):
         "program \\"
         "\nsubcommand \\"
         "\n--other 4 \\"
-        "\n--number{sep}2=2 \\"
+        "\n--number{sep}3=3 \\"
         "\n--date{sep}2=2025-01-02 \\"
         "\n--list{sep}2=ABC,EFG \\"
         "\n--boolean{sep}2 \\"
         "\n--number{sep}1=1 \\"
-        "\n--date{sep}1=2025-01-01"
+        "\n--date{sep}1=2025-01-01 \\"
+        "\n--number{sep}2=2"
     ).format(sep=sep)
 
     assert res == expected

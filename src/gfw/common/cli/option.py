@@ -5,6 +5,8 @@ options using the :class:`Option` class. It supports automatic argument registra
 default values, and custom types, including boolean flags.
 """
 
+import argparse
+
 from functools import cached_property
 from typing import Any, Callable
 
@@ -38,19 +40,34 @@ class Option:
             The default value to use if the option is not provided. This should match
             the specified type, although no enforcement is currently done.
 
+        required:
+            We capture the required flag so we can validate it not only against command-line
+            parameters but also against the provided config file.
+
         **kwargs:
             Additional keyword arguments passed directly to
             :meth:`~argparse.ArgumentParser.add_argument`.
     """
 
     def __init__(
-        self, *flags: str, type: Callable[..., Any], default: Any = None, **kwargs: Any
+        self,
+        *flags: str,
+        type: Callable[..., Any],
+        default: Any = None,
+        required: bool = False,
+        **kwargs: Any,
     ) -> None:
         """Initializes an Option instance."""
         self.flags = flags
         self.type = type
         self.default = default
+        self.required = required
         self.kwargs = kwargs
+
+        if required and default is not None:
+            raise argparse.ArgumentTypeError(
+                f"You cannot set a default in a required argument: {self.dest}"
+            )
 
     @cached_property
     def dest(self) -> str:

@@ -46,7 +46,7 @@ normalize_command = ParametrizedCommand(
     name="normalize",
     description="Normalize tables.",
     options=[
-        Option("--partition-date", type=valid_date, default=date(2022, 9, 1), help="Date."),
+        Option("--partition-date", required=True, type=valid_date, help="Date."),
         Option(
             "--labels",
             type=str,

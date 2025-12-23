@@ -260,6 +260,8 @@ class CLI:
         config[self._KEY_UNKNOWN_UNPARSED_ARGS] = unknown_unparsed_args
         config[self._KEY_UNKNOWN_PARSED_ARGS] = unknown_parsed_args
 
+        self._validate_required_args(command, config)
+
         # Setup logger.
         self._logger_config.setup(
             verbose=verbose,
@@ -305,8 +307,12 @@ class CLI:
         kwargs = option.kwargs.copy()
 
         # Compose help string with real default appended
-        kwargs.setdefault("help", "")
-        kwargs["help"] = f"{kwargs['help']} (default: {option.default})"
+        help_text = kwargs.get("help", "")
+
+        if option.required:
+            help_text = f"{help_text} [required]"
+
+        kwargs["help"] = f"{help_text} (default: {option.default})"
         kwargs["default"] = None
 
         kwargs.update({"type": option.type})
@@ -317,7 +323,7 @@ class CLI:
             kwargs.pop("type")
             kwargs.pop("metavar")
 
-        p.add_argument(*flags, dest=option.dest, **kwargs)
+        p.add_argument(*flags, required=False, dest=option.dest, **kwargs)
 
     def _epilog(self) -> str:
         indent = " " * 4
@@ -344,6 +350,15 @@ class CLI:
 
         # At this point, argparse guarantees it's a valid subcommand.
         return next(c for c in self._subcommands if self._resolve_cli_name(c.name) == subcommand)
+
+    def _validate_required_args(self, command: Command, config: dict[str, Any]) -> None:
+        missing = []
+        for o in command.options:
+            if o.required and o.dest not in config:
+                missing.append(o.dest)
+
+        if missing:
+            raise argparse.ArgumentTypeError(f"Missing required arguments: {missing}")
 
     def _render_command_line_call(self, command_name: str, config: dict[str, Any]) -> str:
         config = config.copy()

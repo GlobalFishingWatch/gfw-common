@@ -35,7 +35,10 @@ class DummyQuery(Query):
 
     @property
     def template_vars(self):
-        return {"source_table": "my_table", "fields": self.get_select_fields()}
+        return {
+            "source_table": "my_table",
+            "fields": self.get_select_fields(convert_datetime_to_timestamp=True),
+        }
 
 
 @pytest.fixture
@@ -45,12 +48,12 @@ def query():
 
 
 def test_expand_schema(query):
-    select_clause = query.get_select_fields()
+    select_clause = query.get_select_fields(convert_datetime_to_timestamp=False)
     # NamedTuple fields should expand into SQL SELECT expressions
     assert "vessel_id" in select_clause
     assert "score" in select_clause
-    # datetime field should be converted
-    assert "UNIX_MICROS(timestamp)" in select_clause
+    # datetime field should not be converted
+    assert "UNIX_MICROS(timestamp)" not in select_clause
 
 
 def test_render_query(query):

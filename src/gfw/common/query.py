@@ -172,12 +172,14 @@ class Query(ABC):
 
         return query
 
-    def get_select_fields(self) -> str:
+    def get_select_fields(self, convert_datetime_to_timestamp: bool = False) -> str:
         """Builds the ``SELECT`` clause fields from the output schema.
 
-        Fields typed as :class:`~datetime.datetime` are automatically cast to Unix timestamps
-        (via :meth:`datetime_to_timestamp`).
-        All other fields are passed through.
+        Args:
+            convert_datetime_to_timestamp:
+                If True, fields typed as :class:`~datetime.datetime` are automatically
+                cast to Unix float timestamps (via :meth:`datetime_to_timestamp`).
+                All other fields are passed through.
 
         Returns:
             A comma-separated string of ``SELECT`` fields.
@@ -186,7 +188,7 @@ class Query(ABC):
 
         clause_parts = []
         for field, class_ in fields.items():
-            if class_ == datetime:
+            if class_ == datetime and convert_datetime_to_timestamp:
                 clause_parts.append(self.datetime_to_timestamp(field))
             else:
                 clause_parts.append(field)

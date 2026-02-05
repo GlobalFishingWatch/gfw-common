@@ -44,7 +44,7 @@ def create_view_hook(
         logger.info(f"Creating view: {view_id}...")
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
         bq_client = BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
-        bq_client.create_view(view_id=view_id, view_query=view_query, exists_ok=True)
+        bq_client.create_view(view_id=view_id, view_query=view_query)
         logger.info("Done.")
 
     return _hook

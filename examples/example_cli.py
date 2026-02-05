@@ -1,6 +1,5 @@
 import sys
 
-from datetime import date
 from types import SimpleNamespace
 from typing import Any, Sequence
 

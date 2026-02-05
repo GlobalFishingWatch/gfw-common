@@ -100,16 +100,24 @@ def test_create_table_without_partition_field():
     assert result == bq.client.create_table.return_value
 
 
-def test_create_view_creates_view_and_logs():
+def test_create_view_executes_create_or_replace_view_query():
     helper = BigQueryHelper.mocked(project="test")
     helper.client.project = "test"
 
-    view = helper.create_view("my_dataset.my_view", "SELECT 1")
+    # mock the query job returned by client.query
+    query_job_mock = mock.MagicMock()
+    helper.client.query.return_value = query_job_mock
 
-    helper.client.create_table.assert_called_once()
-    created = helper.client.create_table.call_args[0][0]
-    assert created.view_query == "SELECT 1"
-    assert isinstance(view, mock.MagicMock)
+    result = helper.create_view("my_dataset.my_view", "SELECT 1")
+
+    helper.client.query.assert_called_once()
+    query = helper.client.query.call_args[0][0]
+
+    assert "CREATE OR REPLACE VIEW `my_dataset.my_view` AS" in query
+    assert "SELECT 1" in query
+
+    query_job_mock.result.assert_called_once()
+    assert result is None
 
 
 def test_run_query_with_session_and_destination():

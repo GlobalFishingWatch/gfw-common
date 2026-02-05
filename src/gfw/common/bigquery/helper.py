@@ -210,31 +210,25 @@ class BigQueryHelper:
 
         return self.client.create_table(bq_table, **kwargs)
 
-    def create_view(self, view_id: str, view_query: str, **kwargs: Any) -> bigquery.table.Table:
-        """Creates a view on a table.
+    def create_view(self, view_id: str, view_query: str) -> None:
+        """Creates or replaces a BigQuery view.
+
+            This method is declarative: the provided query becomes the
+            source of truth for the view definition. If the view already
+            exists, it is replaced. If it does not exist, it is created.
 
         Args:
             view_id:
-                The destination view, e.g. ``dataset.view_id``.
+                The destination view, e.g. ``project.dataset.view_id``.
 
             view_query:
-                The query to perform to create the view.
-
-            **kwargs:
-                Extra keyword arguments to be passed to the :meth:`client.create_table` method.
-
-        Returns:
-            A table object representing the view.
+                The SELECT query that defines the view.
         """
-        view_reference = self._create_table_reference(view_id)
-
-        view = bigquery.table.Table(view_reference)
-        view.view_query = view_query
-
-        view = self.client.create_table(view, **kwargs)
-        logger.debug(f"Created: {view.table_type}: {view.reference!s}")
-
-        return view
+        view_query = f"""
+        CREATE OR REPLACE VIEW `{view_id}` AS
+        {view_query}
+        """
+        self.client.query(view_query).result()
 
     def run_query(
         self,

@@ -107,7 +107,7 @@ Install [uv](https://docs.astral.sh/uv/) for faster installs:
 
 Create virtual environment and activate it:
 ```shell
-uv venv
+make venv
 source .venv/bin/activate
 ```
 

@@ -6,11 +6,12 @@ sources = src
 PYTHON:=python
 PTYHON_RUN:=uv run
 PIP:=uv pip
+PYTHON_VENV:=uv venv
 
 
 .PHONY: venv  ## Creates virtual environment.
 venv:
-	${PYTHON} -m venv ${VENV_NAME}
+	${PYTHON_VENV} ${VENV_NAME}
 
 .PHONY: upgrade-pip  ## Upgrades pip.
 upgrade-pip:

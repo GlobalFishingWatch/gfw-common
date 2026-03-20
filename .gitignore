@@ -152,3 +152,6 @@ tmp/
 .ipython/
 
 .ruff_cache
+
+# UV
+.python-version

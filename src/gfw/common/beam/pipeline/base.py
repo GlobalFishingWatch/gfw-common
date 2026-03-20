@@ -9,7 +9,11 @@ from typing import Any, Callable, Optional, Sequence, Tuple
 
 import apache_beam as beam
 
-from apache_beam.options.pipeline_options import GoogleCloudOptions, PipelineOptions
+from apache_beam.options.pipeline_options import (
+    GoogleCloudOptions,
+    PipelineOptions,
+    StandardOptions,
+)
 from apache_beam.pvalue import PCollection
 from apache_beam.runners.runner import PipelineResult, PipelineState
 
@@ -142,27 +146,74 @@ class Pipeline:
         """Returns the initialized :class:`beam.Pipeline` object."""
         return beam.Pipeline(options=self.pipeline_options)
 
+    @cached_property
+    def is_streaming(self) -> bool:
+        """Returns whether the pipeline is running in streaming mode."""
+        return self.pipeline_options.view_as(StandardOptions).streaming
+
     def apply_dag(self) -> PCollection:
         """Applies the provided DAG implementation to the self.pipeline."""
         return self._dag.apply(self.pipeline)
 
-    def run(self) -> tuple[PipelineResult, PCollection]:
-        """Executes the Apache Beam pipeline."""
+    def run(self, wait_until_finish: Optional[bool] = None) -> tuple[PipelineResult, PCollection]:
+        """Executes the Apache Beam pipeline.
+
+        Runs the configured DAG and returns the pipeline result along with its main output(s).
+
+        The execution can be either blocking or non-blocking depending on the pipeline type
+        and the ``wait_until_finish`` parameter:
+
+        - If ``wait_until_finish`` is ``None`` (default):
+          - batch pipelines block until completion
+          - streaming pipelines return immediately after submission
+
+        - If ``wait_until_finish`` is explicitly set:
+          - ``True`` blocks until the pipeline finishes
+          - ``False`` returns immediately
+
+        Note that waiting on a streaming pipeline will block indefinitely unless the job
+        is externally cancelled.
+
+        Post-hooks are only executed when the pipeline finishes successfully (i.e., in
+        blocking mode and when the final state is ``DONE``).
+
+        Args:
+            wait_until_finish:
+                Whether to wait for the pipeline execution to complete.
+                If ``None``, the behavior is inferred from whether the pipeline is
+                running in streaming mode.
+
+        Returns:
+            A tuple containing:
+                - The :class:`PipelineResult` of the executed pipeline.
+                - The main output(s) produced by the DAG, which may be a
+                  :class:`PCollection`, a tuple, a dict, or ``None``.
+        """
         for hook in self._pre_hooks:
             hook(self)
 
-        # Apply the DAG and store the main output(s).
-        # This can be a PCollection, a tuple, a dict, or None.
         outputs = self.apply_dag()
-
         result = self.pipeline.run()
-        result.wait_until_finish()
 
-        if result.state == PipelineState.DONE:
-            for hook in self._post_hooks:
-                hook(self)
+        if wait_until_finish is None:
+            wait_until_finish = not self.is_streaming
+
+        if wait_until_finish and self.is_streaming:
+            logger.warning(
+                "Waiting on a streaming pipeline. "
+                "This will block indefinitely unless the job is cancelled."
+            )
+
+        if wait_until_finish:
+            result.wait_until_finish()
+
+            if result.state == PipelineState.DONE:
+                for hook in self._post_hooks:
+                    hook(self)
+            else:
+                logger.warning("Pipeline did not finish successfully; skipping post-hooks.")
         else:
-            logger.warning("Pipeline did not finish successfully; skipping post-hooks.")
+            logger.info("Not waiting for pipeline to finish.")
 
         return result, outputs
 

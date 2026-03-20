@@ -1,4 +1,7 @@
+import logging
+
 import apache_beam as beam
+import pytest
 
 from apache_beam import PTransform
 from apache_beam.options.pipeline_options import (
@@ -28,7 +31,44 @@ class DummySink(PTransform):
         return pcoll
 
 
+def dummy_hook(p: Pipeline):
+    pass
+
+
 def test_pipeline_run():
+    dag = LinearDag(
+        sources=[DummySource()],
+        core=UppercaseTransform(),
+        sinks=[DummySink()],
+    )
+
+    pipeline = Pipeline(
+        pre_hooks=[dummy_hook], post_hooks=[dummy_hook], dag=dag, project="test-project"
+    )
+
+    assert pipeline.cloud_options.project == "test-project"
+
+    result, outputs = pipeline.run()
+
+    assert result.state == PipelineState.DONE
+    assert_that(outputs, equal_to(["A", "B", "C"]))
+
+
+def test_pipeline_run_wait_until_finish_false(caplog):
+    caplog.set_level(logging.INFO)
+
+    dag = LinearDag(
+        sources=[DummySource()],
+        core=UppercaseTransform(),
+        sinks=[DummySink()],
+    )
+
+    pipeline = Pipeline(dag=dag, project="test-project")
+    pipeline.run(wait_until_finish=False)
+    assert any("Not waiting" in rec.message for rec in caplog.records)
+
+
+def test_pipeline_run_wait_until_finish_true(monkeypatch, caplog):
     dag = LinearDag(
         sources=[DummySource()],
         core=UppercaseTransform(),
@@ -37,12 +77,9 @@ def test_pipeline_run():
 
     pipeline = Pipeline(dag=dag, project="test-project")
 
-    assert pipeline.cloud_options.project == "test-project"
-
-    result, outputs = pipeline.run()
-
-    assert result.state == PipelineState.DONE
-    assert_that(outputs, equal_to(["A", "B", "C"]))
+    monkeypatch.setattr(pipeline, "is_streaming", lambda: True)
+    pipeline.run(wait_until_finish=True)
+    assert any("Waiting on a streaming pipeline" in rec.message for rec in caplog.records)
 
 
 def test_parsed_args():
@@ -110,3 +147,9 @@ def test_pipeline_options():
 
     # Check if 'setup_file' is included when 'DATAFLOW_SDK_CONTAINER_IMAGE' is not set.
     assert "setup_file" in pipeline_options.view_as(PipelineOptions).get_all_options()
+
+
+def test_pipeline_options_missing_project():
+    pipeline = Pipeline()
+    with pytest.raises(ValueError, match="You must configure a project"):
+        _ = pipeline.pipeline_options

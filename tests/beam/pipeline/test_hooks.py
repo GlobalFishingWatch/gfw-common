@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Optional
 
 import pytest
 
@@ -15,7 +16,7 @@ def table_config():
         def view_query(self):
             return "SELECT * FROM dataset.source"
 
-        def delete_query(self, start_date):
+        def delete_query(self, start_date: date, end_date: Optional[date] = None):
             return f"DELETE FROM dataset.table WHERE event_date > '{start_date}'"
 
     return DummyTableConfig()

@@ -9,7 +9,7 @@ such as creating views, deleting data, or any other custom task.
 import logging
 
 from datetime import date
-from typing import Callable
+from typing import Callable, Optional
 
 from gfw.common.bigquery.helper import BigQueryHelper
 from gfw.common.bigquery.table_config import TableConfig
@@ -53,6 +53,7 @@ def create_view_hook(
 def delete_events_hook(
     table_config: TableConfig,
     start_date: date,
+    end_date: Optional[date] = None,
     mock: bool = False,
 ) -> Callable[[Pipeline], None]:
     """Returns a hook function to delete events from a BigQuery table.
@@ -65,6 +66,9 @@ def delete_events_hook(
         start_date:
             Date after which events should be deleted.
 
+        end_date:
+            Date up to which events should be deleted (exclusive).
+
         mock:
             If True, uses a mocked BQ client instead of performing real operations.
 
@@ -76,7 +80,7 @@ def delete_events_hook(
     def _hook(p: Pipeline) -> None:
         table_id = table_config.table_id
         logger.info(f"Deleting events from '{table_id}' after '{start_date}'...")
-        delete_query = table_config.delete_query(start_date=start_date)
+        delete_query = table_config.delete_query(start_date=start_date, end_date=end_date)
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
         bq_client = BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
         bq_client.run_query(query_str=delete_query)

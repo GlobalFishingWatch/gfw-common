@@ -80,6 +80,6 @@ class TableConfig(ABC):
         """Returns the query to perform to create a view for this table."""
         raise NotImplementedError
 
-    def delete_query(self, start_date: date) -> str:
+    def delete_query(self, start_date: date, end_date: Optional[date] = None) -> str:
         """Returns the query to perform when deleting records from this table."""
         raise NotImplementedError

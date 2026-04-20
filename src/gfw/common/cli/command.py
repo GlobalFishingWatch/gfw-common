@@ -17,7 +17,7 @@ import argparse
 
 from abc import ABC, abstractmethod
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from .option import Option
 
@@ -70,13 +70,12 @@ class Command(ABC):
 
     @property
     @abstractmethod
-    def options(self) -> Sequence[Option]:
+    def options(self) -> list[Option]:
         """The command's options."""
 
-    @options.setter
     @abstractmethod
-    def options(self, new_options: Sequence[Option]) -> None:
-        """Setter for self._options with validation."""
+    def add_options(self, new_options: list[Option]) -> None:
+        """Add options to existing options."""
 
     @abstractmethod
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
@@ -123,14 +122,14 @@ class ParametrizedCommand(Command):
         self,
         name: str,
         description: str = "",
-        options: Sequence[Option] = (),
+        options: Optional[list[Option]] = None,
         run: Callable[..., Any] = lambda config: SimpleNamespace,
         **y: None,
     ) -> None:
         """Initializes ParametrizedCommand class."""
         self._name = name
         self._description = description
-        self._options = options
+        self._options = options if options else []
         self._run = run
 
     @property
@@ -144,16 +143,13 @@ class ParametrizedCommand(Command):
         return self._description
 
     @property
-    def options(self) -> Sequence[Option]:
+    def options(self) -> list[Option]:
         """The command's options."""
         return self._options
 
-    @options.setter
-    def options(self, new_options: Sequence[Option]) -> None:
-        """Setter for self._options with validation."""
-        if new_options and not isinstance(new_options, Sequence):
-            raise ValueError("Set of options must be a Sequence of Options.")
-        self._options = tuple(new_options)
+    def add_options(self, new_options: list[Option]) -> None:
+        """Add options to existing options."""
+        self.options.extend(new_options)
 
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
         """Execute the command logic."""

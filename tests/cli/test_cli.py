@@ -106,17 +106,24 @@ def test_execute_with_required_args_in_config_main(tmp_path, main_command, capsy
     test_cli.execute(args=["--config-file", str(config_path)])
 
 
-def test_execute_with_required_args_in_config_subcommand(tmp_path,
-                                                         main_command,
-                                                         subcommand,
-                                                         capsys):
+def test_execute_with_required_args_in_config_subcommand(
+    tmp_path, main_command, subcommand, capsys
+):
     config_path = tmp_path / "config.yaml"
     yaml_save(config_path, data={"number_2": 123})
 
     test_cli = CLI(**main_command, subcommands=[subcommand])
     # Note, when there is a subcommand, arguments from main must be passed via CLI, not config.
-    test_cli.execute(args=["subcommand", "--boolean-2", "--config-file", str(config_path),
-                           "--project", "my-project"])
+    test_cli.execute(
+        args=[
+            "subcommand",
+            "--boolean-2",
+            "--config-file",
+            str(config_path),
+            "--project",
+            "my-project",
+        ]
+    )
 
 
 def test_main_command_run_is_called_with_correct_args():

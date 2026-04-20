@@ -349,8 +349,9 @@ class CLI:
             return self._main_command
 
         # At this point, argparse guarantees it's a valid subcommand.
-        subcommand_obj = next(c for c in self._subcommands
-                              if self._resolve_cli_name(c.name) == subcommand)
+        subcommand_obj = next(
+            c for c in self._subcommands if self._resolve_cli_name(c.name) == subcommand
+        )
 
         # Add the common options from _main_command.
         subcommand_obj.options.extend(self._main_command.options)

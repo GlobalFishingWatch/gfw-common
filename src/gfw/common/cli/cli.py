@@ -8,7 +8,7 @@ import sys
 from functools import cached_property
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Callable, Iterator, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Callable, Iterator, List, Optional, Tuple, Type, Union
 
 from gfw.common.collections import DeepChainMap
 from gfw.common.dictionaries import filter_none_values
@@ -57,7 +57,7 @@ class CLI:
             Callable to be run when no subcommands are defined.
 
         subcommands:
-            A sequence containing either :class:`Command` instances or types.
+            A list containing either :class:`Command` instances or types.
             Each item represents a subcommand to be registered in the CLI.
             If a type is provided, it will be instantiated automatically.
             This allows flexibility in defining subcommands either by
@@ -103,8 +103,8 @@ class CLI:
         self,
         name: str = f"python {script_relative_path}",
         description: str = "",
-        options: Optional[list[Option]] = None,
-        subcommands: Sequence[Union[Command, Type[Command]]] = (),
+        options: Optional[List[Option]] = None,
+        subcommands: Optional[List[Union[Command, Type[Command]]]] = None,
         run: Callable[..., Any] = lambda *x, **y: None,
         version: str = "0.1.0",
         examples: Tuple[str, ...] = (),
@@ -116,7 +116,7 @@ class CLI:
     ) -> None:
         """Initializes a CLI instance."""
         self._main_command = ParametrizedCommand(name, description, options, run=run)
-        self._subcommands = list(self._init_subcommands(subcommands))
+        self._subcommands = list(self._init_subcommands(subcommands or []))
         self._version = version
         self._examples = examples
         self._formatter = formatter
@@ -283,7 +283,7 @@ class CLI:
 
         return command.run(SimpleNamespace(**config), **kwargs), config
 
-    def _init_subcommands(self, s: Sequence[Union[Command, Type[Command]]]) -> Iterator[Command]:
+    def _init_subcommands(self, s: List[Union[Command, Type[Command]]]) -> Iterator[Command]:
         for command in s:
             if isinstance(command, type) and not issubclass(command, Command):
                 raise TypeError(f"Expected subclass of Command, got class {command}.")
@@ -354,10 +354,9 @@ class CLI:
         )
 
         # Add the common options from _main_command.
-        if subcommand_obj.options:
-            subcommand_obj.add_options(self._main_command.options)
-        else:
-            subcommand_obj.add_options(self._main_command.options)
+        options = subcommand_obj.options + self._main_command.options
+        subcommand_obj = subcommand_obj.copy_with(options=options)
+
         return subcommand_obj
 
     def _validate_required_args(self, command: Command, config: dict[str, Any]) -> None:

@@ -52,9 +52,6 @@ class InheritedCommand(Command):
     def options(self):
         return []
 
-    def add_options(self, new_options: list[Option]) -> None:
-        self.options.extend(new_options)
-
     def run(self, config, **kwargs):
         pass
 

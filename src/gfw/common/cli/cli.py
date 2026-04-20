@@ -103,7 +103,7 @@ class CLI:
         self,
         name: str = f"python {script_relative_path}",
         description: str = "",
-        options: Tuple[Option, ...] = (),
+        options: Sequence[Option] = (),
         subcommands: Sequence[Union[Command, Type[Command]]] = (),
         run: Callable[..., Any] = lambda *x, **y: None,
         version: str = "0.1.0",
@@ -354,7 +354,12 @@ class CLI:
         )
 
         # Add the common options from _main_command.
-        subcommand_obj.options.extend(self._main_command.options)
+        if subcommand_obj.options:
+            combined_options = list(subcommand_obj.options)
+            combined_options.extend(self._main_command.options)
+            subcommand_obj.options = combined_options
+        else:
+            subcommand_obj.options = self._main_command.options
         return subcommand_obj
 
     def _validate_required_args(self, command: Command, config: dict[str, Any]) -> None:

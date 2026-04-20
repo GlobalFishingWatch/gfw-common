@@ -17,7 +17,7 @@ import argparse
 
 from abc import ABC, abstractmethod
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 from .option import Option
 
@@ -70,8 +70,13 @@ class Command(ABC):
 
     @property
     @abstractmethod
-    def options(self) -> list[Option]:
+    def options(self) -> Sequence[Option]:
         """The command's options."""
+
+    @options.setter
+    @abstractmethod
+    def options(self, new_options: Sequence[Option]) -> None:
+        """Setter for self._options with validation."""
 
     @abstractmethod
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
@@ -118,7 +123,7 @@ class ParametrizedCommand(Command):
         self,
         name: str,
         description: str = "",
-        options: list[Option] = [],
+        options: Sequence[Option] = (),
         run: Callable[..., Any] = lambda config: SimpleNamespace,
         **y: None,
     ) -> None:
@@ -139,9 +144,16 @@ class ParametrizedCommand(Command):
         return self._description
 
     @property
-    def options(self) -> list[Option]:
+    def options(self) -> Sequence[Option]:
         """The command's options."""
         return self._options
+
+    @options.setter
+    def options(self, new_options: Sequence[Option]) -> None:
+        """Setter for self._options with validation."""
+        if new_options and not isinstance(new_options, Sequence):
+            raise ValueError("Set of options must be a Sequence of Options.")
+        self._options = tuple(new_options)
 
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
         """Execute the command logic."""

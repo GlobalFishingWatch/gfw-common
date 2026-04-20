@@ -2,6 +2,7 @@ import argparse
 
 from datetime import date
 from types import SimpleNamespace
+from typing import Sequence
 
 import pytest
 
@@ -51,6 +52,12 @@ class InheritedCommand(Command):
     @property
     def options(self):
         return []
+
+    @options.setter
+    def options(self, new_options):
+        if new_options and not isinstance(new_options, Sequence):
+            raise ValueError("Set of options must be a Sequence of Options.")
+        self._options = tuple(new_options)
 
     def run(self, config, **kwargs):
         pass

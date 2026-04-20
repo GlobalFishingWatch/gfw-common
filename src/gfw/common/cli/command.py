@@ -17,7 +17,7 @@ import argparse
 
 from abc import ABC, abstractmethod
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Callable
 
 from .option import Option
 
@@ -70,7 +70,7 @@ class Command(ABC):
 
     @property
     @abstractmethod
-    def options(self) -> Sequence[Option]:
+    def options(self) -> list[Option]:
         """The command's options."""
 
     @abstractmethod
@@ -118,7 +118,7 @@ class ParametrizedCommand(Command):
         self,
         name: str,
         description: str = "",
-        options: Sequence[Option] = (),
+        options: list[Option] = [],
         run: Callable[..., Any] = lambda config: SimpleNamespace,
         **y: None,
     ) -> None:
@@ -139,7 +139,7 @@ class ParametrizedCommand(Command):
         return self._description
 
     @property
-    def options(self) -> Sequence[Option]:
+    def options(self) -> list[Option]:
         """The command's options."""
         return self._options
 

@@ -13,11 +13,13 @@ declarative CLI construction with consistent behavior, help messages,
 and argument parsing.
 """
 
+from __future__ import annotations
+
 import argparse
 
 from abc import ABC, abstractmethod
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
 from .option import Option
 
@@ -70,7 +72,7 @@ class Command(ABC):
 
     @property
     @abstractmethod
-    def options(self) -> Sequence[Option]:
+    def options(self) -> List[Option]:
         """The command's options."""
 
     @abstractmethod
@@ -89,6 +91,15 @@ class Command(ABC):
             A dictionary mapping option dest (as used in argparse) to their default values.
         """
         return {o.dest: o.default for o in self.options}
+
+    def copy_with(self, **kwargs: Any) -> ParametrizedCommand:
+        """Returns a new command changing some of its properties."""
+        return ParametrizedCommand(
+            name=kwargs.get("name", self.name),
+            description=kwargs.get("description", self.description),
+            options=kwargs.get("options", self.options),
+            run=kwargs.get("run", self.run),
+        )
 
 
 class ParametrizedCommand(Command):
@@ -118,14 +129,14 @@ class ParametrizedCommand(Command):
         self,
         name: str,
         description: str = "",
-        options: Sequence[Option] = (),
+        options: Optional[List[Option]] = None,
         run: Callable[..., Any] = lambda config: SimpleNamespace,
         **y: None,
     ) -> None:
         """Initializes ParametrizedCommand class."""
         self._name = name
         self._description = description
-        self._options = options
+        self._options = options or []
         self._run = run
 
     @property
@@ -139,7 +150,7 @@ class ParametrizedCommand(Command):
         return self._description
 
     @property
-    def options(self) -> Sequence[Option]:
+    def options(self) -> List[Option]:
         """The command's options."""
         return self._options
 

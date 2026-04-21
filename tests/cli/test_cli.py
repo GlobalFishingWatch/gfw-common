@@ -34,6 +34,7 @@ def main_command():
         "options": [
             Option("--number-1", type=int, default=1),
             Option("--date-1", type=valid_date, default=date(2025, 1, 1)),
+            Option("--project", type=str, required=True),
         ],
     }
 
@@ -57,12 +58,12 @@ class InheritedCommand(Command):
 
 def test_execute_with_subcommands(main_command, subcommand):
     test_cli = CLI(**main_command, subcommands=[subcommand])
-    test_cli.execute(args=["subcommand", "--number-2", "3"])
+    test_cli.execute(args=["subcommand", "--number-2", "3", "--project", "my-project"])
 
 
 def test_execute_with_static_subcommands(main_command):
     test_cli = CLI(**main_command, subcommands=[InheritedCommand])
-    test_cli.execute(args=["subcommand"])
+    test_cli.execute(args=["subcommand", "--project", "my-project"])
 
 
 def test_execute_with_invalid_subcommands(main_command):
@@ -78,10 +79,18 @@ def test_execute_with_invalid_subcommands(main_command):
 
 def test_execute_without_subcommands(main_command):
     test_cli = CLI(**main_command)
-    test_cli.execute(args=["--number-1", "4"])
+    test_cli.execute(args=["--number-1", "4", "--project", "my-project"])
 
 
-def test_execute_with_missing_required_args(main_command, subcommand, capsys):
+def test_execute_with_missing_required_args_main(main_command, capsys):
+    test_cli = CLI(**main_command)
+    with pytest.raises(argparse.ArgumentTypeError) as excinfo:
+        test_cli.execute(args=["--number-1", "4"])
+
+    assert "Missing required arguments" in str(excinfo.value)
+
+
+def test_execute_with_missing_required_args_subcommand(main_command, subcommand, capsys):
     test_cli = CLI(**main_command, subcommands=[subcommand])
     with pytest.raises(argparse.ArgumentTypeError) as excinfo:
         test_cli.execute(args=["subcommand", "--boolean-2"])
@@ -89,12 +98,32 @@ def test_execute_with_missing_required_args(main_command, subcommand, capsys):
     assert "Missing required arguments" in str(excinfo.value)
 
 
-def test_execute_with_required_args_in_config(tmp_path, main_command, subcommand, capsys):
+def test_execute_with_required_args_in_config_main(tmp_path, main_command, capsys):
+    config_path = tmp_path / "config.yaml"
+    yaml_save(config_path, data={"project": "my-project"})
+
+    test_cli = CLI(**main_command)
+    test_cli.execute(args=["--config-file", str(config_path)])
+
+
+def test_execute_with_required_args_in_config_subcommand(
+    tmp_path, main_command, subcommand, capsys
+):
     config_path = tmp_path / "config.yaml"
     yaml_save(config_path, data={"number_2": 123})
 
     test_cli = CLI(**main_command, subcommands=[subcommand])
-    test_cli.execute(args=["subcommand", "--boolean-2", "--config-file", str(config_path)])
+    # Note, when there is a subcommand, arguments from main must be passed via CLI, not config.
+    test_cli.execute(
+        args=[
+            "subcommand",
+            "--boolean-2",
+            "--config-file",
+            str(config_path),
+            "--project",
+            "my-project",
+        ]
+    )
 
 
 def test_main_command_run_is_called_with_correct_args():
@@ -155,7 +184,7 @@ def test_arguments_precedence(tmp_path, main_command, subcommand, arg, config_va
     yaml_save(path, data={arg: config_value})
     config_file_arg = ["--config-file", f"{path}"]
 
-    required_args = ["--number-2", "1"]
+    required_args = ["--number-2", "1", "--project", "my-project"]
 
     cli_args = []
     cli_arg = arg.replace("_", "-")
@@ -177,7 +206,7 @@ def test_arguments_precedence(tmp_path, main_command, subcommand, arg, config_va
 
 
 def test_allow_unknown(tmp_path, main_command, subcommand):
-    known = ["--number-2", "3"]
+    known = ["--number-2", "3", "--project", "my-project"]
     unknown_unparsed = ["--other", "4"]
     unknown_parsed = {"other2": 5}
 
@@ -218,6 +247,8 @@ def test_only_render(main_command, subcommand, use_underscore, sep):
         f"--number{sep}2",
         "2",
         f"--boolean{sep}2",
+        "--project",
+        "my-project",
     ]
 
     unknown = ["--other", "4"]
@@ -237,6 +268,7 @@ def test_only_render(main_command, subcommand, use_underscore, sep):
         "\n--boolean{sep}2 \\"
         "\n--number{sep}1=1 \\"
         "\n--date{sep}1=2025-01-01 \\"
+        "\n--project=my-project \\"
         "\n--number{sep}2=2"
     ).format(sep=sep)
 
@@ -247,7 +279,7 @@ def test_logs_to_stdout(main_command, capsys):
     cli = CLI(**main_command)
 
     # run with flag -> logs should go to stdout
-    cli.execute(args=["--log-to-stdout", "--no-rich-logging"])
+    cli.execute(args=["--log-to-stdout", "--no-rich-logging", "--project", "my-project"])
     out, err = capsys.readouterr()
 
     assert "Starting program" in out
@@ -258,7 +290,7 @@ def test_logs_to_stderr(main_command, capsys):
     cli = CLI(**main_command)
 
     # run without flag -> logs should go to stderr
-    cli.execute(args=["--no-rich-logging"])
+    cli.execute(args=["--no-rich-logging", "--project", "my-project"])
     out, err = capsys.readouterr()
 
     assert "Starting program" in err

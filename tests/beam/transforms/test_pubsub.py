@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 
 from apache_beam.io.gcp.pubsub import ReadFromPubSub
@@ -40,6 +42,8 @@ def test_read_and_decode_from_pubsub():
                 "key2": "value2",
                 "key1": "value1",
             },
+            "publish_time": datetime(2026, 1, 1),
+            "message_id": "123",
         }
     ]
 
@@ -60,6 +64,8 @@ def test_read_and_decode_from_pubsub():
                     "key1": "value1",
                     "key2": "value2",
                 },
+                "publish_time": datetime(2026, 1, 1),
+                "message_id": "123",
             }
         ]
 
@@ -72,6 +78,8 @@ def test_read_without_decoding():
         {
             "data": b"some-bytes",
             "attributes": {"source": "test"},
+            "publish_time": datetime(2026, 1, 1),
+            "message_id": "123",
         }
     ]
 

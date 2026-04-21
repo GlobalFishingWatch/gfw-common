@@ -18,7 +18,7 @@ upgrade-pip:
 	${PIP} install -U pip
 
 .PHONY: install-dev  ## Install the package and only dev dependencies.
-install: upgrade-pip
+install-dev: upgrade-pip
 	${PIP} install .[bq,lint,dev,build,docs]
 
 .PHONY: install-test  ## Install the package and only test dependencies.

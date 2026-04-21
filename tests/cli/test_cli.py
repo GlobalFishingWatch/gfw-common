@@ -292,7 +292,6 @@ def test_logs_to_stderr(main_command, capsys):
     # run without flag -> logs should go to stderr
     cli.execute(args=["--no-rich-logging", "--project", "my-project"])
     out, err = capsys.readouterr()
-    print(err)
 
     assert "Starting program" in err
     assert out == ""

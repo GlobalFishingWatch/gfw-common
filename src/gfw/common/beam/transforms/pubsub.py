@@ -147,7 +147,12 @@ class ReadAndDecodeFromPubSub(beam.PTransform[Any, Any]):
         if self._decode:
             data = message.data.decode(self._decode_method)
 
-        return {"data": data, "attributes": message.attributes}
+        return {
+            "data": data,
+            "attributes": message.attributes,
+            "publish_time": message.publish_time,
+            "message_id": message.message_id,
+        }
 
     def _validate_decode_method(self) -> None:
         try:

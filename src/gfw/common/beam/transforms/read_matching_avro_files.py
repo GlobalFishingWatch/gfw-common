@@ -59,13 +59,11 @@ class ReadMatchingAvroFiles(beam.PTransform):
             The end datetime of the range, in ISO format (e.g., ``YYYY-MM-DDTHH:MM:SS``).
             Datetimes equal to this value are considered outside the range.
 
-        buffer_days:
-            Number of extra whole days to include before the datetime range.
-            Useful to ensure boundary records are not excluded.
-
-        buffer_minutes:
-            Number of extra minutes to include before the datetime range.
-            Provides finer-grained control, to avoid fetching unnecessary files.
+        buffer_hours:
+            Number of extra hours to include before and after the datetime range.
+            Internally used to derive both the day-level glob patterns and the
+            precise datetime filter.
+            Defaults to 6.
 
         record_time_fn:
             Function that extracts a event timestamp from a record.
@@ -124,8 +122,7 @@ class ReadMatchingAvroFiles(beam.PTransform):
         path: str,
         start_dt: str,
         end_dt: str,
-        buffer_days: int = 1,
-        buffer_minutes: int = 1,
+        buffer_hours: int = 6,
         record_time_fn: Optional[Callable[[dict], datetime]] = None,
         strict: bool = False,
         date_format: str = "%Y-%m-%d",
@@ -140,8 +137,7 @@ class ReadMatchingAvroFiles(beam.PTransform):
         self._path = path
         self._start_dt = datetime_from_isoformat(start_dt)
         self._end_dt = datetime_from_isoformat(end_dt)
-        self._buffer_days = buffer_days
-        self._buffer_minutes = buffer_minutes
+        self._buffer_hours = buffer_hours
         self._record_time_fn = record_time_fn
         self._strict = strict
         self._date_format = date_format
@@ -151,11 +147,14 @@ class ReadMatchingAvroFiles(beam.PTransform):
         self._decode_method = decode_method
         self._read_all_from_avro_kwargs = read_all_from_avro_kwargs or {}
 
+        self._start_dt_with_buffer = self._start_dt - timedelta(hours=buffer_hours)
+        self._end_dt_with_buffer = self._end_dt + timedelta(hours=buffer_hours)
+
         self._validate_decode_method()
 
     def _generate_file_patterns(self) -> Sequence[str]:
-        current_date = self._start_dt.date() - timedelta(days=self._buffer_days)
-        end_date = self._end_dt.date()
+        current_date = self._start_dt_with_buffer.date()
+        end_date = self._end_dt_with_buffer.date()
         patterns = []
 
         while current_date <= end_date:
@@ -187,8 +186,7 @@ class ReadMatchingAvroFiles(beam.PTransform):
             allow_no_time=self._allow_no_time,
         )
 
-        start_dt = self._start_dt - timedelta(minutes=self._buffer_minutes)
-        res = start_dt <= dt < self._end_dt
+        res = self._start_dt_with_buffer <= dt < self._end_dt_with_buffer
 
         logger.debug(f"Matched path (inside datetime range? = {res}).")
         logger.debug(path)

@@ -20,69 +20,87 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class QueryResult:
-    """Wrapper around :class:`bigquery.job.QueryJob` with lazy access to results.
+    """Wrapper around :class:`bigquery.job.QueryJob` with access to results.
 
-    This class encapsulates :attr:`query_job` instance and exposes its
-    results via a lazily evaluated :class:`bigquery.table.RowIterator`.
-    It automatically converts rows to dictionaries during iteration,
-    and provides convenience methods like :meth:`__len__` and :meth:`tolist()`.
+    This class encapsulates :attr:`query_job` and :attr:`row_iterator` instances,
+    exposing rows via iteration and providing convenience methods like
+    :meth:`iter_as_dicts` and :meth:`tolist`.
 
     Args:
         query_job:
             The original :class:`~bigquery.job.QueryJob`, which can be used to access
             job metadata such as session IDs, job statistics, and more.
 
-    Usage:
-        Instead of calling ``query_job.result()`` directly, use this class to iterate over
-        results as dictionaries, get the number of rows, or convert all results to a list.
+        row_iterator:
+            The :class:`~bigquery.table.RowIterator` returned by the query job.
 
     Example:
         .. code-block:: python
 
-            result = QueryResult(query_job)
+            result = bq_client.run_query("SELECT * FROM my_table")
+
+            # Iterate raw rows
             for row in result:
-                print(row)  # row is a dict
-            print(len(result))
+                print(row)
+
+            # Iterate as dicts
+            for row in result.iter_as_dicts():
+                print(row)
+
+            # Materialize
+            rows = result.tolist()
+            rows_as_dicts = result.tolist(as_dicts=True)
+
+            # Access job metadata
+            print(result.query_job.job_id)
+            print(result.session_id)
     """
 
     query_job: bigquery.job.QueryJob
     """The encapsulated :class:`~bigquery.job.QueryJob` instance."""
 
+    row_iterator: bigquery.table.RowIterator
+    """The :class:`~bigquery.table.RowIterator` returned by the query job."""
+
     def __len__(self) -> int:
-        """Returns the size of the result."""
+        """Returns the total number of rows in the result."""
         return self.row_iterator.total_rows
 
-    def __next__(self) -> Dict[str, Any]:
-        """Return the next item of the iterator."""
-        return dict(next(self.row_iterator).items())
+    def __iter__(self) -> Iterator[bigquery.table.Row]:
+        """Iterates over raw :class:`~bigquery.table.Row` objects."""
+        return iter(self.row_iterator)
 
-    def __iter__(self) -> Iterator[Dict[str, Any]]:
-        """Returns an iterator over the result."""
-        for row in self.row_iterator:
-            yield dict(row.items())
+    def __next__(self) -> bigquery.table.Row:
+        """Returns the next raw :class:`~bigquery.table.Row`."""
+        return next(self.row_iterator)
 
-    @cached_property
+    @property
     def session_id(self) -> Optional[str]:
-        """Returns the ``session_id`` of the job.
-
-        Accessing this property triggers job execution if it hasn't started yet.
-        """
-        # Force job start, ensure session_info is populated
-        _ = self.row_iterator
-
+        """Returns the ``session_id`` of the job, or ``None`` if not available."""
         session_info = self.query_job.session_info
         if session_info is not None:
             return session_info.session_id
-
         return None
 
-    @cached_property
-    def row_iterator(self) -> bigquery.table.RowIterator:
-        """Executes the query job and returns a :class:`bigquery.table.RowIterator`."""
-        return self.query_job.result()
+    def iter_as_dicts(self) -> Iterator[Dict[str, Any]]:
+        """Iterates over rows as dictionaries."""
+        for row in self:
+            yield dict(row.items())
 
-    def tolist(self) -> List[Dict[str, Any]]:
-        """Converts results to list."""
+    def tolist(self, as_dicts: bool = False) -> List[Union[bigquery.table.Row, Dict[str, Any]]]:
+        """Materializes all rows into a list.
+
+        Args:
+            as_dicts:
+                If True, rows are converted to dictionaries.
+                Defaults to False.
+
+        Returns:
+            A list of :class:`~bigquery.table.Row` objects, or dictionaries if ``as_dicts=True``.
+        """
+        if as_dicts:
+            return list(self.iter_as_dicts())
+
         return list(self)
 
 
@@ -294,7 +312,10 @@ class BigQueryHelper:
         query_job = self.client.query(query_str, job_config=job_config)
         logger.debug(f"BigQuery QueryJob id: {query_job.job_id}.")
 
-        return QueryResult(query_job)
+        # Block until the job completes so errors surface immediately rather than lazily.
+        row_iterator = query_job.result()
+
+        return QueryResult(query_job, row_iterator)
 
     def load_from_json(
         self,

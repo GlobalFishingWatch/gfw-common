@@ -3,9 +3,9 @@ name: ci
 on:
   workflow_dispatch:
   pull_request:
-    branches: [main, develop]
+    branches: [main]
   push:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   ci:
@@ -20,11 +20,11 @@ jobs:
     steps:
     - name: Checkout codes
       id: checkout-codes
-      uses: actions/checkout@v4.2.2
+      uses: actions/checkout@v6
 
     - name: Setup python
       id: setup-python
-      uses: actions/setup-python@v5.4.0
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
         architecture: x64
@@ -43,8 +43,8 @@ jobs:
 
     - name: Upload coverage reports to Codecov
       id: upload-coverage-reports-to-codecov
-      uses: codecov/codecov-action@v5.3.1
-      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') && matrix.python-version == '3.12'
+      uses: codecov/codecov-action@v5
+      if: github.ref == 'refs/heads/main' && matrix.python-version == '3.12'
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true

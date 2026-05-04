@@ -176,59 +176,59 @@ def test_query_result_len():
     row_iterator = mock.Mock()
     row_iterator.total_rows = 42
     query_job = mock.Mock()
-    query_job.result.return_value = row_iterator
-
-    result = QueryResult(query_job)
+    result = QueryResult(query_job, row_iterator)
     assert len(result) == 42
-    query_job.result.assert_called_once()
 
 
 def test_query_result_iter():
     row1 = mock.Mock()
-    row1.items.return_value = {"a": 1}.items()
     row2 = mock.Mock()
-    row2.items.return_value = {"b": 2}.items()
-
     row_iterator = mock.MagicMock()
     row_iterator.__iter__.return_value = iter([row1, row2])
     row_iterator.total_rows = 2
-
     query_job = mock.Mock()
-    query_job.result.return_value = row_iterator
-
-    result = QueryResult(query_job)
-    assert list(result) == [{"a": 1}, {"b": 2}]
-    query_job.result.assert_called_once()
+    result = QueryResult(query_job, row_iterator)
+    assert list(result) == [row1, row2]
 
 
-def test_query_result_next_returns_dict():
+def test_query_result_iter_as_dicts():
+    row1 = mock.Mock()
+    row1.items.return_value = {"a": 1}.items()
+    row2 = mock.Mock()
+    row2.items.return_value = {"b": 2}.items()
+    row_iterator = mock.MagicMock()
+    row_iterator.__iter__.return_value = iter([row1, row2])
+    query_job = mock.Mock()
+    result = QueryResult(query_job, row_iterator)
+    assert list(result.iter_as_dicts()) == [{"a": 1}, {"b": 2}]
+
+
+def test_query_result_next_returns_row():
     row = mock.Mock()
-    row.items.return_value = {"b": 2}.items()
     row_iterator = mock.MagicMock()
     row_iterator.__iter__.return_value = iter([row])
-    row_iterator.total_rows = 1
-
     query_job = mock.Mock()
-    query_job.result.return_value = row_iterator
-
-    result = QueryResult(query_job)
-    assert next(iter(result)) == {"b": 2}
-    query_job.result.assert_called_once()
+    result = QueryResult(query_job, row_iterator)
+    assert next(iter(result)) == row
 
 
-def test_query_result_to_list():
+def test_query_result_tolist():
+    row = mock.Mock()
+    row_iterator = mock.MagicMock()
+    row_iterator.__iter__.return_value = iter([row])
+    query_job = mock.Mock()
+    result = QueryResult(query_job, row_iterator)
+    assert result.tolist() == [row]
+
+
+def test_query_result_tolist_as_dicts():
     row = mock.Mock()
     row.items.return_value = {"a": 1}.items()
     row_iterator = mock.MagicMock()
     row_iterator.__iter__.return_value = iter([row])
-    row_iterator.total_rows = 1
-
     query_job = mock.Mock()
-    query_job.result.return_value = row_iterator
-
-    result = QueryResult(query_job)
-    assert result.tolist() == [{"a": 1}]
-    query_job.result.assert_called_once()
+    result = QueryResult(query_job, row_iterator)
+    assert result.tolist(as_dicts=True) == [{"a": 1}]
 
 
 def test_load_from_json_with_partition_field():

@@ -35,7 +35,7 @@ The following code shows an example of how to inherit from the base class to add
     from dataclasses import dataclass, field
     from datetime import date, timedelta
 
-    from gfw.common.beam.pipeline import PipelineConfig
+    from gfw.common import PipelineConfig
 
 
     @dataclass

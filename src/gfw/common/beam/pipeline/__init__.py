@@ -14,7 +14,6 @@ Classes
 
    Pipeline
    PipelineFactory
-   PipelineConfig
    Dag
    DagFactory
    LinearDag

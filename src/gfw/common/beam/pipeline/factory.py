@@ -6,8 +6,9 @@ Pipeline instance from a given PipelineConfig and DagFactory.
 
 from typing import Any
 
+from gfw.common.config import PipelineConfig
+
 from .base import Pipeline
-from .config import PipelineConfig
 from .dag import DagFactory
 
 

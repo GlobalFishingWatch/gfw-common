@@ -8,7 +8,7 @@ Intended to be reusable across multiple GFW projects and environments.
 
 from gfw.common import datetime
 
+from .config import PipelineConfig
 
-__all__ = [
-    "datetime",
-]
+
+__all__ = ["PipelineConfig", "datetime"]

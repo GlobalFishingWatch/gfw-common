@@ -12,9 +12,9 @@ from typing import Callable, Optional, Tuple
 from apache_beam import PTransform
 from apache_beam.io.gcp import bigquery
 
-from gfw.common.beam.pipeline.config import PipelineConfig
 from gfw.common.beam.transforms import ReadFromBigQuery, WriteToBigQueryWrapper
 from gfw.common.bigquery.helper import BigQueryHelper
+from gfw.common.config import PipelineConfig
 
 from .base import Dag
 from .linear import LinearDag

@@ -228,6 +228,74 @@ class BigQueryHelper:
 
         return self.client.create_table(bq_table, **kwargs)
 
+    def create_external_table(
+        self,
+        table: str,
+        source_uris: List[str],
+        description: str = "",
+        schema: Optional[List[bigquery.SchemaField]] = None,
+        source_format: str = bigquery.ExternalSourceFormat.PARQUET,
+        hive_partition_uri_prefix: Optional[str] = None,
+        require_partition_filter: bool = False,
+        replace: bool = False,
+        **kwargs: Any,
+    ) -> bigquery.table.Table:
+        """Creates a BigQuery external table.
+
+        Args:
+            table:
+                Table name like ``project.dataset.table``.
+
+            source_uris:
+                List of GCS URIs, e.g. ``['gs://bucket/*.parquet']``.
+
+            description:
+                Text to include in the table's description field.
+
+            schema:
+                Schema of the table. If not provided, autodetect is enabled.
+
+            source_format:
+                The format of the source files. Defaults to PARQUET.
+
+            hive_partition_uri_prefix:
+                URI prefix for hive partitioning, e.g. ``'gs://bucket/'``.
+
+            require_partition_filter:
+                If True, queries must include a partition filter. Defaults to False.
+
+            replace:
+                If True, the table will be deleted and recreated if it already exists.
+                Defaults to False.
+
+            **kwargs:
+                Extra keyword arguments passed to ``client.create_table``.
+
+        Returns:
+            The created table.
+        """
+        table_ref = self._create_table_reference(table)
+
+        external_config = bigquery.ExternalConfig(source_format)
+        external_config.source_uris = source_uris
+        external_config.autodetect = schema is None
+
+        if hive_partition_uri_prefix is not None:
+            hive_options = bigquery.HivePartitioningOptions()
+            hive_options.mode = "AUTO"
+            hive_options.source_uri_prefix = hive_partition_uri_prefix
+            hive_options.require_partition_filter = require_partition_filter
+            external_config.hive_partitioning = hive_options
+
+        bq_table = bigquery.Table(table_ref, schema=schema)
+        bq_table.description = description
+        bq_table.external_data_configuration = external_config
+
+        if replace:
+            self.client.delete_table(table_ref, not_found_ok=True)
+
+        return self.client.create_table(bq_table, **kwargs)
+
     def create_view(self, view_id: str, view_query: str) -> None:
         """Creates or replaces a BigQuery view.
 

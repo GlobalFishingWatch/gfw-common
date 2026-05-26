@@ -7,21 +7,15 @@ build-backend = "setuptools.build_meta"
 # Project metadata.
 [project]
 name = "gfw-common"
-version = "0.10.0"
+version = "0.11.0"
 description = "Common place for GFW reusable Python components."
 readme = "README.md"
 license = "Apache-2.0"
 authors = [
-  { name = "Link, Tomás Juan Link", email = "tomas.link@globalfishingwatch.org" },
-  { name = "Arana, Andrés", email = "andres@globalfishingwatch.org" },
-  { name = "Fuentes, Rodrigo", email = "rodrigo.fuentes@globalfishingwatch.org" },
-  { name = "Piano, Sergio Matías", email = "matias@globalfishingwatch.org" },
+  { name = "GFW Engineering Team", email = "engineering-team@globalfishingwatch.org" },
 ]
 maintainers = [
-  { name = "Link, Tomás Juan Link", email = "tomas.link@globalfishingwatch.org" },
-  { name = "Arana, Andrés", email = "andres@globalfishingwatch.org" },
-  { name = "Fuentes, Rodrigo", email = "rodrigo.fuentes@globalfishingwatch.org" },
-  { name = "Piano, Sergio Matías", email = "matias@globalfishingwatch.org" },
+  { name = "GFW Engineering Team", email = "engineering-team@globalfishingwatch.org" },
 ]
 keywords = [
   "global fishing watch",

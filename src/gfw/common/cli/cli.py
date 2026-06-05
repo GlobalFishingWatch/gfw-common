@@ -248,8 +248,8 @@ class CLI:
 
         # Resolve configuration based on cli_args, config file and defaults.
         # cli_args takes precedence over config file and config file over defaults.
-        common_defaults = filter_none_values(self._main_command.defaults())
-        defaults_args = filter_none_values(command.defaults())
+        common_defaults = self._main_command.defaults()
+        defaults_args = command.defaults()
         cli_args = filter_none_values(cli_args)
 
         defaults_args.update(common_defaults)
@@ -362,7 +362,7 @@ class CLI:
     def _validate_required_args(self, command: Command, config: dict[str, Any]) -> None:
         missing = []
         for o in command.options:
-            if o.required and o.dest not in config:
+            if o.required and config.get(o.dest) is None:
                 missing.append(o.dest)
 
         if missing:
@@ -392,6 +392,9 @@ class CLI:
         argument = "--{name}{sep}{value}"
 
         for k, v in config.items():
+            if v is None:
+                continue
+
             name = self._resolve_cli_name(k)
             value = v
             sep = "="

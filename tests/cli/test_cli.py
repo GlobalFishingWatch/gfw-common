@@ -262,14 +262,14 @@ def test_only_render(main_command, subcommand, use_underscore, sep):
         "program \\"
         "\nsubcommand \\"
         "\n--other 4 \\"
+        "\n--number{sep}2=2 \\"
         "\n--number{sep}3=3 \\"
         "\n--date{sep}2=2025-01-02 \\"
         "\n--list{sep}2=ABC,EFG \\"
         "\n--boolean{sep}2 \\"
         "\n--number{sep}1=1 \\"
         "\n--date{sep}1=2025-01-01 \\"
-        "\n--project=my-project \\"
-        "\n--number{sep}2=2"
+        "\n--project=my-project"
     ).format(sep=sep)
 
     assert res == expected

@@ -6,6 +6,8 @@ import re
 from datetime import date, datetime, time, timezone, tzinfo
 from typing import Optional, Union
 
+from dateutil.relativedelta import relativedelta
+
 
 logger = logging.getLogger(__name__)
 
@@ -155,3 +157,38 @@ def datetime_from_string(
         time = datetime.strptime(time_str, time_format).timetz()  # Time with preservred timezone.
 
     return datetime_from_date(date, time, tz=tz)
+
+
+def split_datetime_range(
+    start: datetime, end: datetime, step: Optional[relativedelta] = None
+) -> list[tuple[datetime, datetime]]:
+    """Splits a datetime range into multiple sub-ranges of a specified duration.
+
+    Args:
+        start:
+            The start datetime of the overall range (inclusive).
+        end:
+            The end datetime of the overall range (exclusive).
+        step:
+            The duration of each sub-range. Defaults to one year.
+
+    Return:
+        list[tuple[datetime, datetime]]
+            A list of tuples, each containing the start (inclusive) and end
+            (exclusive) datetimes of a sub-range.
+
+    Example:
+      >>> from datetime import datetime
+      >>> from dateutil.relativedelta import relativedelta
+      >>> split_date_ranges(datetime(2020, 1, 1), datetime(2022, 1, 1), relativedelta(years=1))
+      [(datetime(2020, 1, 1), datetime(2021, 1, 1)), (datetime(2021, 1, 1), datetime(2022, 1, 1))]
+    """
+    ranges = []
+    if step is None:
+        step = relativedelta(years=1)
+    current_start = start
+    while current_start < end:
+        current_end = min(current_start + step, end)
+        ranges.append((current_start, current_end))
+        current_start = current_end
+    return ranges

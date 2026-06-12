@@ -87,6 +87,7 @@ dev = [
   "pre-commit~=4.2",        # Framework for managing pre-commit hooks
   "pip-audit~=2.8",         # Audit for finding vulnerabilities in dependencies
   "matplotlib~=3.10",
+  "types-python-dateutil~=2.9",
 ]
 
 # Build tools

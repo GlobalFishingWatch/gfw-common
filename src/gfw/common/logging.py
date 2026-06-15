@@ -3,6 +3,7 @@
 import logging
 import sys
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional, TextIO, Union
@@ -30,8 +31,8 @@ class LoggerConfig:
     """
 
     format_: str = _DEFAULT_LOG_FORMAT
-    warning_level: tuple[str, ...] = ()
-    error_level: tuple[str, ...] = ()
+    warning_level: Sequence[str] = ()
+    error_level: Sequence[str] = ()
 
     def setup(
         self,

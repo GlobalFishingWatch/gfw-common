@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # Project metadata.
 [project]
 name = "gfw-common"
-version = "0.11.1"
+version = "0.12.0"
 description = "Common place for GFW reusable Python components."
 readme = "README.md"
 license = "Apache-2.0"
@@ -109,6 +109,9 @@ docs = [
   "sphinx-rtd-theme",               # ReadTheDocs sphinx theme.
 ]
 
+
+[project.scripts]
+gfw-common = "gfw.cli.main:main"
 
 [project.urls]
 Homepage = "https://github.com/GlobalFishingWatch/gfw-common"
@@ -246,6 +249,9 @@ skip = '.git,env*,venv*,.venv*, build*,tmp*,uv.lock'
 # Build system metadata.
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.package-data]
+"gfw.assets" = ["**/*.sql", "**/*.json"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

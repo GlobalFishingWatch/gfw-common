@@ -389,5 +389,10 @@ class ShardedToPartitioned:
         return _CONSOLIDATE.render(sources=sources)
 
     def _delete_month(self, month: str) -> None:
-        query = _DELETE_MONTH.render(target=self.target, year=month[:4], month=month[4:])
+        query = _DELETE_MONTH.render(
+            target=self.target,
+            year=month[:4],
+            month=month[4:],
+            partition_field=self._partition_field,
+        )
         self.client.query(query).result()

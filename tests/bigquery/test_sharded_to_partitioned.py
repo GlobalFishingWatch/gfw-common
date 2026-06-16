@@ -1,4 +1,6 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from google.api_core.exceptions import GoogleAPIError, NotFound
 from google.cloud import bigquery
@@ -171,7 +173,7 @@ def test_process_month_overwrite_deletes_first():
     assert stp.client.query.call_count == 2  # delete + insert
 
 
-def test_process_month_google_api_error_does_not_raise():
+def test_process_month_google_api_error_returns_false():
     schema = [bigquery.SchemaField("ts", "TIMESTAMP")]
     stp = _make_stp(schema=schema)
     table_a = Table.from_fully_qualified("proj.ds.table_a")
@@ -179,4 +181,30 @@ def test_process_month_google_api_error_does_not_raise():
     table_columns = {"proj.ds.table_a": frozenset(["ts"])}
     stp.client.query.return_value.result.side_effect = GoogleAPIError("BQ error")
 
-    stp._process_month("202301", dates, table_columns, overwrite=False)
+    assert stp._process_month("202301", dates, table_columns, overwrite=False) is False
+
+
+def test_run_raises_after_all_months_attempted_when_some_fail():
+    schema = [bigquery.SchemaField("ts", "TIMESTAMP")]
+    stp = _make_stp(schema=schema)
+
+    table_a = Table.from_fully_qualified("proj.ds.table_a")
+    two_months = DateTables(
+        {
+            "20230101": [table_a],
+            "20230201": [table_a],
+        }
+    )
+
+    with (
+        patch.object(stp, "_discover_dates", return_value=two_months),
+        patch.object(stp, "_compute_pending", return_value=two_months.group_by_month()),
+        patch.object(stp, "_discover_columns", return_value={}),
+        patch.object(stp, "_ensure_table"),
+        patch.object(stp, "_process_month", return_value=False) as mock_pm,
+    ):
+        with pytest.raises(RuntimeError, match="failed month"):
+            stp.run()
+
+    # Both months were attempted despite the first one failing
+    assert mock_pm.call_count == 2

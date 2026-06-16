@@ -31,6 +31,31 @@ from gfw.common.logging import LoggerConfig
 
 logger = logging.getLogger(__name__)
 
+CAVEAT = (
+    "NOTE: Best-effort tool — does not cover all edge cases. Key assumptions:\n"
+    "\n"
+    "  • Input tables are daily sharded (e.g. table_YYYYMMDD). Other conventions\n"
+    "    (e.g. monthly shards table_YYYYMM) require adapting the SQL templates and\n"
+    "    shard-discovery logic.\n"
+    "\n"
+    "  • Skip logic (overwrite=False) only works correctly when the target table uses\n"
+    "    DAY partitioning. With MONTH or YEAR partitioning the pending-month check always\n"
+    "    returns all months as pending, so every run rewrites everything.\n"
+    "\n"
+    "  • Column schema is assumed stable across shards of the same source table.\n"
+    "    Column discovery scans INFORMATION_SCHEMA across all shards at once; if a column\n"
+    "    was dropped in newer shards the generated SELECT will fail against those shards.\n"
+    "\n"
+    "  • The partition field must be of type TIMESTAMP or DATE. Integer-range partitioning\n"
+    "    is not supported.\n"
+    "\n"
+    "  • If the target table already exists its schema is not updated, even if the provided\n"
+    "    schema file has changed.\n"
+    "\n"
+    "  • Month-level errors do not halt the run — all months are attempted. Failed months\n"
+    "    are listed in a summary and the run exits with an error at the end."
+)
+
 
 def _progress_console() -> Console:
     h = next((h for h in logging.root.handlers if isinstance(h, RichHandler)), None)
@@ -141,6 +166,10 @@ class ShardedToPartitioned:
     date, so the query shows the full structure. Columns missing from a given
     source table are filled with ``CAST(NULL AS <type>)`` as they would be in the
     real run. No data is written and the target table is not created or modified.
+
+    **Limitations**
+
+    See :data:`CAVEAT` for a summary of the assumptions and edge cases not covered.
 
     Args:
         tables:
@@ -271,6 +300,8 @@ class ShardedToPartitioned:
 
         self._ensure_table()
 
+        failed = []
+
         with Progress(
             TextColumn("[bold blue]{task.description}"),
             BarColumn(),
@@ -281,8 +312,13 @@ class ShardedToPartitioned:
             task = progress.add_task("Migrating...", total=len(pending))
             for month, dates in pending.items():
                 progress.update(task, description=f"Migrating {month}...")
-                self._process_month(month, dates, table_columns, overwrite=overwrite)
+                if not self._process_month(month, dates, table_columns, overwrite=overwrite):
+                    failed.append(month)
                 progress.advance(task)
+
+        if failed:
+            logger.error(f"{len(failed)} month(s) failed: {', '.join(failed)}")
+            raise RuntimeError(f"Migration completed with {len(failed)} failed month(s): {failed}")
 
         logger.info("Done.")
 
@@ -340,7 +376,7 @@ class ShardedToPartitioned:
         dates: DateTables,
         table_columns: dict[str, frozenset[str]],
         overwrite: bool,
-    ) -> None:
+    ) -> bool:
         query = self._build_query(dates, table_columns)
         logger.debug(f"Consolidation query for {self.target} ({month}):\n{query}")
 
@@ -361,8 +397,10 @@ class ShardedToPartitioned:
             job = self.client.query(query, job_config=job_config)
             job.result()
             logger.info(f"{month} — {job.total_bytes_processed / 1e9:.2f} GB processed")
+            return True
         except GoogleAPIError as e:
             logger.error(f"{month} failed: {e}")
+            return False
 
     def _build_query(
         self,

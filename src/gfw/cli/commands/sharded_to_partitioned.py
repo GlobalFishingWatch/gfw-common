@@ -5,9 +5,11 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any
 
-from gfw.common.bigquery.sharded_to_partitioned import ShardedToPartitioned
+from gfw.common.bigquery.sharded_to_partitioned import CAVEAT, ShardedToPartitioned
 from gfw.common.cli import Command, Option
 
+
+_DESCRIPTION = f"Migrate date-sharded BigQuery tables into a single partitioned table.\n\n{CAVEAT}"
 
 HELP_BQ_IN_SHARDED = "Fully-qualified source sharded table names (project.dataset.table)."
 HELP_BQ_OUT_PARTITIONED = "Fully-qualified target partitioned table name (project.dataset.table)."
@@ -31,7 +33,7 @@ class ShardedToPartitionedCommand(Command):
     @property
     def description(self) -> str:
         """Command description."""
-        return "Migrate date-sharded BigQuery tables into a single partitioned table."
+        return _DESCRIPTION
 
     @property
     def options(self) -> list[Option]:

@@ -49,6 +49,13 @@ _EXISTING_PARTITIONS = _env.get_template("existing_partitions.sql")
 _DELETE_MONTH = _env.get_template("delete_month.sql")
 _CONSOLIDATE = _env.get_template("consolidate.sql")
 
+_PARTITION_TYPE_MAP = {
+    "DAY": bigquery.TimePartitioningType.DAY,
+    "HOUR": bigquery.TimePartitioningType.HOUR,
+    "MONTH": bigquery.TimePartitioningType.MONTH,
+    "YEAR": bigquery.TimePartitioningType.YEAR,
+}
+
 
 @dataclass(frozen=True)
 class Table:
@@ -209,9 +216,13 @@ class ShardedToPartitioned:
         return self.client.schema_from_json(str(self._schema))
 
     @cached_property
-    def partition_type(self) -> bigquery.TimePartitioningType:
+    def partition_type(self) -> str:
         """Partition type resolved from string (DAY, HOUR, MONTH, YEAR)."""
-        return getattr(bigquery.TimePartitioningType, self._partition_type)
+        if self._partition_type not in _PARTITION_TYPE_MAP:
+            raise ValueError(
+                f"Invalid partition_type {self._partition_type!r}. Must be one of: {list(_PARTITION_TYPE_MAP)}"
+            )
+        return _PARTITION_TYPE_MAP[self._partition_type]
 
     def run(self, dry_run: bool = False, overwrite: bool = False, limit: int = 0) -> None:
         """Run the migration.

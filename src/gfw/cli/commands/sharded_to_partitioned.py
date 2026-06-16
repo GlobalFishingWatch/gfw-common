@@ -12,7 +12,7 @@ from gfw.common.cli import Command, Option
 HELP_BQ_IN_SHARDED = "Fully-qualified source sharded table names (project.dataset.table)."
 HELP_BQ_OUT_PARTITIONED = "Fully-qualified target partitioned table name (project.dataset.table)."
 HELP_EXECUTION_PROJECT = "GCP project used to run BigQuery jobs."
-HELP_SCHEMA_FILE = "Path to a JSON schema file. If omitted, schema is inferred."
+HELP_SCHEMA_FILE = "Path to a JSON schema file."
 HELP_PARTITION_FIELD = "Field to partition the target table on."
 HELP_PARTITION_TYPE = "Partitioning granularity: DAY, HOUR, MONTH or YEAR."
 HELP_OVERWRITE = "Re-process already-written months."

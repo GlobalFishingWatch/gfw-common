@@ -113,13 +113,11 @@ class ShardedToPartitioned:
 
     **Schema mismatch handling**
 
-    Each source table may have a different set of columns. When a schema is
-    provided, the tool discovers the columns present in every source table and
-    fills any gaps with ``CAST(NULL AS <type>)``. This ensures every row in the
-    target partition has the same structure regardless of which source table it
-    came from. If no schema is supplied, columns are not aligned and each source
-    table is selected as-is (suitable only when all sources share an identical
-    schema).
+    Each source table may have a different set of columns. The tool discovers
+    the columns present in every source table and fills any gaps with
+    ``CAST(NULL AS <type>)`` using the provided schema. This ensures every row
+    in the target partition has the same structure regardless of which source
+    table it came from.
 
     **Incremental operation**
 
@@ -149,10 +147,10 @@ class ShardedToPartitioned:
             GCP project used to run BigQuery jobs and bear their costs.
 
         schema:
-            Target schema, supplied as a path to a JSON schema file, a
-            pre-loaded list of :class:`~google.cloud.bigquery.SchemaField`
-            objects, or ``None`` to let BigQuery infer the schema.
-            A schema is required for NULL-casting of missing columns across sources.
+            Target schema, supplied as a path to a JSON schema file or a
+            pre-loaded list of :class:`~google.cloud.bigquery.SchemaField` objects.
+            Required — used to align columns across sources via ``CAST(NULL AS <type>)``
+            for any column absent from a given source table.
 
         partition_type:
             Partitioning granularity — one of ``DAY``, ``HOUR``, ``MONTH``, or ``YEAR``.
@@ -174,7 +172,7 @@ class ShardedToPartitioned:
         tables: list[str],
         target: str,
         execution_project: str,
-        schema: str | Path | list[bigquery.SchemaField] | None = None,
+        schema: str | Path | list[bigquery.SchemaField],
         partition_type: str = "DAY",
         partition_field: str = "timestamp",
         bq_client_factory: Callable[[str], bigquery.Client] = bigquery.Client,
@@ -205,9 +203,6 @@ class ShardedToPartitioned:
     @cached_property
     def schema(self) -> list[bigquery.SchemaField]:
         """Schema fields: loaded from file if a path is given, used as-is if already a list."""
-        if self._schema is None:
-            return []
-
         if isinstance(self._schema, list):
             return self._schema
 

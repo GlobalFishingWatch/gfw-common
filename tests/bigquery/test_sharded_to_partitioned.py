@@ -100,13 +100,16 @@ def test_build_query_null_cast_for_missing_column():
 # --- ShardedToPartitioned properties ---
 
 
-def test_schema_defaults_to_empty_when_none():
+def test_schema_from_list():
+    schema = [bigquery.SchemaField("ts", "TIMESTAMP")]
     stp = ShardedToPartitioned(
         tables=["proj.ds.t"],
         target="proj.ds.target",
         execution_project="proj",
+        schema=schema,
+        bq_client_factory=MagicMock(),
     )
-    assert stp.schema == []
+    assert stp.schema == schema
 
 
 def test_partition_type():

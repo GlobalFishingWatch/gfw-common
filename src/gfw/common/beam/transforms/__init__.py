@@ -22,6 +22,7 @@ Classes
 
    ApplySlidingWindows
    GroupBy
+   HivePartitionConfig
    ReadAndDecodeFromPubSub
    ReadFromBigQuery
    ReadFromJson
@@ -29,6 +30,7 @@ Classes
    SampleAndLogElements
    WriteToBigQueryWrapper
    WriteToJson
+   WritePartitionedParquet
 
 Extra classes useful for testing
 --------------------------------
@@ -45,6 +47,7 @@ Extra classes useful for testing
 from .apply_sliding_windows import ApplySlidingWindows
 from .bigquery import FakeWriteToBigQuery, WriteToBigQueryWrapper
 from .group_by import GroupBy
+from .parquet import HivePartitionConfig, WritePartitionedParquet
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
 from .read_from_bigquery import ReadFromBigQuery
 from .read_from_json import ReadFromJson
@@ -58,11 +61,13 @@ __all__ = [
     "FakeReadFromPubSub",
     "FakeWriteToBigQuery",
     "GroupBy",
+    "HivePartitionConfig",
     "ReadAndDecodeFromPubSub",
     "ReadFromBigQuery",
     "ReadFromJson",
     "ReadMatchingAvroFiles",
     "SampleAndLogElements",
+    "WritePartitionedParquet",
     "WriteToBigQueryWrapper",
     "WriteToJson",
 ]

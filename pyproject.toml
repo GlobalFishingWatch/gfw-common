@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # Project metadata.
 [project]
 name = "gfw-common"
-version = "0.11.2"
+version = "0.11.3"
 description = "Common place for GFW reusable Python components."
 readme = "README.md"
 license = "Apache-2.0"
@@ -252,4 +252,4 @@ include-package-data = true
 where = ["src"]
 include = ["gfw", "gfw.*"]
 exclude = ["tests*"]
-namespaces = false
+namespaces = true

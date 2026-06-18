@@ -9,6 +9,9 @@ from gfw.common.cli import validations
     "func, invalid_arg, valid_arg",
     [
         pytest.param(validations.valid_date, "2024/04/01", "2024-04-01", id="date"),
+        pytest.param(
+            validations.valid_datetime, "2024/04/01T23:59:59", "2024-04-01T23:59:59", id="datetime"
+        ),
         pytest.param(validations.valid_list, None, "ABC,DEF", id="list"),
     ],
 )

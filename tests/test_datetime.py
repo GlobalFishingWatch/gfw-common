@@ -2,11 +2,14 @@ from datetime import date, datetime, time, timedelta, timezone
 
 import pytest
 
+from dateutil.relativedelta import relativedelta
+
 from gfw.common.datetime import (
     datetime_from_date,
     datetime_from_isoformat,
     datetime_from_string,
     datetime_from_timestamp,
+    split_datetime_range,
 )
 
 
@@ -175,3 +178,40 @@ def test_datetime_from_string(input_str, date_fmt, time_fmt, expected_dt):
 def test_datetime_from_string_raises_value_error(args, kwargs):
     with pytest.raises(ValueError):
         datetime_from_string(*args, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "start, end, step, expected_ranges",
+    [
+        pytest.param(
+            datetime(2012, 1, 1, 0, 0, 0),
+            datetime(2015, 1, 1, 0, 0, 0),
+            relativedelta(years=1),
+            [
+                (datetime(2012, 1, 1, 0, 0, 0), datetime(2013, 1, 1, 0, 0, 0)),
+                (datetime(2013, 1, 1, 0, 0, 0), datetime(2014, 1, 1, 0, 0, 0)),
+                (datetime(2014, 1, 1, 0, 0, 0), datetime(2015, 1, 1, 0, 0, 0)),
+            ],
+        ),
+        pytest.param(
+            datetime(2012, 1, 1, 0, 0, 0),
+            datetime(2012, 10, 1, 0, 0, 0),
+            relativedelta(months=1),
+            [
+                (datetime(2012, 1, 1, 0, 0, 0), datetime(2012, 2, 1, 0, 0, 0)),
+                (datetime(2012, 2, 1, 0, 0, 0), datetime(2012, 3, 1, 0, 0, 0)),
+                (datetime(2012, 3, 1, 0, 0, 0), datetime(2012, 4, 1, 0, 0, 0)),
+                (datetime(2012, 4, 1, 0, 0, 0), datetime(2012, 5, 1, 0, 0, 0)),
+                (datetime(2012, 5, 1, 0, 0, 0), datetime(2012, 6, 1, 0, 0, 0)),
+                (datetime(2012, 6, 1, 0, 0, 0), datetime(2012, 7, 1, 0, 0, 0)),
+                (datetime(2012, 7, 1, 0, 0, 0), datetime(2012, 8, 1, 0, 0, 0)),
+                (datetime(2012, 8, 1, 0, 0, 0), datetime(2012, 9, 1, 0, 0, 0)),
+                (datetime(2012, 9, 1, 0, 0, 0), datetime(2012, 10, 1, 0, 0, 0)),
+            ],
+        ),
+    ],
+)
+def test_split_datetime_ranges(start, end, step, expected_ranges):
+    """Test splitting date ranges to list of tuple datetime."""
+    result = split_datetime_range(start, end, step)
+    assert result == expected_ranges

@@ -18,6 +18,7 @@ from apache_beam.transforms.window import IntervalWindow
 from apache_beam.utils.timestamp import Timestamp
 
 from gfw.common.beam.transforms.parquet import (
+    FakeParquetSink,
     HivePartitionConfig,
     WritePartitionedParquet,
     _AddPartitionKey,
@@ -471,6 +472,39 @@ def test_window_size_equal_to_granularity_is_valid():
     )
 
 
+def test_default_sink_factory_is_parquet_sink():
+    t = WritePartitionedParquet(path="gs://b/p", schema=SCHEMA)
+    assert t._sink_factory is _ParquetSink
+
+
+def test_custom_sink_factory_stored():
+    t = WritePartitionedParquet(path="gs://b/p", schema=SCHEMA, sink_factory=FakeParquetSink)
+    assert t._sink_factory is FakeParquetSink
+
+
+# ---------------------------------------------------------------------------
+# FakeParquetSink
+# ---------------------------------------------------------------------------
+
+
+def test_fake_sink_open_is_noop():
+    s = FakeParquetSink(schema=SCHEMA)
+    s.open(make_fh())
+
+
+def test_fake_sink_write_is_noop():
+    s = FakeParquetSink(schema=SCHEMA)
+    s.open(make_fh())
+    s.write(make_keyed({"mmsi": 1, "nmea": "x", "x": 1.0}))
+
+
+def test_fake_sink_flush_is_noop():
+    s = FakeParquetSink(schema=SCHEMA)
+    s.open(make_fh())
+    s.write(make_keyed({"mmsi": 1, "nmea": "x", "x": 1.0}))
+    s.flush()
+
+
 # ---------------------------------------------------------------------------
 # WritePartitionedParquet — expand integration
 # ---------------------------------------------------------------------------
@@ -511,5 +545,27 @@ def test_expand_time_only():
                     schema=SCHEMA,
                     window_size=60,
                     num_shards=1,
+                )
+            )
+
+
+def test_expand_with_fake_sink():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with TestPipeline() as p:
+            window = make_window(2024, 1, 15, 10)
+            rows = [
+                {"mmsi": i, "nmea": f"msg{i}", "x": float(i), "source": "kpler"} for i in range(3)
+            ]
+            (
+                p
+                | beam.Create(rows)
+                | beam.Map(lambda r: beam.window.TimestampedValue(r, window.start))
+                | WritePartitionedParquet(
+                    path=tmpdir,
+                    schema=SCHEMA,
+                    window_size=60,
+                    num_shards=1,
+                    partition=HivePartitionConfig(fields={"source": lambda v: v}),
+                    sink_factory=FakeParquetSink,
                 )
             )

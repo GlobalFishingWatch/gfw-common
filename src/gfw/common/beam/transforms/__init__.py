@@ -39,6 +39,7 @@ Extra classes useful for testing
    :template: custom-class-template.rst
    :signatures: none
 
+   FakeParquetSink
    FakeReadFromPubSub
    FakeWriteToBigQuery
 
@@ -47,7 +48,7 @@ Extra classes useful for testing
 from .apply_sliding_windows import ApplySlidingWindows
 from .bigquery import FakeWriteToBigQuery, WriteToBigQueryWrapper
 from .group_by import GroupBy
-from .parquet import HivePartitionConfig, WritePartitionedParquet
+from .parquet import FakeParquetSink, HivePartitionConfig, WritePartitionedParquet
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
 from .read_from_bigquery import ReadFromBigQuery
 from .read_from_json import ReadFromJson
@@ -58,6 +59,7 @@ from .write_to_json import WriteToJson
 
 __all__ = [
     "ApplySlidingWindows",
+    "FakeParquetSink",
     "FakeReadFromPubSub",
     "FakeWriteToBigQuery",
     "GroupBy",

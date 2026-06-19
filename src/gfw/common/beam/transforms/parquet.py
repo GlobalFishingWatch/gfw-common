@@ -122,6 +122,12 @@ class WritePartitionedParquet(beam.PTransform):
         partition:
             Hive partition layout. Defaults to hourly time-only partitioning
             with ``"event_"`` prefix. See :class:`HivePartitionConfig`.
+
+        sink_factory:
+            A callable ``(schema, codec) -> FileSink`` used to create the sink
+            for each output file. Defaults to :class:`_ParquetSink`. Inject
+            :class:`FakeParquetSink` to bypass GCS writes in tests while still
+            exercising windowing, partitioning, and file-naming logic.
     """
 
     def __init__(
@@ -135,6 +141,7 @@ class WritePartitionedParquet(beam.PTransform):
         codec: str = "snappy",
         file_suffix: str = ".parquet",
         partition: HivePartitionConfig | None = None,
+        sink_factory: Callable[..., FileSink] | None = None,
     ) -> None:
         self._path = path
         self._schema = schema
@@ -145,6 +152,7 @@ class WritePartitionedParquet(beam.PTransform):
         self._codec = codec
         self._file_suffix = file_suffix
         self._partition = partition or HivePartitionConfig()
+        self._sink_factory = sink_factory or _ParquetSink
         self._validate()
 
     def _validate(self) -> None:
@@ -172,7 +180,7 @@ class WritePartitionedParquet(beam.PTransform):
             >> fileio.WriteToFiles(
                 path=self._path,
                 destination=_partition_path,
-                sink=lambda dest: _ParquetSink(schema=self._schema, codec=self._codec),
+                sink=lambda dest: self._sink_factory(schema=self._schema, codec=self._codec),
                 file_naming=_safe_filenaming(suffix=self._file_suffix),
                 shards=self._num_shards,
                 # The following ensures we always use sharded destinations.
@@ -265,6 +273,28 @@ class _ParquetSink(FileSink):
             self._buffer = None  # type: ignore[assignment]
             self._writer.close()
             self._writer = None
+
+
+class FakeParquetSink(FileSink):
+    """A no-op :class:`~apache_beam.io.fileio.FileSink` for testing.
+
+    Accepts the same constructor signature as :class:`_ParquetSink` but
+    discards all data without writing. Inject via ``sink_factory`` on
+    :class:`WritePartitionedParquet` to exercise windowing, partitioning,
+    and file-naming logic without touching the filesystem.
+    """
+
+    def __init__(self, schema: pa.Schema, codec: str = "snappy") -> None:
+        pass
+
+    def open(self, fh: BinaryIO) -> None:  # noqa: D102
+        pass
+
+    def write(self, element: tuple[str, Row]) -> None:  # noqa: D102
+        pass
+
+    def flush(self) -> None:  # noqa: D102
+        pass
 
 
 def _safe_filenaming(suffix: Any = None) -> Callable[..., str]:

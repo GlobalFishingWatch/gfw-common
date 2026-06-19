@@ -17,8 +17,15 @@ Classes
 """
 
 from .helper import BigQueryHelper, QueryResult
+from .schema import bq_schema_to_pyarrow
 from .table_config import TableConfig
 from .table_description import TableDescription
 
 
-__all__ = ["BigQueryHelper", "QueryResult", "TableConfig", "TableDescription"]
+__all__ = [
+    "BigQueryHelper",
+    "QueryResult",
+    "TableConfig",
+    "TableDescription",
+    "bq_schema_to_pyarrow",
+]

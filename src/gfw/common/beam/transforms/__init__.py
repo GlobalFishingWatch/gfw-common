@@ -42,13 +42,14 @@ Extra classes useful for testing
    FakeParquetSink
    FakeReadFromPubSub
    FakeWriteToBigQuery
+   ParquetSink
 
 """
 
 from .apply_sliding_windows import ApplySlidingWindows
 from .bigquery import FakeWriteToBigQuery, WriteToBigQueryWrapper
 from .group_by import GroupBy
-from .parquet import FakeParquetSink, HivePartitionConfig, WritePartitionedParquet
+from .parquet import FakeParquetSink, HivePartitionConfig, ParquetSink, WritePartitionedParquet
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
 from .read_from_bigquery import ReadFromBigQuery
 from .read_from_json import ReadFromJson
@@ -64,6 +65,7 @@ __all__ = [
     "FakeWriteToBigQuery",
     "GroupBy",
     "HivePartitionConfig",
+    "ParquetSink",
     "ReadAndDecodeFromPubSub",
     "ReadFromBigQuery",
     "ReadFromJson",

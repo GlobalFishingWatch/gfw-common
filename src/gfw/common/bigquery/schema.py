@@ -7,7 +7,7 @@ from typing import Any
 import pyarrow as pa
 
 
-BQ_TO_PA: dict[str, pa.DataType] = {
+_BIGQUERY_TO_PYARROW_TYPE_MAPPING: dict[str, pa.DataType] = {
     "STRING": pa.string(),
     "BYTES": pa.binary(),
     "INTEGER": pa.int64(),
@@ -35,8 +35,8 @@ def _convert_bq_field(bq_field: dict[str, Any]) -> pa.Field:
         pa_type: pa.DataType = pa.struct(
             [_convert_bq_field(f) for f in bq_field.get("fields", [])]
         )
-    elif bq_type in BQ_TO_PA:
-        pa_type = BQ_TO_PA[bq_type]
+    elif bq_type in _BIGQUERY_TO_PYARROW_TYPE_MAPPING:
+        pa_type = _BIGQUERY_TO_PYARROW_TYPE_MAPPING[bq_type]
     else:
         raise ValueError(f"Unsupported BigQuery type: {bq_type!r}")
 

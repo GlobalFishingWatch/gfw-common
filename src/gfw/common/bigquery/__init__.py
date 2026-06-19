@@ -12,12 +12,13 @@ Classes
 
    BigQueryHelper
    QueryResult
+   Schema
    TableConfig
    TableDescription
 """
 
 from .helper import BigQueryHelper, QueryResult
-from .schema import bq_schema_to_pyarrow
+from .schema import Schema
 from .table_config import TableConfig
 from .table_description import TableDescription
 
@@ -25,7 +26,7 @@ from .table_description import TableDescription
 __all__ = [
     "BigQueryHelper",
     "QueryResult",
+    "Schema",
     "TableConfig",
     "TableDescription",
-    "bq_schema_to_pyarrow",
 ]

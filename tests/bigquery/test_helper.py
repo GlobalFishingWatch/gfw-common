@@ -1,11 +1,13 @@
 from unittest import mock
 
+import pyarrow as pa
 import pytest
 
 from google.cloud import bigquery
-from google.cloud.bigquery import WriteDisposition
+from google.cloud.bigquery import SchemaField, WriteDisposition
 
 from gfw.common.bigquery.helper import BigQueryHelper, QueryResult
+from gfw.common.bigquery.schema import Schema
 
 
 def test_mocked_factory_creates_mock():
@@ -316,6 +318,34 @@ def test_load_from_json_with_partitioning():
     assert isinstance(job_config.time_partitioning, bigquery.table.TimePartitioning)
     assert job_config.time_partitioning.type_ == "HOUR"
     assert job_config.time_partitioning.field == "id"
+
+
+def test_fetch_schema_returns_schema_object():
+    helper = BigQueryHelper.mocked(project="test")
+    fields = [
+        SchemaField("ssvid", "STRING", mode="NULLABLE"),
+        SchemaField("lat", "FLOAT", mode="REQUIRED"),
+    ]
+    helper.client.get_table.return_value.schema = fields
+
+    result = helper.fetch_schema("proj.ds.table")
+
+    helper.client.get_table.assert_called_once_with("proj.ds.table")
+    assert isinstance(result, Schema)
+    assert result.fields == fields
+
+
+def test_fetch_schema_as_pyarrow():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.get_table.return_value.schema = [
+        SchemaField("ssvid", "STRING", mode="NULLABLE"),
+        SchemaField("lat", "FLOAT", mode="REQUIRED"),
+    ]
+
+    pa_schema = helper.fetch_schema("proj.ds.table").as_pyarrow()
+
+    assert pa_schema.field("ssvid").type == pa.string()
+    assert not pa_schema.field("lat").nullable
 
 
 @pytest.mark.integration

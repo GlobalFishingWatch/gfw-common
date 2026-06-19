@@ -14,6 +14,8 @@ from google.cloud import bigquery
 from google.cloud.bigquery import WriteDisposition
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+from .schema import Schema
+
 
 logger = logging.getLogger(__name__)
 
@@ -422,6 +424,19 @@ class BigQueryHelper:
         self.client.load_table_from_json(
             json_rows=rows, destination=destination, job_config=job_config
         )
+
+    def fetch_schema(self, table: str) -> Schema:
+        """Fetch the schema of a BigQuery table.
+
+        Args:
+            table:
+                Fully-qualified table name (``project.dataset.table``).
+
+        Returns:
+            A :class:`Schema` wrapping the table's schema fields.
+        """
+        bq_table = self.client.get_table(table)
+        return Schema(list(bq_table.schema))
 
     def _create_table_reference(self, table_name: str) -> bigquery.table.TableReference:
         return bigquery.table.TableReference.from_string(

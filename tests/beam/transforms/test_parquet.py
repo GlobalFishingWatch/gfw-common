@@ -18,10 +18,11 @@ from apache_beam.transforms.window import IntervalWindow
 from apache_beam.utils.timestamp import Timestamp
 
 from gfw.common.beam.transforms.parquet import (
+    FakeParquetSink,
     HivePartitionConfig,
+    ParquetSink,
     WritePartitionedParquet,
     _AddPartitionKey,
-    _ParquetSink,
     _safe_filenaming,
 )
 
@@ -245,27 +246,27 @@ def test_safe_filenaming_no_suffix_no_colons():
 
 
 # ---------------------------------------------------------------------------
-# _ParquetSink — construction
+# ParquetSink — construction
 # ---------------------------------------------------------------------------
 
 
 def test_sink_stores_schema_and_codec():
-    s = _ParquetSink(schema=SCHEMA, codec="zstd")
+    s = ParquetSink(schema=SCHEMA, codec="zstd")
     assert s._schema == SCHEMA
     assert s._codec == "zstd"
 
 
 def test_sink_default_codec():
-    assert _ParquetSink(schema=SCHEMA)._codec == "snappy"
+    assert ParquetSink(schema=SCHEMA)._codec == "snappy"
 
 
 # ---------------------------------------------------------------------------
-# _ParquetSink — open
+# ParquetSink — open
 # ---------------------------------------------------------------------------
 
 
 def test_open_creates_writer_and_empty_buffer():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     s.open(make_fh())
     assert isinstance(s._writer, pa.parquet.ParquetWriter)
     assert s._buffer == []
@@ -273,7 +274,7 @@ def test_open_creates_writer_and_empty_buffer():
 
 
 def test_open_passes_codec_to_writer():
-    s = _ParquetSink(schema=SCHEMA, codec="gzip")
+    s = ParquetSink(schema=SCHEMA, codec="gzip")
     fh = make_fh()
     with patch("pyarrow.parquet.ParquetWriter") as mock_cls:
         mock_cls.return_value = MagicMock()
@@ -282,12 +283,12 @@ def test_open_passes_codec_to_writer():
 
 
 # ---------------------------------------------------------------------------
-# _ParquetSink — write
+# ParquetSink — write
 # ---------------------------------------------------------------------------
 
 
 def test_write_appends_row():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     s.open(make_fh())
     row = {"mmsi": 1, "nmea": "x", "x": 1.0}
     s.write(make_keyed(row))
@@ -296,7 +297,7 @@ def test_write_appends_row():
 
 
 def test_write_ignores_partition_key():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     s.open(make_fh())
     row = {"mmsi": 1, "nmea": "x", "x": None}
     s.write(("some/partition/path/", row))
@@ -305,7 +306,7 @@ def test_write_ignores_partition_key():
 
 
 def test_write_accumulates_multiple_rows():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     s.open(make_fh())
     rows = [{"mmsi": i, "nmea": f"m{i}", "x": float(i)} for i in range(5)]
     for row in rows:
@@ -315,12 +316,12 @@ def test_write_accumulates_multiple_rows():
 
 
 # ---------------------------------------------------------------------------
-# _ParquetSink — flush: normal path
+# ParquetSink — flush: normal path
 # ---------------------------------------------------------------------------
 
 
 def test_flush_writes_correct_data():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     fh = make_fh()
     s.open(fh)
     for row in [{"mmsi": 1, "nmea": "msg1", "x": 1.0}, {"mmsi": 2, "nmea": "msg2", "x": 2.0}]:
@@ -332,7 +333,7 @@ def test_flush_writes_correct_data():
 
 
 def test_flush_empty_buffer_does_not_raise():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     s.open(make_fh())
     s.flush()
     assert s._writer is None
@@ -340,7 +341,7 @@ def test_flush_empty_buffer_does_not_raise():
 
 
 def test_flush_nulls_writer_and_buffer():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     s.open(make_fh())
     s.write(make_keyed({"mmsi": 1, "nmea": "x", "x": None}))
     s.flush()
@@ -349,7 +350,7 @@ def test_flush_nulls_writer_and_buffer():
 
 
 def test_flush_handles_null_values():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     fh = make_fh()
     s.open(fh)
     s.write(make_keyed({"mmsi": None, "nmea": "msg", "x": None}))
@@ -360,7 +361,7 @@ def test_flush_handles_null_values():
 
 
 def test_flush_produces_single_row_group():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     fh = make_fh()
     s.open(fh)
     for i in range(100):
@@ -371,12 +372,12 @@ def test_flush_produces_single_row_group():
 
 
 # ---------------------------------------------------------------------------
-# _ParquetSink — flush: exception safety
+# ParquetSink — flush: exception safety
 # ---------------------------------------------------------------------------
 
 
 def test_flush_closes_writer_if_write_batch_raises():
-    s = _ParquetSink(schema=SCHEMA)
+    s = ParquetSink(schema=SCHEMA)
     s.open(make_fh())
     s.write(make_keyed({"mmsi": 1, "nmea": "x", "x": 1.0}))
     mock_writer = MagicMock()
@@ -393,7 +394,7 @@ def test_flush_closes_writer_if_write_batch_raises():
 
 def test_flush_closes_writer_if_from_pylist_raises():
     bad_schema = pa.schema([pa.field("mmsi", pa.int64())])
-    s = _ParquetSink(schema=bad_schema, codec="snappy")
+    s = ParquetSink(schema=bad_schema, codec="snappy")
     s.open(make_fh())
     s._buffer = [{"mmsi": "not-an-int"}]
     mock_writer = MagicMock()
@@ -471,6 +472,39 @@ def test_window_size_equal_to_granularity_is_valid():
     )
 
 
+def test_default_sink_factory_is_parquet_sink():
+    t = WritePartitionedParquet(path="gs://b/p", schema=SCHEMA)
+    assert t._sink_factory is ParquetSink
+
+
+def test_custom_sink_factory_stored():
+    t = WritePartitionedParquet(path="gs://b/p", schema=SCHEMA, sink_factory=FakeParquetSink)
+    assert t._sink_factory is FakeParquetSink
+
+
+# ---------------------------------------------------------------------------
+# FakeParquetSink
+# ---------------------------------------------------------------------------
+
+
+def test_fake_sink_open_is_noop():
+    s = FakeParquetSink(schema=SCHEMA)
+    s.open(make_fh())
+
+
+def test_fake_sink_write_is_noop():
+    s = FakeParquetSink(schema=SCHEMA)
+    s.open(make_fh())
+    s.write(make_keyed({"mmsi": 1, "nmea": "x", "x": 1.0}))
+
+
+def test_fake_sink_flush_is_noop():
+    s = FakeParquetSink(schema=SCHEMA)
+    s.open(make_fh())
+    s.write(make_keyed({"mmsi": 1, "nmea": "x", "x": 1.0}))
+    s.flush()
+
+
 # ---------------------------------------------------------------------------
 # WritePartitionedParquet — expand integration
 # ---------------------------------------------------------------------------
@@ -511,5 +545,27 @@ def test_expand_time_only():
                     schema=SCHEMA,
                     window_size=60,
                     num_shards=1,
+                )
+            )
+
+
+def test_expand_with_fake_sink():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with TestPipeline() as p:
+            window = make_window(2024, 1, 15, 10)
+            rows = [
+                {"mmsi": i, "nmea": f"msg{i}", "x": float(i), "source": "kpler"} for i in range(3)
+            ]
+            (
+                p
+                | beam.Create(rows)
+                | beam.Map(lambda r: beam.window.TimestampedValue(r, window.start))
+                | WritePartitionedParquet(
+                    path=tmpdir,
+                    schema=SCHEMA,
+                    window_size=60,
+                    num_shards=1,
+                    partition=HivePartitionConfig(fields={"source": lambda v: v}),
+                    sink_factory=FakeParquetSink,
                 )
             )

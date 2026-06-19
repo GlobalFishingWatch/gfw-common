@@ -1,5 +1,7 @@
 """PTransform for writing hive-partitioned Parquet files."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, Callable, Iterable, Literal
 
@@ -122,6 +124,12 @@ class WritePartitionedParquet(beam.PTransform):
         partition:
             Hive partition layout. Defaults to hourly time-only partitioning
             with ``"event_"`` prefix. See :class:`HivePartitionConfig`.
+
+        sink_factory:
+            A callable ``(schema, codec) -> FileSink`` used to create the sink
+            for each output file. Defaults to :class:`ParquetSink`. Inject
+            :class:`FakeParquetSink` to bypass GCS writes in tests while still
+            exercising windowing, partitioning, and file-naming logic.
     """
 
     def __init__(
@@ -135,6 +143,7 @@ class WritePartitionedParquet(beam.PTransform):
         codec: str = "snappy",
         file_suffix: str = ".parquet",
         partition: HivePartitionConfig | None = None,
+        sink_factory: Callable[..., ParquetSink] | None = None,
     ) -> None:
         self._path = path
         self._schema = schema
@@ -145,6 +154,7 @@ class WritePartitionedParquet(beam.PTransform):
         self._codec = codec
         self._file_suffix = file_suffix
         self._partition = partition or HivePartitionConfig()
+        self._sink_factory = sink_factory or ParquetSink
         self._validate()
 
     def _validate(self) -> None:
@@ -172,7 +182,7 @@ class WritePartitionedParquet(beam.PTransform):
             >> fileio.WriteToFiles(
                 path=self._path,
                 destination=_partition_path,
-                sink=lambda dest: _ParquetSink(schema=self._schema, codec=self._codec),
+                sink=lambda dest: self._sink_factory(schema=self._schema, codec=self._codec),
                 file_naming=_safe_filenaming(suffix=self._file_suffix),
                 shards=self._num_shards,
                 # The following ensures we always use sharded destinations.
@@ -232,7 +242,7 @@ class _AddPartitionKey(beam.DoFn):
         yield path, element
 
 
-class _ParquetSink(FileSink):
+class ParquetSink(FileSink):
     """A :class:`~apache_beam.io.fileio.FileSink` that buffers rows and flushes as one row group.
 
     Args:
@@ -245,6 +255,7 @@ class _ParquetSink(FileSink):
         self._codec = codec
 
     def open(self, fh: BinaryIO) -> None:
+        """Open the Parquet writer and initialise the row buffer."""
         self._writer = pa.parquet.ParquetWriter(
             fh,
             self._schema,
@@ -253,10 +264,12 @@ class _ParquetSink(FileSink):
         self._buffer: list[Row] = []
 
     def write(self, element: tuple[str, Row]) -> None:
+        """Buffer one keyed row for writing."""
         _, row = element
         self._buffer.append(row)
 
     def flush(self) -> None:
+        """Write all buffered rows as a single row group and close the writer."""
         try:
             if self._buffer:
                 batch = pa.RecordBatch.from_pylist(self._buffer, schema=self._schema)
@@ -265,6 +278,27 @@ class _ParquetSink(FileSink):
             self._buffer = None  # type: ignore[assignment]
             self._writer.close()
             self._writer = None
+
+
+class FakeParquetSink(ParquetSink):
+    """A no-op :class:`ParquetSink` for testing.
+
+    Discards all data without writing. Inject via ``sink_factory`` on
+    :class:`WritePartitionedParquet` to exercise windowing, partitioning,
+    and file-naming logic without touching the filesystem.
+    """
+
+    def __init__(self, schema: pa.Schema, codec: str = "snappy") -> None:
+        pass
+
+    def open(self, fh: BinaryIO) -> None:  # noqa: D102
+        pass
+
+    def write(self, element: tuple[str, Row]) -> None:  # noqa: D102
+        pass
+
+    def flush(self) -> None:  # noqa: D102
+        pass
 
 
 def _safe_filenaming(suffix: Any = None) -> Callable[..., str]:

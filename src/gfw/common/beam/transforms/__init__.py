@@ -40,27 +40,31 @@ Extra classes useful for testing
    :signatures: none
 
    FakeParquetSink
+   FakeReadFromBigQuery
    FakeReadFromPubSub
    FakeWriteToBigQuery
    ParquetSink
 
 """
 
-from .apply_sliding_windows import ApplySlidingWindows
-from .bigquery import FakeWriteToBigQuery, WriteToBigQueryWrapper
-from .group_by import GroupBy
+from .avro import ReadMatchingAvroFiles
+from .bigquery import (
+    FakeReadFromBigQuery,
+    FakeWriteToBigQuery,
+    ReadFromBigQuery,
+    WriteToBigQueryWrapper,
+)
+from .core import GroupBy, SampleAndLogElements
+from .json import ReadFromJson, WriteToJson
 from .parquet import FakeParquetSink, HivePartitionConfig, ParquetSink, WritePartitionedParquet
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
-from .read_from_bigquery import ReadFromBigQuery
-from .read_from_json import ReadFromJson
-from .read_matching_avro_files import ReadMatchingAvroFiles
-from .sample_and_log import SampleAndLogElements
-from .write_to_json import WriteToJson
+from .windows import ApplySlidingWindows
 
 
 __all__ = [
     "ApplySlidingWindows",
     "FakeParquetSink",
+    "FakeReadFromBigQuery",
     "FakeReadFromPubSub",
     "FakeWriteToBigQuery",
     "GroupBy",

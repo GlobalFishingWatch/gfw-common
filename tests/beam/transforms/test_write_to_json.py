@@ -4,7 +4,7 @@ import apache_beam as beam
 
 from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
 
-from gfw.common.beam.transforms.write_to_json import WriteToJson
+from gfw.common.beam.transforms.json import WriteToJson
 from gfw.common.io import json_load
 
 

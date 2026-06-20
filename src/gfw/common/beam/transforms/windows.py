@@ -1,4 +1,4 @@
-"""Transforms for applying sliding windows in Apache Beam."""
+"""PTransforms for applying sliding windows in Apache Beam."""
 
 from typing import Any, Dict
 

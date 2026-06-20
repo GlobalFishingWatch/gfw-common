@@ -6,7 +6,7 @@ import pytest
 from apache_beam.testing.test_pipeline import TestPipeline as _TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
 
-from gfw.common.beam.transforms.read_from_bigquery import (
+from gfw.common.beam.transforms.bigquery import (
     FakeReadFromBigQuery,
     ReadFromBigQuery,
 )

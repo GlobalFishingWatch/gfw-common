@@ -1,4 +1,4 @@
-"""Module containing an Apache Beam transform for reading Avro files with datetime filtering."""
+"""PTransform for reading Avro files with datetime filtering."""
 
 import codecs
 import logging

@@ -257,8 +257,9 @@ class CLI:
 
         config = DeepChainMap(cli_args, config_file_args, defaults_args).to_dict()
 
-        config[self._KEY_UNKNOWN_UNPARSED_ARGS] = unknown_unparsed_args
-        config[self._KEY_UNKNOWN_PARSED_ARGS] = unknown_parsed_args
+        if self._allow_unknown:
+            config[self._KEY_UNKNOWN_UNPARSED_ARGS] = unknown_unparsed_args
+            config[self._KEY_UNKNOWN_PARSED_ARGS] = unknown_parsed_args
 
         self._validate_required_args(command, config)
 

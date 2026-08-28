@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from typing import NamedTuple
 
@@ -66,6 +67,31 @@ def test_render_query(query):
     """
     assert query.format(sql) == query.format(expected)
     assert query.format(sql) == query.render(formatted=True)
+
+
+def test_render_query_logs_exactly_what_it_returns(query, caplog):
+    """The debug log matches what render() actually returns, whether formatted or not.
+
+    Regression test for https://github.com/GlobalFishingWatch/gfw-common/issues/51: render()
+    used to always logger.debug() the formatted query, even when it returned the unformatted
+    one (formatted=False, the default) -- misleading anyone debugging a real error against the
+    unformatted query that actually ran, since a line number in that error wouldn't line up
+    with the formatted SQL shown in the log.
+    """
+    with caplog.at_level(logging.DEBUG):
+        unformatted_sql = query.render()
+
+    debug_messages = [r.message for r in caplog.records if r.levelno == logging.DEBUG]
+    assert unformatted_sql in debug_messages
+    assert query.format(unformatted_sql) not in debug_messages
+
+    caplog.clear()
+
+    with caplog.at_level(logging.DEBUG):
+        formatted_sql = query.render(formatted=True)
+
+    debug_messages = [r.message for r in caplog.records if r.levelno == logging.DEBUG]
+    assert formatted_sql in debug_messages
 
 
 def test_format_sql(query):

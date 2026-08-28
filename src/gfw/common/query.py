@@ -162,13 +162,12 @@ class Query(ABC):
 
         template_vars = self.template_vars
         query = template.render(template_vars)
-        formatted_query = self.format(query)
-
-        logger.debug(f"Rendered Query for {self}: ")
-        logger.debug(formatted_query)
 
         if formatted:
-            return formatted_query
+            query = self.format(query)
+
+        logger.debug(f"Rendered Query for {self}: ")
+        logger.debug(query)
 
         return query
 

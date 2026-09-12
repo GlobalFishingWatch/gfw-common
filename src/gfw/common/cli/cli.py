@@ -90,7 +90,10 @@ class CLI:
 
     _HELP_CONFIG_FILE = "Path to config file."
     _HELP_VERBOSE = "Set logger level to DEBUG."
-    _HELP_NO_RICH_LOGGING = "Disable rich logging [useful for production environments]."
+    _HELP_RICH_LOGGING = (
+        "Use rich, colorized logging output. Pass --no-rich-logging to disable it"
+        " [useful for production environments]."
+    )
     _HELP_LOG_TO_STDOUT = "If True, sends logs output to sys.stdout stream."
     _HELP_LOG_FILE = "File to send logging output to."
     _HELP_ONLY_RENDER = "Dry run, only renders command line call and prints it."
@@ -133,7 +136,7 @@ class CLI:
             Option("-v", "--verbose", type=bool, default=False, help=cls._HELP_VERBOSE),
             Option("--log-file", type=str, default=None, help=cls._HELP_LOG_FILE),
             Option("--log-to-stdout", type=bool, default=False, help=cls._HELP_LOG_TO_STDOUT),
-            Option("--no-rich-logging", type=bool, default=False, help=cls._HELP_NO_RICH_LOGGING),
+            Option("--rich-logging", type=bool, default=True, help=cls._HELP_RICH_LOGGING),
             Option("--only-render", type=bool, default=False, help=cls._HELP_ONLY_RENDER),
         ]
 
@@ -228,7 +231,7 @@ class CLI:
         config_file = cli_args.pop("config_file", None)
         log_file = cli_args.pop("log_file", None)
         verbose = cli_args.pop("verbose")
-        no_rich_logging = cli_args.pop("no_rich_logging")
+        rich_logging = cli_args.pop("rich_logging")
         only_render = cli_args.pop("only_render")
         log_to_stdout = cli_args.pop("log_to_stdout")
 
@@ -266,7 +269,7 @@ class CLI:
         # Setup logger.
         self._logger_config.setup(
             verbose=verbose,
-            rich=not no_rich_logging,
+            rich=rich_logging,
             log_file=log_file,
             log_stream=sys.stdout if log_to_stdout else sys.stderr,
         )
@@ -277,7 +280,7 @@ class CLI:
         logger.info(json.dumps(config, indent=4, default=to_json))
 
         if only_render:
-            rendered = self._render_command_line_call(command.name, config)
+            rendered = self._render_command_line_call(command, config)
             logger.info("Equivalent command-line call: ")
             print(f"{rendered}")
             return rendered, config
@@ -320,7 +323,17 @@ class CLI:
         kwargs.setdefault("metavar", "")
 
         if option.type is bool:
-            kwargs.setdefault("action", "store_true" if not option.default else "store_false")
+            # Always expose an explicit --{name}/--no-{name} pair, regardless of
+            # `option.default`, instead of picking store_true or store_false from
+            # it. A single-flag store_false option (default=True) makes passing
+            # the flag named after the "on" state (e.g. --eval-last) silently mean
+            # "off" -- backwards from what any reader would expect. Both states
+            # get their own explicit name no matter which one is requested or
+            # what the default is. (Option.__init__ rejects any bool flag already
+            # named as a negation, e.g. "--no-x", since BooleanOptionalAction
+            # would derive its "positive" counterpart by stripping that prefix,
+            # inverting what passing the flag means.)
+            kwargs.setdefault("action", argparse.BooleanOptionalAction)
             kwargs.pop("type")
             kwargs.pop("metavar")
 
@@ -369,7 +382,7 @@ class CLI:
         if missing:
             raise argparse.ArgumentTypeError(f"Missing required arguments: {missing}")
 
-    def _render_command_line_call(self, command_name: str, config: dict[str, Any]) -> str:
+    def _render_command_line_call(self, command: Command, config: dict[str, Any]) -> str:
         config = config.copy()
 
         main_command = self._main_command.name
@@ -379,7 +392,7 @@ class CLI:
 
         parts = [
             main_command,
-            self._resolve_cli_name(command_name),
+            self._resolve_cli_name(command.name),
         ]
 
         unknown_unparsed = config.pop(self._KEY_UNKNOWN_UNPARSED_ARGS, [])
@@ -407,8 +420,13 @@ class CLI:
                 value = ",".join(v)
 
             if isinstance(v, bool):
+                # Every bool option has a real --{name}/--no-{name} pair (see
+                # _add_option_to_parser), so show whichever one matches rather
+                # than omitting the False case -- the rendered call is then
+                # fully self-contained: copy-pasting it reproduces the resolved
+                # config without relying on any option's own default.
                 if not v:
-                    continue
+                    name = f"no{'_' if self._use_underscore else '-'}{name}"
 
                 value = ""
                 sep = ""

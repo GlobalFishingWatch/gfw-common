@@ -267,6 +267,7 @@ def test_only_render(main_command, subcommand, use_underscore, sep):
         "\n--date{sep}2=2025-01-02 \\"
         "\n--list{sep}2=ABC,EFG \\"
         "\n--boolean{sep}2 \\"
+        "\n--no{sep}boolean{sep}3 \\"
         "\n--number{sep}1=1 \\"
         "\n--date{sep}1=2025-01-01 \\"
         "\n--project=my-project"
@@ -295,3 +296,68 @@ def test_logs_to_stderr(main_command, capsys):
 
     assert "Starting program" in err
     assert out == ""
+
+
+@pytest.fixture
+def true_default_bool_subcommand():
+    return ParametrizedCommand(
+        name="subcommand",
+        options=[Option("--eval-last", type=bool, default=True)],
+        run=lambda config, **kwargs: config,
+    )
+
+
+def test_true_default_bool_option_defaults_to_true_when_omitted(true_default_bool_subcommand):
+    test_cli = CLI(name="program", subcommands=[true_default_bool_subcommand])
+
+    _, config = test_cli.execute(args=["subcommand"])
+
+    assert config["eval_last"] is True
+
+
+def test_true_default_bool_option_flag_explicitly_enables(true_default_bool_subcommand):
+    test_cli = CLI(name="program", subcommands=[true_default_bool_subcommand])
+
+    _, config = test_cli.execute(args=["subcommand", "--eval-last"])
+
+    assert config["eval_last"] is True
+
+
+def test_true_default_bool_option_no_flag_disables(true_default_bool_subcommand):
+    test_cli = CLI(name="program", subcommands=[true_default_bool_subcommand])
+
+    _, config = test_cli.execute(args=["subcommand", "--no-eval-last"])
+
+    assert config["eval_last"] is False
+
+
+@pytest.mark.parametrize(
+    "args, expected_flag",
+    [
+        pytest.param([], "--eval-last", id="omitted_renders_true_state"),
+        pytest.param(["--eval-last"], "--eval-last", id="explicit_true"),
+        pytest.param(["--no-eval-last"], "--no-eval-last", id="explicit_false"),
+    ],
+)
+def test_true_default_bool_option_render(true_default_bool_subcommand, args, expected_flag):
+    test_cli = CLI(name="program", subcommands=[true_default_bool_subcommand])
+
+    res, _ = test_cli.execute(args=["subcommand", *args, "--only-render"])
+
+    assert expected_flag in res.split("\\")[-1]
+
+
+def test_bool_option_named_like_a_negation_is_rejected():
+    """Regression test: a bool flag already starting with "no-" must be rejected.
+
+    Every bool option now gets an explicit --{name}/--no-{name} pair via
+    argparse.BooleanOptionalAction. If the flag's own name already starts
+    with "no-" (e.g. a hypothetical --no-rich-logging), BooleanOptionalAction
+    treats it as the negative form and derives the "positive" one by
+    stripping that prefix -- silently inverting what passing the flag means
+    (see the built-in --rich-logging option, renamed from --no-rich-logging
+    for exactly this reason). Option.__init__ should catch this at
+    declaration time rather than let it misbehave at parse time.
+    """
+    with pytest.raises(argparse.ArgumentTypeError, match="no-"):
+        Option("--no-something", type=bool, default=False)

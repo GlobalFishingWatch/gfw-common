@@ -69,6 +69,19 @@ class Option:
                 f"You cannot set a default in a required argument: {self.dest}"
             )
 
+        if type is bool and any(f.lstrip("-").startswith("no-") for f in flags):
+            raise argparse.ArgumentTypeError(
+                f"Bool option '{self.dest}' has a flag already named as a negation "
+                "(starting with 'no-'). Every bool option gets an automatic "
+                "--{name}/--no-{name} pair (see CLI._add_option_to_parser), and "
+                "argparse.BooleanOptionalAction treats a flag that already starts "
+                "with 'no-' as the negative form, deriving the positive one by "
+                "stripping that prefix -- which silently inverts what passing this "
+                "flag means. Name it after the positive concept instead (e.g. "
+                "'--rich-logging' with default=True, not '--no-rich-logging' with "
+                "default=False)."
+            )
+
     @cached_property
     def dest(self) -> str:
         """Returns the internal variable name used by argparse for this option.

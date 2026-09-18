@@ -140,6 +140,24 @@ class CLI:
             Option("--only-render", type=bool, default=False, help=cls._HELP_ONLY_RENDER),
         ]
 
+    @classmethod
+    def _pop_builtin_arg(cls, cli_args: dict[str, Any], dest: str) -> Any:
+        """Pops `dest` from the parsed CLI namespace, falling back to its real default.
+
+        `_add_option_to_parser` forces every option's own argparse-level default to `None`
+        (regardless of what `Option.default` actually is), so that the CLI-args/config-file/
+        command-defaults merge in `execute()` can tell "not passed" apart from an explicit
+        value. Builtin options bypass that merge entirely, so without this substitution, an
+        unset builtin option would resolve to `None` instead of its real default -- harmless
+        for one whose real default is already falsy (`False`/`None`), but wrong for one whose
+        real default is `True` (e.g. `--rich-logging`).
+        """
+        value = cli_args.pop(dest, None)
+        if value is not None:
+            return value
+
+        return next(o.default for o in cls.builtin_options() if o.dest == dest)
+
     @cached_property
     def title(self) -> str:
         """Returns the CLI program title with version."""
@@ -227,13 +245,20 @@ class CLI:
 
         cli_args = vars(ns)
 
-        # Delete CLI configuration from parsed namespace.
-        config_file = cli_args.pop("config_file", None)
-        log_file = cli_args.pop("log_file", None)
-        verbose = cli_args.pop("verbose")
-        rich_logging = cli_args.pop("rich_logging")
-        only_render = cli_args.pop("only_render")
-        log_to_stdout = cli_args.pop("log_to_stdout")
+        # Delete CLI configuration from parsed namespace. `_add_option_to_parser` forces every
+        # option's argparse-level default to None (see its own comment) so that, for a regular
+        # (non-builtin) Option, `filter_none_values` + `DeepChainMap` below can tell "flag not
+        # passed" apart from "flag explicitly passed" and fall through to the config file /
+        # command defaults correctly. These 6 builtin options never go through that merge --
+        # they're popped straight out of the parsed namespace -- so an unset one still comes
+        # back as that same `None` sentinel here, not its real default. `_pop_builtin_arg`
+        # substitutes the real default from `builtin_options()` whenever that happens.
+        config_file = self._pop_builtin_arg(cli_args, "config_file")
+        log_file = self._pop_builtin_arg(cli_args, "log_file")
+        verbose = self._pop_builtin_arg(cli_args, "verbose")
+        rich_logging = self._pop_builtin_arg(cli_args, "rich_logging")
+        only_render = self._pop_builtin_arg(cli_args, "only_render")
+        log_to_stdout = self._pop_builtin_arg(cli_args, "log_to_stdout")
 
         # Load config file if exists.
         config_file_args = {}

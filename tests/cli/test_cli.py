@@ -1,9 +1,12 @@
 import argparse
+import logging
 
 from datetime import date
 from types import SimpleNamespace
 
 import pytest
+
+from rich.logging import RichHandler
 
 from gfw.common.cli import CLI, Command, Option, ParametrizedCommand
 from gfw.common.cli.validations import valid_date, valid_list
@@ -296,6 +299,42 @@ def test_logs_to_stderr(main_command, capsys):
 
     assert "Starting program" in err
     assert out == ""
+
+
+def test_rich_logging_enabled_by_default(main_command):
+    """Regression test: an omitted --rich-logging must still enable rich logging.
+
+    --rich-logging is one of the CLI's own builtin options (see `CLI._pop_builtin_arg`) --
+    unlike a regular Option, it bypasses the CLI-args/config-file/command-defaults merge, and
+    is the one builtin bool option whose real default is True rather than False. Before the
+    fix, `_add_option_to_parser` forcing every option's argparse-level default to None meant an
+    omitted flag resolved to None (falsy) instead of its real default True, silently disabling
+    rich logging (and, in pipe-regions, breaking its rich-only progress bar rendering) even
+    though nothing was passed to turn it off.
+    """
+    cli = CLI(**main_command)
+
+    cli.execute(args=["--project", "my-project"])
+
+    assert any(isinstance(h, RichHandler) for h in logging.getLogger().handlers)
+
+
+def test_rich_logging_disabled_with_no_flag(main_command):
+    """--no-rich-logging still correctly disables it."""
+    cli = CLI(**main_command)
+
+    cli.execute(args=["--no-rich-logging", "--project", "my-project"])
+
+    assert not any(isinstance(h, RichHandler) for h in logging.getLogger().handlers)
+
+
+def test_rich_logging_explicit_flag_enables_it(main_command):
+    """--rich-logging passed explicitly still works (was already correct before the fix)."""
+    cli = CLI(**main_command)
+
+    cli.execute(args=["--rich-logging", "--project", "my-project"])
+
+    assert any(isinstance(h, RichHandler) for h in logging.getLogger().handlers)
 
 
 @pytest.fixture

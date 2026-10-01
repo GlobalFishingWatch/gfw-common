@@ -6,8 +6,7 @@ top of a single :class:`~gfw.common.bigquery.TableConfig`'s table.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from functools import cached_property
+from dataclasses import InitVar, dataclass
 from typing import Any, Optional
 
 from .table_config import TableConfig
@@ -23,13 +22,11 @@ class ViewConfig(ABC):
     :class:`SingleSourceViewConfig` instead of this class directly.
     """
 
+    view_id: str
+    """The ID of this view."""
+
     description: Optional[TableDescription] = None
     """Optional :class:`~gfw.common.bigquery.TableDescription` instance for the view's metadata."""
-
-    @property
-    @abstractmethod
-    def view_id(self) -> str:
-        """Returns the ID of this view."""
 
     @property
     @abstractmethod
@@ -72,12 +69,17 @@ class SingleSourceViewConfig(ViewConfig):
     """The :class:`TableConfig` whose table this view is built on top of."""
 
     suffix: str = "view"
-    """Suffix appended to the source table's ID to build this view's ID."""
+    """Suffix appended to the source table's ID to build this view's ID, unless ``view_id``
+    is passed explicitly."""
 
-    @cached_property
-    def view_id(self) -> str:
-        """Returns the ID of this view, derived from the source table's ID and suffix."""
-        return f"{self.source.table_id}_{self.suffix}"
+    view_id: InitVar[Optional[str]] = None
+    """Explicit ID for this view. When omitted, defaults to the source table's ID plus
+    :attr:`suffix` -- pass this to give the view a name unrelated to its source table's,
+    e.g. when the view is meant to take over the source table's old name."""
+
+    def __post_init__(self, view_id: Optional[str]) -> None:
+        """Resolves :attr:`view_id` from the explicit value, or the source table ID and suffix."""
+        self.view_id = view_id or f"{self.source.table_id}_{self.suffix}"
 
     @property
     def schema(self) -> list[dict[str, str]]:

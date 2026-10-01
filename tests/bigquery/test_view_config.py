@@ -41,6 +41,11 @@ def test_view_config_view_id_uses_custom_suffix(config):
     assert view.view_id == "project.dataset.table_last_versions"
 
 
+def test_view_config_view_id_override_takes_precedence_over_suffix(config):
+    view = DummyViewConfig(source=config, suffix="last_versions", view_id="raw_gaps")
+    assert view.view_id == "raw_gaps"
+
+
 def test_view_config_schema_defaults_to_source_schema(config):
     view = DummyViewConfig(source=config)
     assert view.schema == config.schema

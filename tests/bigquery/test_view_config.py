@@ -2,7 +2,7 @@ import pytest
 
 from gfw.common.bigquery.table_config import TableConfig
 from gfw.common.bigquery.table_description import TableDescription
-from gfw.common.bigquery.view_config import ViewConfig
+from gfw.common.bigquery.view_config import SingleSourceViewConfig
 
 
 class DummyTableConfig(TableConfig):
@@ -11,7 +11,7 @@ class DummyTableConfig(TableConfig):
         return [{"name": "id", "type": "STRING"}]
 
 
-class DummyViewConfig(ViewConfig):
+class DummyViewConfig(SingleSourceViewConfig):
     def view_query(self):
         return f"SELECT * FROM `{self.source.table_id}`"
 
@@ -47,7 +47,7 @@ def test_view_config_schema_defaults_to_source_schema(config):
 
 
 def test_view_config_schema_can_be_overridden(config):
-    class CustomSchemaViewConfig(ViewConfig):
+    class CustomSchemaViewConfig(SingleSourceViewConfig):
         def view_query(self):
             return "SELECT 1"
 
@@ -72,3 +72,28 @@ def test_view_config_description(config):
     )
     view = DummyViewConfig(source=config, description=description)
     assert view.description is description
+
+
+def test_as_create_view_params_with_description(config):
+    description = TableDescription(
+        version="1.0.0",
+        repo_name="my-repo",
+        relevant_params={"x": 1},
+    )
+    view = DummyViewConfig(source=config, description=description)
+
+    result = view.as_create_view_params()
+
+    assert result["view_id"] == view.view_id
+    assert result["view_query"] == view.view_query()
+    assert result["schema"] == view.schema
+    assert "x" in result["description"]
+    assert "1.0.0" in result["description"]
+
+
+def test_as_create_view_params_without_description(config):
+    view = DummyViewConfig(source=config)
+
+    result = view.as_create_view_params()
+
+    assert result["description"] == ""

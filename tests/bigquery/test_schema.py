@@ -193,3 +193,21 @@ def test_schema_as_pyarrow_nested_record():
     pa_schema = Schema(fields).as_pyarrow()
     expected = pa.struct([pa.field("lat", pa.float64()), pa.field("lon", pa.float64())])
     assert pa_schema.field("position").type == expected
+
+
+def test_as_ddl_fields_mixed():
+    schema = Schema.from_dicts(
+        [
+            {"name": "id", "type": "STRING", "description": "The id."},
+            {"name": "created_at", "type": "TIMESTAMP"},
+        ]
+    )
+    assert schema.as_ddl_fields() == [
+        'id OPTIONS(description="""The id.""")',
+        'created_at OPTIONS(description="""""")',
+    ]
+
+
+def test_as_ddl_fields_empty_string_stays_empty():
+    schema = Schema.from_dicts([{"name": "id", "type": "STRING", "description": ""}])
+    assert schema.as_ddl_fields() == ['id OPTIONS(description="""""")']

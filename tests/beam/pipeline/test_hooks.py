@@ -22,13 +22,14 @@ def table_config():
 def view_config():
     class DummyViewConfig:
         view_id = "project.dataset.view"
-        description = None
 
-        def __init__(self):
-            self.schema = [{"name": "id", "type": "STRING"}]
-
-        def view_query(self):
-            return "SELECT * FROM dataset.source"
+        def as_create_view_params(self):
+            return {
+                "view_id": self.view_id,
+                "view_query": "SELECT * FROM dataset.source",
+                "description": "",
+                "schema": [{"name": "id", "type": "STRING"}],
+            }
 
     return DummyViewConfig()
 

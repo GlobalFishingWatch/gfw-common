@@ -40,18 +40,10 @@ def create_view_hook(
     """
 
     def _hook(p: Pipeline) -> None:
-        view_id = view_config.view_id
-        view_query = view_config.view_query()
-        description = view_config.description.render() if view_config.description else ""
-        logger.info(f"Creating view: {view_id}...")
+        logger.info(f"Creating view: {view_config.view_id}...")
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
         bq_client = BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
-        bq_client.create_view(
-            view_id=view_id,
-            view_query=view_query,
-            description=description,
-            schema=view_config.schema,
-        )
+        bq_client.create_view(**view_config.as_create_view_params())
         logger.info("Done.")
 
     return _hook

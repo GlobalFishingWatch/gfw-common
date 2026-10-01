@@ -12,7 +12,8 @@ from datetime import date
 from typing import Callable, Optional
 
 from gfw.common.bigquery.helper import BigQueryHelper
-from gfw.common.bigquery.table_config import TableConfig, ViewConfig
+from gfw.common.bigquery.table_config import TableConfig
+from gfw.common.bigquery.view_config import ViewConfig
 
 from .base import Pipeline
 

@@ -15,12 +15,14 @@ Classes
    Schema
    TableConfig
    TableDescription
+   ViewConfig
 """
 
 from .helper import BigQueryHelper, QueryResult
 from .schema import Schema
 from .table_config import TableConfig
 from .table_description import TableDescription
+from .view_config import ViewConfig
 
 
 __all__ = [
@@ -29,4 +31,5 @@ __all__ = [
     "Schema",
     "TableConfig",
     "TableDescription",
+    "ViewConfig",
 ]

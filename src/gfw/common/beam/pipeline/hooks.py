@@ -12,7 +12,7 @@ from datetime import date
 from typing import Callable, Optional
 
 from gfw.common.bigquery.helper import BigQueryHelper
-from gfw.common.bigquery.table_config import TableConfig
+from gfw.common.bigquery.table_config import TableConfig, ViewConfig
 
 from .base import Pipeline
 
@@ -21,14 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 def create_view_hook(
-    table_config: TableConfig,
+    view_config: ViewConfig,
     mock: bool = False,
 ) -> Callable[[Pipeline], None]:
-    """Returns a hook function to create a view of a BigQuery table.
+    """Returns a hook function to create a BigQuery view.
 
     Args:
-        table_config:
-            :class:`~gfw.common.bigquery.TableConfig` instance containing view details.
+        view_config:
+            :class:`~gfw.common.bigquery.ViewConfig` instance containing view details.
 
         mock:
             If True, uses a mocked BQ client instead of performing real operations.
@@ -39,12 +39,18 @@ def create_view_hook(
     """
 
     def _hook(p: Pipeline) -> None:
-        view_id = table_config.view_id
-        view_query = table_config.view_query()
+        view_id = view_config.view_id
+        view_query = view_config.view_query()
+        description = view_config.description.render() if view_config.description else ""
         logger.info(f"Creating view: {view_id}...")
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
         bq_client = BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
-        bq_client.create_view(view_id=view_id, view_query=view_query)
+        bq_client.create_view(
+            view_id=view_id,
+            view_query=view_query,
+            description=description,
+            schema=view_config.schema,
+        )
         logger.info("Done.")
 
     return _hook

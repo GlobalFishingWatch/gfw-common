@@ -298,7 +298,13 @@ class BigQueryHelper:
 
         return self.client.create_table(bq_table, **kwargs)
 
-    def create_view(self, view_id: str, view_query: str) -> None:
+    def create_view(
+        self,
+        view_id: str,
+        view_query: str,
+        description: str = "",
+        schema: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
         """Creates or replaces a BigQuery view.
 
             This method is declarative: the provided query becomes the
@@ -311,9 +317,40 @@ class BigQueryHelper:
 
             view_query:
                 The SELECT query that defines the view.
+
+            description:
+                Text to include in the view's description field. Omitted
+                from the DDL entirely when empty.
+
+            schema:
+                Schema field dicts (as in a JSON schema file, each with at
+                least ``name`` and an optional ``description``) used to carry
+                column-level descriptions onto the view. Only fields with a
+                non-empty ``description`` produce a column ``OPTIONS`` clause;
+                fields without one are listed by name only. Pass the same
+                schema as the underlying table's when its columns and the
+                view's output columns match, so descriptions aren't duplicated
+                by hand.
         """
+        column_list = ""
+        if schema:
+            columns = []
+            for field in schema:
+                field_description = field.get("description")
+                if field_description:
+                    columns.append(
+                        f'{field["name"]} OPTIONS(description="""{field_description}""")'
+                    )
+                else:
+                    columns.append(field["name"])
+            column_list = f"\n        ({', '.join(columns)})"
+
+        options_clause = ""
+        if description:
+            options_clause = f'\n        OPTIONS(description="""{description}""")'
+
         view_query = f"""
-        CREATE OR REPLACE VIEW `{view_id}` AS
+        CREATE OR REPLACE VIEW `{view_id}`{column_list}{options_clause} AS
         {view_query}
         """
         self.client.query(view_query).result()

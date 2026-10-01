@@ -298,7 +298,13 @@ class BigQueryHelper:
 
         return self.client.create_table(bq_table, **kwargs)
 
-    def create_view(self, view_id: str, view_query: str) -> None:
+    def create_view(
+        self,
+        view_id: str,
+        view_query: str,
+        description: str = "",
+        schema: Optional[List[Dict[str, Any]]] = None,
+    ) -> None:
         """Creates or replaces a BigQuery view.
 
             This method is declarative: the provided query becomes the
@@ -311,9 +317,28 @@ class BigQueryHelper:
 
             view_query:
                 The SELECT query that defines the view.
+
+            description:
+                Text to include in the view's description field. May be
+                empty, resulting in an empty description.
+
+            schema:
+                Schema field dicts (as in a JSON schema file, each with at
+                least ``name`` and an optional ``description``) used to carry
+                column-level descriptions onto the view. Fields without a
+                ``description`` get an empty one. Pass the same schema as the
+                underlying table's when its columns and the view's output
+                columns match, so descriptions aren't duplicated by hand.
         """
+        column_list = ""
+        if schema:
+            fields = Schema.from_dicts(schema).as_ddl_fields()
+            column_list = f" ({', '.join(fields)})"
+
+        options_clause = f' OPTIONS(description="""{description}""")'
+
         view_query = f"""
-        CREATE OR REPLACE VIEW `{view_id}` AS
+        CREATE OR REPLACE VIEW `{view_id}`{column_list}{options_clause} AS
         {view_query}
         """
         self.client.query(view_query).result()

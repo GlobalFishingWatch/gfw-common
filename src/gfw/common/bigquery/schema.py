@@ -92,6 +92,16 @@ class Schema:
         """The raw BigQuery :class:`~google.cloud.bigquery.SchemaField` list."""
         return self._fields
 
+    def as_ddl_fields(self) -> list[str]:
+        """Returns each field rendered as a DDL column definition, in schema order.
+
+        Each entry is of the form ``name OPTIONS(description=<triple-quoted description>)``,
+        suitable for use in a ``CREATE TABLE``/``CREATE VIEW`` statement's column list. Fields
+        with no description get an empty one, rather than being rendered without ``OPTIONS``
+        at all.
+        """
+        return [f'{f.name} OPTIONS(description="""{f.description or ""}""")' for f in self._fields]
+
     def as_dicts(self) -> list[Dict[str, Any]]:
         """Return the schema as a list of BigQuery field descriptor dicts.
 

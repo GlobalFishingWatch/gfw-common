@@ -25,10 +25,6 @@ def config():
     )
 
 
-def test_view_id_property(config):
-    assert config.view_id == "project.dataset.table_view"
-
-
 def test_schema_property(config):
     assert config.schema == [{"name": "id", "type": "STRING"}]
 

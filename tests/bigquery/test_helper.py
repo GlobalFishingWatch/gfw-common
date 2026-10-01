@@ -115,11 +115,61 @@ def test_create_view_executes_create_or_replace_view_query():
     helper.client.query.assert_called_once()
     query = helper.client.query.call_args[0][0]
 
-    assert "CREATE OR REPLACE VIEW `my_dataset.my_view` AS" in query
+    assert "CREATE OR REPLACE VIEW `my_dataset.my_view`" in query
     assert "SELECT 1" in query
 
     query_job_mock.result.assert_called_once()
     assert result is None
+
+
+def test_create_view_with_description_adds_options_clause():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.project = "test"
+    helper.client.query.return_value = mock.MagicMock()
+
+    helper.create_view("my_dataset.my_view", "SELECT 1", description="A view description.")
+
+    query = helper.client.query.call_args[0][0]
+    assert 'OPTIONS(description="""A view description.""")' in query
+
+
+def test_create_view_without_description_renders_empty_options_clause():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.project = "test"
+    helper.client.query.return_value = mock.MagicMock()
+
+    helper.create_view("my_dataset.my_view", "SELECT 1")
+
+    query = helper.client.query.call_args[0][0]
+    assert 'OPTIONS(description="""""")' in query
+
+
+def test_create_view_with_schema_adds_column_list_with_mixed_descriptions():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.project = "test"
+    helper.client.query.return_value = mock.MagicMock()
+
+    schema = [
+        {"name": "id", "type": "STRING", "description": "The id."},
+        {"name": "created_at", "type": "TIMESTAMP"},
+    ]
+    helper.create_view("my_dataset.my_view", "SELECT 1", schema=schema)
+
+    query = helper.client.query.call_args[0][0]
+    assert (
+        '(id OPTIONS(description="""The id."""), created_at OPTIONS(description=""""""))' in query
+    )
+
+
+def test_create_view_without_schema_omits_column_list():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.project = "test"
+    helper.client.query.return_value = mock.MagicMock()
+
+    helper.create_view("my_dataset.my_view", "SELECT 1")
+
+    query = helper.client.query.call_args[0][0]
+    assert 'CREATE OR REPLACE VIEW `my_dataset.my_view` OPTIONS(description="""""") AS' in query
 
 
 def test_run_query_with_session_and_destination():

@@ -37,14 +37,6 @@ class TableConfig(ABC):
     clustering_fields: Optional[Tuple[str, ...]] = None
     """Optional tuple of fields for clustering."""
 
-    view_suffix: Optional[str] = "view"
-    """Suffix to use when constructing the view ID."""
-
-    @cached_property
-    def view_id(self) -> str:
-        """Returns the ID of the view for the table."""
-        return f"{self.table_id}_{self.view_suffix}"
-
     @abstractmethod
     @cached_property
     def schema(self) -> list[dict[str, str]]:
@@ -75,10 +67,6 @@ class TableConfig(ABC):
             bigquery_params["description"] = self.description.render()
 
         return bigquery_params
-
-    def view_query(self) -> str:
-        """Returns the query to perform to create a view for this table."""
-        raise NotImplementedError
 
     def delete_query(self, start_date: date, end_date: Optional[date] = None) -> str:
         """Returns the query to perform when deleting records from this table."""

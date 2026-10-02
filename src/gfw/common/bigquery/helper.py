@@ -329,19 +329,40 @@ class BigQueryHelper:
                 ``description`` get an empty one. Pass the same schema as the
                 underlying table's when its columns and the view's output
                 columns match, so descriptions aren't duplicated by hand.
+
+                BigQuery's ``CREATE VIEW (col, ...) AS SELECT`` column-list
+                syntax binds this list to the query's output columns *by
+                position*. Since ``schema``'s order has no guaranteed
+                relationship to ``view_query``'s actual output order (e.g. a
+                JSON schema file maintained separately from the query), this
+                method first dry-runs ``view_query`` -- a free, read-only
+                metadata call -- to learn its real output order from BigQuery
+                itself, and builds the column list in that order. The view
+                itself is still created by a single, atomic DDL statement.
         """
         column_list = ""
         if schema:
-            fields = Schema.from_dicts(schema).as_ddl_fields()
+            descriptions = {f["name"]: f.get("description", "") for f in schema}
+            output_fields = self._dry_run_output_field_names(view_query)
+            fields = [
+                f'{name} OPTIONS(description="""{descriptions.get(name, "")}""")'
+                for name in output_fields
+            ]
             column_list = f" ({', '.join(fields)})"
 
         options_clause = f' OPTIONS(description="""{description}""")'
 
-        view_query = f"""
+        ddl = f"""
         CREATE OR REPLACE VIEW `{view_id}`{column_list}{options_clause} AS
         {view_query}
         """
-        self.client.query(view_query).result()
+        self.client.query(ddl).result()
+
+    def _dry_run_output_field_names(self, query: str) -> List[str]:
+        """Returns the output column names of `query`, in order, via a dry run."""
+        job_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
+        job = self.client.query(query, job_config=job_config)
+        return [field.name for field in job.schema]
 
     def run_query(
         self,

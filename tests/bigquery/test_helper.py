@@ -144,10 +144,25 @@ def test_create_view_without_description_renders_empty_options_clause():
     assert 'OPTIONS(description="""""")' in query
 
 
-def test_create_view_with_schema_adds_column_list_with_mixed_descriptions():
+def test_create_view_with_schema_orders_column_list_by_dry_run_not_schema_arg():
     helper = BigQueryHelper.mocked(project="test")
     helper.client.project = "test"
-    helper.client.query.return_value = mock.MagicMock()
+
+    # Dry-run result deliberately in a DIFFERENT order than the `schema` arg below,
+    # to prove the column list's order comes from the query (dry run), not `schema`.
+    dry_run_job = mock.MagicMock()
+    dry_run_job.schema = [
+        SchemaField("created_at", "TIMESTAMP"),
+        SchemaField("id", "STRING"),
+    ]
+    create_job = mock.MagicMock()
+
+    def fake_query(query, job_config=None, **kwargs):
+        if job_config is not None and job_config.dry_run:
+            return dry_run_job
+        return create_job
+
+    helper.client.query.side_effect = fake_query
 
     schema = [
         {"name": "id", "type": "STRING", "description": "The id."},
@@ -155,10 +170,18 @@ def test_create_view_with_schema_adds_column_list_with_mixed_descriptions():
     ]
     helper.create_view("my_dataset.my_view", "SELECT 1", schema=schema)
 
-    query = helper.client.query.call_args[0][0]
+    assert helper.client.query.call_count == 2
+
+    dry_run_call = helper.client.query.call_args_list[0]
+    assert dry_run_call[0][0] == "SELECT 1"
+    assert dry_run_call[1]["job_config"].dry_run is True
+
+    ddl_call = helper.client.query.call_args_list[1]
+    query = ddl_call[0][0]
     assert (
-        '(id OPTIONS(description="""The id."""), created_at OPTIONS(description=""""""))' in query
+        '(created_at OPTIONS(description=""""""), id OPTIONS(description="""The id."""))' in query
     )
+    create_job.result.assert_called_once()
 
 
 def test_create_view_without_schema_omits_column_list():
@@ -170,6 +193,7 @@ def test_create_view_without_schema_omits_column_list():
 
     query = helper.client.query.call_args[0][0]
     assert 'CREATE OR REPLACE VIEW `my_dataset.my_view` OPTIONS(description="""""") AS' in query
+    helper.client.query.assert_called_once()  # no dry run when there's no schema
 
 
 def test_run_query_with_session_and_destination():

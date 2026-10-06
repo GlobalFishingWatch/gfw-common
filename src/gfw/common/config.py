@@ -53,6 +53,9 @@ class PipelineConfig:
     mock_bq_clients: bool = False
     """If True, all BigQuery interactions will be mocked."""
 
+    labels: dict[str, str] = field(default_factory=dict)
+    """Labels to apply to the pipeline's Dataflow job and any BigQuery jobs it runs."""
+
     unknown_parsed_args: dict[str, Any] = field(default_factory=dict)
     """Parsed CLI or config arguments not explicitly defined in self."""
 

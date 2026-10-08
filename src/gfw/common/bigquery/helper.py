@@ -372,6 +372,10 @@ class BigQueryHelper:
         clustering_fields: Optional[list[str]] = None,
         session_id: Optional[str] = None,
         labels: Optional[dict[str, Any]] = None,
+        partition_field: Optional[str] = None,
+        partition_type: str = bigquery.table.TimePartitioningType.DAY,
+        schema: Optional[List[Dict[str, str]]] = None,
+        description: Optional[str] = None,
         **kwargs: Any,
     ) -> QueryResult:
         """Runs a query.
@@ -393,7 +397,25 @@ class BigQueryHelper:
                 The session_id to use for the query.
 
             labels:
-                Labels to apply.
+                Labels to apply to the query job and, if there is a destination, to the
+                destination table (replacing its existing labels) once the query finishes.
+
+            partition_field:
+                Name of the field to partition the destination table by. Only used when the
+                query creates the table; for an existing table, BigQuery fails the job if it
+                doesn't match the table's own partitioning.
+
+            partition_type:
+                The type of partitioning to use (e.g., ``DAY``, ``MONTH``). Defaults to ``DAY``.
+
+            schema:
+                Schema to set on the destination table once the query finishes. Always pass it
+                with ``WRITE_TRUNCATE``, which replaces the table's schema with the query's,
+                dropping column descriptions (a warning is logged otherwise). Fields can't be
+                reordered or have their type or mode tightened this way.
+
+            description:
+                Description to set on the destination table once the query finishes.
 
             **kwargs:
                 Extra keyword arguments to be passed to :class:`job.QueryJobConfig` constructor.
@@ -417,7 +439,13 @@ class BigQueryHelper:
         )
 
         if destination is not None:
-            job_config.clustering_fields = clustering_fields
+            if clustering_fields is not None:
+                job_config.clustering_fields = list(clustering_fields)
+
+            if partition_field is not None:
+                job_config.time_partitioning = bigquery.table.TimePartitioning(
+                    type_=partition_type, field=partition_field
+                )
             job_config.destination = self._create_table_reference(destination)
             job_config.priority = bigquery.enums.QueryPriority.BATCH
             job_config.write_disposition = write_disposition
@@ -431,7 +459,65 @@ class BigQueryHelper:
         # Block until the job completes so errors surface immediately rather than lazily.
         row_iterator = query_job.result()
 
+        if destination is not None:
+            self.update_table_metadata(
+                destination, schema=schema, description=description, labels=labels
+            )
+
+            if write_disposition == WriteDisposition.WRITE_TRUNCATE and schema is None:
+                logger.warning(
+                    f"WRITE_TRUNCATE into {destination} without a schema: BigQuery replaces the "
+                    "table's schema with the query's, so its column descriptions are lost. "
+                    "Pass schema= to keep them."
+                )
+
         return QueryResult(query_job, row_iterator)
+
+    def update_table_metadata(
+        self,
+        table: str,
+        schema: Optional[List[Dict[str, str]]] = None,
+        description: Optional[str] = None,
+        labels: Optional[dict[str, str]] = None,
+    ) -> bigquery.table.Table:
+        """Updates an existing table's schema, description and/or labels.
+
+        Only the arguments that are given are updated.
+
+        Args:
+            table:
+                Table name like ``dataset.table``.
+
+            schema:
+                Schema to set. Can add fields, relax modes and change descriptions, but BigQuery
+                doesn't allow reordering fields, changing their type or tightening their mode.
+
+            description:
+                Description to set.
+
+            labels:
+                Labels to set, replacing the table's existing ones. Empty labels leave the
+                table's labels alone.
+
+        Returns:
+            The updated table.
+        """
+        bq_table = self.client.get_table(self._create_table_reference(table))
+
+        fields = []
+        if schema is not None:
+            bq_table.schema = schema
+            fields.append("schema")
+
+        if description is not None:
+            bq_table.description = description
+            fields.append("description")
+
+        if labels:
+            bq_table.labels = labels
+            fields.append("labels")
+
+        return self.client.update_table(bq_table, fields)
 
     def load_from_json(
         self,

@@ -8,6 +8,8 @@ from google.cloud.bigquery import SchemaField, WriteDisposition
 
 from gfw.common.bigquery.helper import BigQueryHelper, QueryResult
 from gfw.common.bigquery.schema import Schema
+from gfw.common.bigquery.table_config import TableConfig
+from gfw.common.bigquery.table_description import TableDescription
 
 
 def test_mocked_factory_creates_mock():
@@ -225,6 +227,166 @@ def test_run_query_without_destination():
     result = helper.run_query("SELECT 1")
     assert isinstance(result, QueryResult)
     assert result.query_job is mock_query_job
+
+
+def _helper_with_query_job():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.query.return_value = mock.MagicMock()
+    helper.client.project = "test"
+    return helper
+
+
+def _job_config(helper):
+    return helper.client.query.call_args.kwargs["job_config"]
+
+
+def test_run_query_sets_time_partitioning_and_clustering():
+    helper = _helper_with_query_job()
+
+    helper.run_query(
+        "SELECT 1",
+        destination="dataset.output",
+        partition_field="trip_start",
+        partition_type="MONTH",
+        clustering_fields=("trip_start",),
+    )
+
+    job_config = _job_config(helper)
+    assert job_config.time_partitioning.type_ == "MONTH"
+    assert job_config.time_partitioning.field == "trip_start"
+    assert job_config.clustering_fields == ["trip_start"]
+
+
+def test_run_query_without_partition_field_leaves_partitioning_unset():
+    helper = _helper_with_query_job()
+
+    helper.run_query("SELECT 1", destination="dataset.output")
+
+    assert _job_config(helper).time_partitioning is None
+
+
+def test_run_query_updates_table_metadata_after_the_query():
+    helper = _helper_with_query_job()
+    schema = [{"name": "id", "type": "STRING", "description": "The id."}]
+
+    helper.run_query(
+        "SELECT 1",
+        destination="dataset.output",
+        write_disposition=WriteDisposition.WRITE_TRUNCATE,
+        schema=schema,
+        description="A table.",
+        labels={"env": "test"},
+    )
+
+    helper.client.query.return_value.result.assert_called_once()
+    table = helper.client.update_table.call_args.args[0]
+    assert helper.client.update_table.call_args.args[1] == ["schema", "description", "labels"]
+    assert table.description == "A table."
+    assert table.labels == {"env": "test"}
+
+
+def test_run_query_sets_labels_on_the_destination_table():
+    helper = _helper_with_query_job()
+
+    helper.run_query("SELECT 1", destination="dataset.output", labels={"env": "test"})
+
+    table = helper.client.update_table.call_args.args[0]
+    assert helper.client.update_table.call_args.args[1] == ["labels"]
+    assert table.labels == {"env": "test"}
+
+
+def test_run_query_without_metadata_or_labels_leaves_the_table_unchanged():
+    helper = _helper_with_query_job()
+
+    helper.run_query("SELECT 1", destination="dataset.output", labels={})
+
+    assert helper.client.update_table.call_args.args[1] == []
+
+
+def test_run_query_without_destination_does_not_touch_any_table():
+    helper = _helper_with_query_job()
+
+    helper.run_query("SELECT 1", labels={"env": "test"}, description="ignored")
+
+    helper.client.get_table.assert_not_called()
+    helper.client.update_table.assert_not_called()
+
+
+def test_update_table_metadata_only_updates_given_fields():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.project = "test"
+
+    helper.update_table_metadata("dataset.output", description="A table.")
+
+    table = helper.client.update_table.call_args.args[0]
+    assert helper.client.update_table.call_args.args[1] == ["description"]
+    assert table.description == "A table."
+
+
+def test_update_table_metadata_with_nothing_given_updates_no_fields():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.project = "test"
+
+    helper.update_table_metadata("dataset.output")
+
+    assert helper.client.update_table.call_args.args[1] == []
+
+
+def test_run_query_warns_on_write_truncate_without_schema(caplog):
+    helper = _helper_with_query_job()
+
+    helper.run_query(
+        "SELECT 1", destination="dataset.output", write_disposition=WriteDisposition.WRITE_TRUNCATE
+    )
+
+    assert "WRITE_TRUNCATE into dataset.output without a schema" in caplog.text
+
+
+def test_run_query_does_not_warn_on_write_truncate_with_schema(caplog):
+    helper = _helper_with_query_job()
+
+    helper.run_query(
+        "SELECT 1",
+        destination="dataset.output",
+        write_disposition=WriteDisposition.WRITE_TRUNCATE,
+        schema=[{"name": "id", "type": "STRING"}],
+    )
+
+    assert "without a schema" not in caplog.text
+
+
+def test_run_query_with_table_config_fields():
+    class DummyTableConfig(TableConfig):
+        @property
+        def schema(self):
+            return [{"name": "id", "type": "STRING"}]
+
+    table_config = DummyTableConfig(
+        table_id="dataset.output",
+        schema_file="schema.json",
+        partition_type="MONTH",
+        partition_field="trip_start",
+        clustering_fields=("trip_start",),
+        description=TableDescription(version="1.2.3", repo_name="my-repo"),
+    )
+    helper = _helper_with_query_job()
+
+    helper.run_query(
+        "SELECT 1",
+        destination=table_config.table_id,
+        write_disposition=WriteDisposition.WRITE_TRUNCATE,
+        partition_type=table_config.partition_type,
+        partition_field=table_config.partition_field,
+        clustering_fields=table_config.clustering_fields,
+        schema=table_config.schema,
+        description=table_config.description.render(),
+    )
+
+    job_config = _job_config(helper)
+    assert job_config.destination.table_id == "output"
+    assert job_config.time_partitioning.type_ == "MONTH"
+    assert job_config.clustering_fields == ["trip_start"]
+    assert helper.client.update_table.call_args.args[1] == ["schema", "description"]
 
 
 def test_format_jinja2(tmp_path):

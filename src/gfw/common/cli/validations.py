@@ -31,7 +31,7 @@ def valid_date(s: str) -> date:
     )
     """
     try:
-        return datetime.fromisoformat(s).date()
+        return date.fromisoformat(s)
     except ValueError as e:
         msg = "Not a valid date: '{0}'. Expected format is YYYY-MM-DD".format(s)
         raise argparse.ArgumentTypeError(msg) from e

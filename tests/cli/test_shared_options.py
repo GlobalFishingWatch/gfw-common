@@ -6,6 +6,7 @@ import pytest
 
 from gfw.common.cli import (
     CLI,
+    Option,
     ParametrizedCommand,
     date_range_options,
     datetime_range_options,
@@ -105,3 +106,16 @@ def test_datetimes_from_a_config_file_are_parsed_like_command_line_ones(tmp_path
 
     assert config.start_datetime == datetime(2024, 1, 1, tzinfo=UTC)
     assert config.end_datetime == datetime(2024, 1, 1, 6, tzinfo=UTC)
+
+
+def test_a_date_option_declared_as_a_string_still_gives_a_date():
+    # from_namespace parses date fields given as strings, whatever the option's type.
+    options = [
+        Option("--start-date", type=str, required=True),
+        Option("--end-date", type=str, required=True),
+    ]
+    config, _ = make_cli(options, DatePipelineConfig).execute(
+        args=[*LABELS, "--start-date", "2024-01-01", "--end-date", "2024-01-08"]
+    )
+
+    assert (config.start_date, config.end_date) == (date(2024, 1, 1), date(2024, 1, 8))

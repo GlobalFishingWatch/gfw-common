@@ -154,6 +154,75 @@ def test_from_namespace_creates_config():
     assert cfg.unknown_parsed_args.get("other_option") == "value"
 
 
+@pytest.mark.parametrize(
+    "start_date, end_date",
+    [("2023-01-01", "2023-12-31"), ("2023-01-01", date(2023, 12, 31))],
+    ids=["strings", "mixed"],
+)
+def test_from_namespace_parses_date_strings(start_date, end_date):
+    namespace = SimpleNamespace(labels=LABELS, start_date=start_date, end_date=end_date)
+    cfg = DatePipelineConfig.from_namespace(namespace)
+
+    assert (cfg.start_date, cfg.end_date) == (date(2023, 1, 1), date(2023, 12, 31))
+
+
+def test_from_namespace_parses_datetime_strings_as_utc_unless_a_timezone_is_given():
+    namespace = SimpleNamespace(
+        labels=LABELS,
+        start_datetime="2023-01-01T00:00:00",
+        end_datetime="2023-01-01T06:00:00-03:00",
+    )
+    cfg = DatetimePipelineConfig.from_namespace(namespace)
+
+    assert cfg.start_datetime == START
+    assert cfg.end_datetime == START + timedelta(hours=9)
+    assert cfg.end_datetime.utcoffset() == timedelta(hours=-3)
+
+
+def test_from_namespace_rejects_date_strings_not_in_iso_format():
+    namespace = SimpleNamespace(labels=LABELS, start_date="01/01/2023", end_date="2023-12-31")
+
+    with pytest.raises(PipelineConfigError, match="start_date must be a date in ISO format"):
+        DatePipelineConfig.from_namespace(namespace)
+
+
+def test_from_namespace_rejects_datetime_strings_not_in_iso_format():
+    namespace = SimpleNamespace(
+        labels=LABELS, start_datetime="01/01/2023", end_datetime="2023-12-31"
+    )
+
+    with pytest.raises(PipelineConfigError, match="start_datetime must be a datetime in ISO"):
+        DatetimePipelineConfig.from_namespace(namespace)
+
+
+@dataclass(frozen=True, kw_only=True)
+class ExtraFieldsConfig(DatePipelineConfig):
+    open_gaps_start_date: date = date(2019, 1, 1)
+    backfill_start: datetime | None = None
+    table_suffix: str = ""
+
+
+def test_from_namespace_parses_only_date_and_datetime_fields_including_subclass_ones():
+    namespace = SimpleNamespace(
+        labels=LABELS,
+        **DATES,
+        open_gaps_start_date="2020-06-01",
+        backfill_start="2020-06-01T06:00:00",
+        table_suffix="2020-06-01",
+    )
+    cfg = ExtraFieldsConfig.from_namespace(namespace)
+
+    assert cfg.open_gaps_start_date == date(2020, 6, 1)
+    assert cfg.backfill_start == datetime(2020, 6, 1, 6, tzinfo=timezone.utc)
+    assert cfg.table_suffix == "2020-06-01"
+
+
+def test_from_namespace_leaves_unset_optional_fields_alone():
+    cfg = ExtraFieldsConfig.from_namespace(SimpleNamespace(labels=LABELS, **DATES))
+
+    assert cfg.backfill_start is None
+
+
 def test_config_is_frozen():
     cfg = DatePipelineConfig(labels=LABELS, **DATES)
 

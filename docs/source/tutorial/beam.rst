@@ -36,6 +36,8 @@ Both validate that the range is set and not empty.
 The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`,
 :func:`gfw.common.cli.date_range_options` and :func:`gfw.common.cli.datetime_range_options`.
 They give the same types whether the values come from the command line or a config file.
+:meth:`PipelineConfig.from_namespace` also parses ISO strings for any field declared as a date or
+datetime, so a pipeline's own options can leave them as strings.
 The following code shows an example of how to inherit from a config class to add custom parameters.
 
 .. code-block:: python

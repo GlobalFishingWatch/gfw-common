@@ -46,3 +46,8 @@ def test_valid_datetime_is_utc_unless_a_timezone_is_given(value, expected):
 
     assert result == expected
     assert result.utcoffset() == expected.utcoffset()
+
+
+def test_valid_date_rejects_a_time():
+    with pytest.raises(argparse.ArgumentTypeError, match="Not a valid date"):
+        validations.valid_date("2024-04-01T06:00:00")

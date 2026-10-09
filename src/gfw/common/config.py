@@ -18,13 +18,15 @@ from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from functools import cached_property
 from types import SimpleNamespace
-from typing import Any, Callable, Sequence, TypeVar
+from typing import Any, Callable, Sequence, TypeVar, get_args, get_type_hints
 
 from jinja2 import Environment
 
+from gfw.common.datetime import datetime_from_isoformat
 from gfw.common.jinja2 import EnvironmentLoader
 
 
+ERROR_ISOFORMAT = "{} must be a {} in ISO format. Got: {!r}."
 ERROR_LABELS = "labels must not be empty: every pipeline labels its jobs to audit costs."
 ERROR_RANGE_MISSING = "{} and {} must be set. Got: {!r}, {!r}."
 ERROR_RANGE_EMPTY = "{} ({}) must be after {} ({})."
@@ -87,6 +89,11 @@ class PipelineConfig:
     def from_namespace(cls: type[T], ns: SimpleNamespace, **kwargs: Any) -> T:
         """Creates an instance of this class from a :class:`types.SimpleNamespace`.
 
+        String values of fields declared as :class:`~datetime.date` or
+        :class:`~datetime.datetime` (also ``| None``) are parsed from ISO format, so a field can
+        come from a CLI option that parses it or one that leaves it as a string. Datetimes without
+        a timezone are UTC.
+
         Args:
             ns:
                 Namespace containing attributes matching this class's fields.
@@ -96,9 +103,18 @@ class PipelineConfig:
 
         Returns:
             A new instance of this class.
+
+        Raises:
+            :class:`PipelineConfigError`:
+                If a date or datetime field is a string not in ISO format.
         """
         ns_dict = vars(ns)
         ns_dict.update(kwargs)
+
+        hints = get_type_hints(cls)
+        for name, value in ns_dict.items():
+            if isinstance(value, str):
+                ns_dict[name] = _parse_if_date(name, value, hints.get(name))
 
         return cls(**ns_dict)
 
@@ -213,3 +229,21 @@ def _validate_range(start_name: str, start: R | None, end_name: str, end: R | No
 
     if end <= start:
         raise PipelineConfigError(ERROR_RANGE_EMPTY.format(end_name, end, start_name, start))
+
+
+def _parse_if_date(name: str, value: str, hint: Any) -> Any:
+    types = (hint, *get_args(hint))
+
+    if datetime in types:
+        try:
+            return datetime_from_isoformat(value)
+        except ValueError as e:
+            raise PipelineConfigError(ERROR_ISOFORMAT.format(name, "datetime", value)) from e
+
+    if date in types:
+        try:
+            return date.fromisoformat(value)
+        except ValueError as e:
+            raise PipelineConfigError(ERROR_ISOFORMAT.format(name, "date", value)) from e
+
+    return value

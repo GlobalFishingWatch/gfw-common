@@ -1,7 +1,6 @@
 import argparse
 
 from datetime import date
-from types import SimpleNamespace
 
 import pytest
 
@@ -21,7 +20,7 @@ def dated_cli():
 ARGS = ["dated", "--labels", "environment=dev", "--start-date", "2024-01-01"]
 
 
-def test_shared_options_build_a_date_range_config():
+def test_shared_options_build_a_config():
     config, _ = dated_cli().execute(args=[*ARGS, "--end-date", "2024-01-08"])
 
     assert config.labels == {"environment": "dev"}
@@ -43,8 +42,9 @@ def test_an_invalid_command_line_date_is_a_usage_error():
         dated_cli().execute(args=[*ARGS, "--end-date", "08/01/2024"])
 
 
-def test_dates_from_a_config_file_are_parsed_by_the_config(tmp_path):
-    # YAML loads an unquoted date as a date and a quoted one as a string; both work.
+def test_dates_from_a_config_file_are_parsed(tmp_path):
+    # YAML loads an unquoted date as a date and a quoted one as a string, which
+    # PipelineConfig.from_namespace parses: both end up as dates.
     config_file = tmp_path / "config.yaml"
     config_file.write_text("start_date: 2024-01-01\nend_date: '2024-01-08'\n")
 
@@ -58,11 +58,3 @@ def test_dates_from_a_config_file_are_parsed_by_the_config(tmp_path):
 def test_an_empty_range_is_rejected():
     with pytest.raises(PipelineConfigError, match="must be after the start date"):
         dated_cli().execute(args=[*ARGS, "--end-date", "2024-01-01"])
-
-
-def test_config_parses_values_the_cli_left_as_strings():
-    config = PipelineConfig.from_namespace(
-        SimpleNamespace(labels={"a": "b"}, start_date="2024-01-01", end_date="2024-01-02")
-    )
-
-    assert config.date_range.end == date(2024, 1, 2)

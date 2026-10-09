@@ -18,13 +18,15 @@ from typing import Any, Callable, Sequence
 
 from jinja2 import Environment
 
-from gfw.common.datetime import DateRange
 from gfw.common.jinja2 import EnvironmentLoader
 
 
 ERROR_DATE = "{} must be a date in ISO format (YYYY-MM-DD). Got: {!r}."
+ERROR_DATE_TYPE = "{} must be a date. Got: {!r}."
+ERROR_DATE_RANGE = "The end date ({}) must be after the start date ({})."
 ERROR_LABELS = "labels must not be empty: every pipeline labels its jobs to audit costs."
-ERROR_NO_DATE_RANGE = "start_date and end_date must be set to get a date_range."
+
+DATE_FIELDS = ("start_date", "end_date")
 
 
 class PipelineConfigError(Exception):
@@ -38,20 +40,19 @@ class PipelineConfig:
     """Configuration object for data pipeline execution.
 
     The processed range of dates goes from :attr:`start_date` (inclusive) to :attr:`end_date`
-    (exclusive). Both accept :class:`~datetime.date` objects or ISO format strings
-    (``YYYY-MM-DD``), since they can come from the command line, a config file or code, and are
-    stored as :class:`~datetime.date` objects.
+    (exclusive). Both are :class:`~datetime.date` objects. :meth:`from_namespace` parses them
+    from ISO format strings (``YYYY-MM-DD``), which is how they can come from a config file.
 
     A pipeline that processes no dates can make them optional by redeclaring them with a default,
-    e.g. ``start_date: date | None = None``.
+    e.g. ``start_date: date | None = None``. The range is then validated only if both are set.
 
     Note:
         This class is completely generic and independent of any specific pipeline framework.
 
     Raises:
         :class:`PipelineConfigError`:
-            If ``labels`` is empty, a date is not a valid ISO date, or :attr:`end_date` is not
-            after :attr:`start_date`.
+            If ``labels`` is empty, a date is not a :class:`~datetime.date`, or :attr:`end_date`
+            is not after :attr:`start_date`.
     """
 
     labels: dict[str, str]
@@ -82,35 +83,27 @@ class PipelineConfig:
     """Raw unparsed CLI arguments."""
 
     def __post_init__(self) -> None:
-        """Validates the configuration, and parses the dates."""
+        """Validates the configuration."""
         if not self.labels:
             raise PipelineConfigError(ERROR_LABELS)
 
-        for name in ("start_date", "end_date"):
-            object.__setattr__(self, name, _parse_date(name, getattr(self, name)))
+        for name in DATE_FIELDS:
+            value = getattr(self, name)
+            if value is not None and (not isinstance(value, date) or isinstance(value, datetime)):
+                raise PipelineConfigError(ERROR_DATE_TYPE.format(name, value))
 
-        if self.start_date is not None and self.end_date is not None:
-            try:
-                DateRange(self.start_date, self.end_date)
-            except ValueError as e:
-                raise PipelineConfigError(str(e)) from e
-
-    @property
-    def date_range(self) -> DateRange:
-        """Returns the processed range of dates.
-
-        Raises:
-            :class:`PipelineConfigError`:
-                If a subclass made the dates optional and one is not set.
-        """
         if self.start_date is None or self.end_date is None:
-            raise PipelineConfigError(ERROR_NO_DATE_RANGE)
+            return
 
-        return DateRange(self.start_date, self.end_date)
+        if self.end_date <= self.start_date:
+            raise PipelineConfigError(ERROR_DATE_RANGE.format(self.end_date, self.start_date))
 
     @classmethod
     def from_namespace(cls, ns: SimpleNamespace, **kwargs: Any) -> PipelineConfig:
         """Creates a :class:`PipelineConfig` instance from a :class:`types.SimpleNamespace`.
+
+        Dates given as ISO format strings, e.g. from a config file, are parsed into
+        :class:`~datetime.date` objects.
 
         Args:
             ns:
@@ -121,9 +114,17 @@ class PipelineConfig:
 
         Returns:
             A new :class:`PipelineConfig` instance.
+
+        Raises:
+            :class:`PipelineConfigError`:
+                If a date is a string that is not a valid ISO date.
         """
         ns_dict = vars(ns)
         ns_dict.update(kwargs)
+
+        for name in DATE_FIELDS:
+            if isinstance(ns_dict.get(name), str):
+                ns_dict[name] = _parse_date(name, ns_dict[name])
 
         return cls(**ns_dict)
 
@@ -161,14 +162,8 @@ class PipelineConfig:
         return asdict(self)
 
 
-def _parse_date(name: str, value: date | str | None) -> date | None:
-    if value is None or (isinstance(value, date) and not isinstance(value, datetime)):
-        return value
-
-    if isinstance(value, str):
-        try:
-            return date.fromisoformat(value)
-        except ValueError:
-            pass
-
-    raise PipelineConfigError(ERROR_DATE.format(name, value))
+def _parse_date(name: str, value: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except ValueError as e:
+        raise PipelineConfigError(ERROR_DATE.format(name, value)) from e

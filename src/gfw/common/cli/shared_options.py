@@ -34,7 +34,8 @@ def date_range_options() -> list[Option]:
 
     Command-line values are parsed into :class:`~datetime.date` objects here, so an invalid date
     is a usage error. Values from a config file skip argparse:
-    :class:`~gfw.common.config.PipelineConfig` parses those, and validates the range.
+    :meth:`PipelineConfig.from_namespace <gfw.common.config.PipelineConfig.from_namespace>` parses
+    those, and :class:`~gfw.common.config.PipelineConfig` validates the range.
     """
     return [
         Option("--start-date", type=valid_date, required=True, help=HELP_START_DATE),

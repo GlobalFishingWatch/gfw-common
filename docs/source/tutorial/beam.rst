@@ -28,8 +28,8 @@ Pipeline Configuration
 
 The goal of the :class:`PipelineConfig` class is to provide a standard way of configuring pipelines.
 Every pipeline must set ``labels``, used to audit the costs of its jobs, and the range of dates
-it processes: ``start_date`` (inclusive) and ``end_date`` (exclusive), which accept dates or ISO
-strings and are also available together as the ``date_range`` property.
+it processes: ``start_date`` (inclusive) and ``end_date`` (exclusive), as dates.
+:meth:`PipelineConfig.from_namespace` parses them from ISO strings, e.g. from a config file.
 A pipeline that processes no dates can make them optional by redeclaring them with a default.
 The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`
 and :func:`gfw.common.cli.date_range_options`.

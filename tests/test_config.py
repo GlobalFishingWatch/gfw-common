@@ -9,11 +9,10 @@ import pytest
 from jinja2 import Environment
 
 from gfw.common.config import PipelineConfig, PipelineConfigError
-from gfw.common.datetime import DateRange
 
 
 LABELS = {"environment": "development"}
-DATES = {"start_date": "2023-01-01", "end_date": "2023-12-31"}
+DATES = {"start_date": date(2023, 1, 1), "end_date": date(2023, 12, 31)}
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -39,55 +38,36 @@ def test_labels_must_not_be_empty():
 
 
 @pytest.mark.parametrize(
-    "start_date, end_date",
+    "start_date, field",
     [
-        ("2023-01-01", "2023-12-31"),
-        (date(2023, 1, 1), date(2023, 12, 31)),
-        ("2023-01-01", date(2023, 12, 31)),
+        ("2023-01-01", "start_date"),
+        (datetime(2023, 1, 1), "start_date"),
+        (20230101, "start_date"),
     ],
-    ids=["iso-strings", "dates", "mixed"],
+    ids=["string", "datetime", "int"],
 )
-def test_dates_are_stored_as_dates(start_date, end_date):
-    cfg = PipelineConfig(labels=LABELS, start_date=start_date, end_date=end_date)
-
-    assert cfg.start_date == date(2023, 1, 1)
-    assert cfg.end_date == date(2023, 12, 31)
-    assert cfg.date_range == DateRange(date(2023, 1, 1), date(2023, 12, 31))
+def test_dates_must_be_dates(start_date, field):
+    with pytest.raises(PipelineConfigError, match=f"{field} must be a date. Got"):
+        PipelineConfig(labels=LABELS, start_date=start_date, end_date=date(2023, 12, 31))
 
 
 @pytest.mark.parametrize(
-    "start_date, end_date, field",
-    [
-        ("2023-01-01", "not-a-date", "end_date"),
-        ("01/01/2023", "2023-12-31", "start_date"),
-        (datetime(2023, 1, 1), "2023-12-31", "start_date"),
-        (20230101, "2023-12-31", "start_date"),
-    ],
-    ids=["invalid-string", "not-iso", "datetime", "int"],
+    "end_date", [date(2023, 1, 1), date(2022, 12, 31)], ids=["empty", "reversed"]
 )
-def test_invalid_dates_are_rejected(start_date, end_date, field):
-    with pytest.raises(PipelineConfigError, match=f"{field} must be a date in ISO format"):
-        PipelineConfig(labels=LABELS, start_date=start_date, end_date=end_date)
-
-
-@pytest.mark.parametrize("end_date", ["2023-01-01", "2022-12-31"], ids=["empty", "reversed"])
 def test_end_date_must_be_after_start_date(end_date):
     with pytest.raises(PipelineConfigError, match="must be after the start date"):
-        PipelineConfig(labels=LABELS, start_date="2023-01-01", end_date=end_date)
+        PipelineConfig(labels=LABELS, start_date=date(2023, 1, 1), end_date=end_date)
 
 
 def test_a_subclass_can_make_the_dates_optional():
-    cfg = NoDatesConfig(labels=LABELS)
+    cfg = NoDatesConfig(labels=LABELS, start_date=date(2023, 1, 1))
 
-    assert (cfg.start_date, cfg.end_date) == (None, None)
-    with pytest.raises(PipelineConfigError, match="must be set to get a date_range"):
-        _ = cfg.date_range
+    assert (cfg.start_date, cfg.end_date) == (date(2023, 1, 1), None)
 
 
-def test_a_subclass_with_optional_dates_still_parses_given_dates():
-    cfg = NoDatesConfig(labels=LABELS, **DATES)
-
-    assert cfg.date_range == DateRange(date(2023, 1, 1), date(2023, 12, 31))
+def test_a_subclass_with_optional_dates_still_validates_the_range():
+    with pytest.raises(PipelineConfigError, match="must be after the start date"):
+        NoDatesConfig(labels=LABELS, start_date=date(2023, 1, 1), end_date=date(2023, 1, 1))
 
 
 def test_to_dict_includes_fields():
@@ -115,6 +95,35 @@ def test_from_namespace_creates_config():
     assert cfg.labels == LABELS
     assert cfg.end_date == date(2023, 12, 31)
     assert cfg.unknown_parsed_args.get("other_option") == "value"
+
+
+@pytest.mark.parametrize(
+    "start_date, end_date",
+    [
+        ("2023-01-01", "2023-12-31"),
+        ("2023-01-01", date(2023, 12, 31)),
+    ],
+    ids=["iso-strings", "mixed"],
+)
+def test_from_namespace_parses_iso_strings(start_date, end_date):
+    namespace = SimpleNamespace(labels=LABELS, start_date=start_date, end_date=end_date)
+    cfg = PipelineConfig.from_namespace(namespace)
+
+    assert (cfg.start_date, cfg.end_date) == (date(2023, 1, 1), date(2023, 12, 31))
+
+
+@pytest.mark.parametrize("start_date", ["not-a-date", "01/01/2023"], ids=["invalid", "not-iso"])
+def test_from_namespace_rejects_invalid_strings(start_date):
+    namespace = SimpleNamespace(labels=LABELS, start_date=start_date, end_date="2023-12-31")
+
+    with pytest.raises(PipelineConfigError, match="start_date must be a date in ISO format"):
+        PipelineConfig.from_namespace(namespace)
+
+
+def test_from_namespace_leaves_missing_optional_dates_alone():
+    cfg = NoDatesConfig.from_namespace(SimpleNamespace(labels=LABELS))
+
+    assert (cfg.start_date, cfg.end_date) == (None, None)
 
 
 def test_config_is_frozen():

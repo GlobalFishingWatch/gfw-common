@@ -32,7 +32,7 @@ it processes: ``start_datetime`` (inclusive) and ``end_datetime`` (exclusive), a
 pipeline can process whole days or any time range.
 :meth:`PipelineConfig.from_namespace` builds them from the ``start_date`` and ``end_date`` of the
 command line or a config file, as UTC datetimes at midnight. It also converts any other field
-declared as a datetime, e.g. from an ISO string.
+declared as a datetime (like ``open_gaps_start_datetime`` below), e.g. from an ISO string.
 Their dates are available as the ``start_date`` and ``end_date`` properties.
 The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`
 and :func:`gfw.common.cli.date_range_options`.
@@ -42,7 +42,7 @@ The following code shows an example of how to inherit from a config class to add
 
     import math
     from dataclasses import dataclass, field
-    from datetime import date, timedelta
+    from datetime import date, datetime, timedelta, timezone
 
     from gfw.common import PipelineConfig
 
@@ -51,7 +51,7 @@ The following code shows an example of how to inherit from a config class to add
     class RawGapsConfig(PipelineConfig):
         filter_not_overlapping_and_short: bool = False
         filter_good_seg: bool = False
-        open_gaps_start_date: str = "2019-01-01"
+        open_gaps_start_datetime: datetime = datetime(2019, 1, 1, tzinfo=timezone.utc)
         skip_open_gaps: bool = False
         ssvids: tuple = field(default_factory=tuple)
         min_gap_length: float = 6
@@ -81,8 +81,8 @@ The following code shows an example of how to inherit from a config class to add
                 raise ValueError("You need to provide either a JSON inputs or BQ input.")
 
         @property
-        def open_gaps_start(self) -> date:
-            return date.fromisoformat(self.open_gaps_start_date)
+        def open_gaps_start_date(self) -> date:
+            return self.open_gaps_start_datetime.date()
 
         @property
         def messages_query_start_date(self) -> date:

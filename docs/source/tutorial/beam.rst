@@ -70,8 +70,6 @@ The following code shows an example of how to inherit from a config class to add
         save_json: bool = False
         work_dir: str = "workdir"
 
-        name = "pipe-gaps"
-
         def __post_init__(self) -> None:
             super().__post_init__()
             if (
@@ -134,14 +132,13 @@ The following code shows an example of how to use these classes.
 
     from pipe_gaps.pipeline.config import RawGapsConfig
     from pipe_gaps.pipeline.factory import RawGapsLinearDagFactory
-    from pipe_gaps.version import __version__
 
 
     logger = logging.getLogger(__name__)
 
 
     def run(config: SimpleNamespace) -> None:
-        config = RawGapsConfig.from_namespace(config, version=__version__)
+        config = RawGapsConfig.from_namespace(config)
         dag_factory = RawGapsLinearDagFactory(config)
         pipeline_factory = PipelineFactory(config, dag_factory=dag_factory)
         pipeline = pipeline_factory.build_pipeline()

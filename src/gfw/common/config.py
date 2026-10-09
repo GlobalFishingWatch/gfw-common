@@ -52,20 +52,14 @@ class PipelineConfig:
             If ``labels`` is empty, or :attr:`end_date` is not after :attr:`start_date`.
     """
 
-    labels: dict[str, str]
-    """Labels to apply to the pipeline's Dataflow job and any BigQuery jobs it runs."""
-
     start_date: date
     """First date to process (inclusive)."""
 
     end_date: date
     """Date the processing ends at (exclusive)."""
 
-    name: str = ""
-    """Name of the pipeline."""
-
-    version: str = "0.1.0"
-    """Version of the pipeline."""
+    labels: dict[str, str]
+    """Labels to apply to the pipeline's Dataflow job and any BigQuery jobs it runs."""
 
     jinja_folder: str = "assets/queries"
     """The folder that contains the jinja2 templates."""

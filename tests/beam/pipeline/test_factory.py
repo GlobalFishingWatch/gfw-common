@@ -13,8 +13,6 @@ def test_build_pipeline_creates_pipeline():
         start_date=date(2025, 1, 1),
         end_date=date(2025, 1, 2),
         labels={"team": "pipeline"},
-        version="v1.2.3",
-        name="test-pipeline",
         unknown_unparsed_args=["--foo", "bar"],
         unknown_parsed_args={"opt_a": 123, "opt_b": "xyz"},
     )
@@ -26,8 +24,6 @@ def test_build_pipeline_creates_pipeline():
     pipeline = factory.build_pipeline()
 
     assert isinstance(pipeline, Pipeline)
-    assert pipeline._name == "test-pipeline"
-    assert pipeline._version == "v1.2.3"
     assert pipeline._dag is mock_dag
     assert pipeline._unparsed_args == ["--foo", "bar"]
     assert pipeline._options == {"opt_a": 123, "opt_b": "xyz", "labels": {"team": "pipeline"}}

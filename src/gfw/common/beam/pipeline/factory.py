@@ -38,7 +38,7 @@ class PipelineFactory:
         dag_factory: DagFactory,
         **kwargs: Any,
     ) -> None:
-        """Initializes the factory with config, DAG factory, and optional name."""
+        """Initializes the factory with config, DAG factory, and extra Pipeline arguments."""
         self._config = config
         self._dag_factory = dag_factory
         self._kwargs = kwargs
@@ -47,7 +47,7 @@ class PipelineFactory:
         """Constructs and returns a fully configured Pipeline instance.
 
         Returns:
-            A pipeline with DAG, version, name, and CLI arguments.
+            A pipeline with DAG, hooks, labels, and CLI arguments.
 
         Raises:
             PipelineFactoryError:
@@ -64,8 +64,6 @@ class PipelineFactory:
             )
 
         return Pipeline(
-            name=self._config.name,
-            version=self._config.version,
             dag=self._dag_factory.build_dag(),
             pre_hooks=self._config.pre_hooks,
             post_hooks=self._config.post_hooks,

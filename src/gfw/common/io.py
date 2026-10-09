@@ -8,21 +8,39 @@ from typing import Any, Callable, List, Union
 import yaml
 
 
-def yaml_load(filename: str, **kwargs: Any) -> Any:
+YAML_TIMESTAMP_TAG = "tag:yaml.org,2002:timestamp"
+
+
+class _NoTimestampsSafeLoader(yaml.SafeLoader):
+    """A :class:`yaml.SafeLoader` that loads unquoted dates and datetimes as strings."""
+
+
+_NoTimestampsSafeLoader.yaml_implicit_resolvers = {
+    first_char: [r for r in resolvers if r[0] != YAML_TIMESTAMP_TAG]
+    for first_char, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items()
+}
+
+
+def yaml_load(filename: str, parse_timestamps: bool = True) -> Any:
     """Loads a YAML file from the filesystem.
 
     Args:
         filename:
             Path to the YAML file to be loaded.
 
-        **kwargs:
-            Additional keyword arguments passed to :func:`yaml.safe_load`.
+        parse_timestamps:
+            If False, unquoted dates and datetimes (e.g. ``2024-01-01``) are loaded as strings,
+            like quoted ones, instead of :class:`~datetime.date` / :class:`~datetime.datetime`.
 
     Returns:
         The Python object resulting from parsing the YAML file.
     """
+    loader: type[yaml.SafeLoader] = yaml.SafeLoader
+    if not parse_timestamps:
+        loader = _NoTimestampsSafeLoader
+
     with Path(filename).open("r") as f:
-        return yaml.safe_load(f, **kwargs)
+        return yaml.load(f, Loader=loader)  # Safe: a SafeLoader subclass.
 
 
 def yaml_save(path: str, data: dict[str, Any], **kwargs: Any) -> None:

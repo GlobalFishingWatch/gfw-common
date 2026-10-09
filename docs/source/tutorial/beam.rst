@@ -27,7 +27,18 @@ Pipeline Configuration
 ----------------------
 
 The goal of the :class:`PipelineConfig` class is to provide a standard way of configuring pipelines.
-The following code shows an example of how to inherit from the base class to add custom parameters.
+Every pipeline must set ``labels``, used to audit the costs of its jobs.
+Most pipelines process a range of dates, and use :class:`DatePipelineConfig`, which adds
+``start_date`` (inclusive) and ``end_date`` (exclusive).
+Pipelines that process ranges shorter than a day use :class:`DatetimePipelineConfig` instead,
+which adds ``start_datetime`` and ``end_datetime``.
+Both validate that the range is set and not empty.
+The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`,
+:func:`gfw.common.cli.date_range_options` and :func:`gfw.common.cli.datetime_range_options`.
+They give the same types whether the values come from the command line or a config file.
+:meth:`PipelineConfig.from_namespace` also parses ISO strings for any field declared as a date or
+datetime, so a pipeline's own options can leave them as strings.
+The following code shows an example of how to inherit from a config class to add custom parameters.
 
 .. code-block:: python
 
@@ -35,14 +46,14 @@ The following code shows an example of how to inherit from the base class to add
     from dataclasses import dataclass, field
     from datetime import date, timedelta
 
-    from gfw.common import PipelineConfig
+    from gfw.common import DatePipelineConfig
 
 
-    @dataclass
-    class RawGapsConfig(PipelineConfig):
+    @dataclass(frozen=True, kw_only=True)
+    class RawGapsConfig(DatePipelineConfig):
         filter_not_overlapping_and_short: bool = False
         filter_good_seg: bool = False
-        open_gaps_start_date: str = "2019-01-01"
+        open_gaps_start_date: date = date(2019, 1, 1)
         skip_open_gaps: bool = False
         ssvids: tuple = field(default_factory=tuple)
         min_gap_length: float = 6
@@ -63,18 +74,13 @@ The following code shows an example of how to inherit from the base class to add
         save_json: bool = False
         work_dir: str = "workdir"
 
-        name = "pipe-gaps"
-
         def __post_init__(self) -> None:
+            super().__post_init__()
             if (
                 self.json_input_messages is None
                 and (self.bq_input_messages is None or self.bq_input_segments is None)
             ):
                 raise ValueError("You need to provide either a JSON inputs or BQ input.")
-
-        @property
-        def open_gaps_start(self) -> date:
-            return date.fromisoformat(self.open_gaps_start_date)
 
         @property
         def messages_query_start_date(self) -> date:
@@ -130,14 +136,13 @@ The following code shows an example of how to use these classes.
 
     from pipe_gaps.pipeline.config import RawGapsConfig
     from pipe_gaps.pipeline.factory import RawGapsLinearDagFactory
-    from pipe_gaps.version import __version__
 
 
     logger = logging.getLogger(__name__)
 
 
     def run(config: SimpleNamespace) -> None:
-        config = RawGapsConfig.from_namespace(config, version=__version__)
+        config = RawGapsConfig.from_namespace(config)
         dag_factory = RawGapsLinearDagFactory(config)
         pipeline_factory = PipelineFactory(config, dag_factory=dag_factory)
         pipeline = pipeline_factory.build_pipeline()

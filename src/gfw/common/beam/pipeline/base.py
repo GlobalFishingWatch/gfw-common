@@ -33,7 +33,6 @@ class Pipeline:
     Features:
         - Merges unparsed, parsed, and default options.
         - Supports custom DAG definitions.
-        - Enables Google Cloud Profiler integration.
         - Automatically adds ``./setup.py`` when ``sdk_container_image`` is not specified.
 
     You can implement your own Dag object to be injected in the constructor,
@@ -41,14 +40,6 @@ class Pipeline:
     or just override the :meth:`apply_dag` method of this class.
 
     Args:
-        name:
-            The name of the pipeline.
-            Defaults to an empty string.
-
-        version:
-            The version of the pipeline.
-            Defaults to ``0.1.0``.
-
         dag:
             The DAG to be applied to the pipeline.
             Defaults to an empty LinearDag.
@@ -82,8 +73,6 @@ class Pipeline:
 
     def __init__(
         self,
-        name: str = "",
-        version: str = "0.1.0",
         dag: Optional[Dag] = None,
         pre_hooks: Sequence[Callable[..., None]] = (),
         post_hooks: Sequence[Callable[..., None]] = (),
@@ -91,8 +80,6 @@ class Pipeline:
         **options: Any,
     ) -> None:
         """Initializes the BeamPipeline object with sources, core, sinks, and options."""
-        self._name = name
-        self._version = version
         self._dag = dag or LinearDag()
         self._pre_hooks = pre_hooks
         self._post_hooks = post_hooks

@@ -14,11 +14,22 @@ Classes
    Command
    ParametrizedCommand
    Option
+
+Functions
+---------
+
+.. autosummary::
+   :toctree: ../_autosummary/
+
+   date_range_options
+   datetime_range_options
+   labels_option
 """
 
 from .cli import CLI
 from .command import Command, ParametrizedCommand
 from .option import Option
+from .shared_options import date_range_options, datetime_range_options, labels_option
 
 
 __all__ = [  # functions/classes/modules importable directly from package.
@@ -26,4 +37,7 @@ __all__ = [  # functions/classes/modules importable directly from package.
     "Command",
     "Option",
     "ParametrizedCommand",
+    "date_range_options",
+    "datetime_range_options",
+    "labels_option",
 ]

@@ -400,3 +400,49 @@ def test_bool_option_named_like_a_negation_is_rejected():
     """
     with pytest.raises(argparse.ArgumentTypeError, match="no-"):
         Option("--no-something", type=bool, default=False)
+
+
+def test_config_file_strings_are_parsed_with_the_option_types(tmp_path, main_command, subcommand):
+    # Like argparse does for command-line values, so both sources give the same types.
+    # Non-string values (YAML's ints, lists...) and bool options are left as they are.
+    config_path = tmp_path / "config.yaml"
+    yaml_save(
+        config_path,
+        data={
+            "number_2": "5",
+            "number_3": 7,
+            "date_2": "2025-03-04",
+            "list_2": "A,B",
+            "list_3": ["C"],
+            "boolean_2": "anything",
+        },
+    )
+
+    test_cli = CLI(**main_command, subcommands=[subcommand])
+    _, config = test_cli.execute(
+        args=["subcommand", "--config-file", str(config_path), "--project", "my-project"]
+    )
+
+    assert config["number_2"] == 5
+    assert config["number_3"] == 7
+    assert config["date_2"] == date(2025, 3, 4)
+    assert config["list_2"] == ["A", "B"]
+    assert config["list_3"] == ["C"]
+    assert config["boolean_2"] == "anything"
+
+
+def test_config_file_unquoted_dates_are_parsed_with_the_option_types(tmp_path, main_command):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("project: my-project\ndate_1: 2025-03-04\n")
+
+    _, config = CLI(**main_command).execute(args=["--config-file", str(config_path)])
+
+    assert config["date_1"] == date(2025, 3, 4)
+
+
+def test_an_invalid_config_file_value_names_the_option(tmp_path, main_command):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("project: my-project\nnumber_1: not-a-number\n")
+
+    with pytest.raises(argparse.ArgumentTypeError, match="'number_1' in the config file"):
+        CLI(**main_command).execute(args=["--config-file", str(config_path)])

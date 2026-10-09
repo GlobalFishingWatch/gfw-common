@@ -9,7 +9,7 @@ from gfw.common.config import PipelineConfig
 
 def test_build_pipeline_creates_pipeline():
     config = PipelineConfig(
-        date_range=("2025-01-01", "2025-01-02"),
+        labels={"team": "pipeline"},
         version="v1.2.3",
         name="test-pipeline",
         unknown_unparsed_args=["--foo", "bar"],
@@ -27,14 +27,13 @@ def test_build_pipeline_creates_pipeline():
     assert pipeline._version == "v1.2.3"
     assert pipeline._dag is mock_dag
     assert pipeline._unparsed_args == ["--foo", "bar"]
-    assert pipeline._options == {"opt_a": 123, "opt_b": "xyz", "labels": None}
+    assert pipeline._options == {"opt_a": 123, "opt_b": "xyz", "labels": {"team": "pipeline"}}
 
     mock_dag_factory.build_dag.assert_called_once()
 
 
 def test_build_pipeline_forwards_labels_from_config():
     config = PipelineConfig(
-        date_range=("2025-01-01", "2025-01-02"),
         labels={"team": "pipeline", "env": "prod"},
     )
     mock_dag_factory = Mock()
@@ -46,10 +45,7 @@ def test_build_pipeline_forwards_labels_from_config():
 
 
 def test_build_pipeline_raises_when_kwarg_collides_with_config_field():
-    config = PipelineConfig(
-        date_range=("2025-01-01", "2025-01-02"),
-        labels={"team": "pipeline"},
-    )
+    config = PipelineConfig(labels={"team": "pipeline"})
     mock_dag_factory = Mock()
 
     factory = PipelineFactory(config=config, dag_factory=mock_dag_factory, labels={"env": "x"})

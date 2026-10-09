@@ -1,27 +1,29 @@
-"""Defines the `PipelineConfig` class used to configure data pipeline executions.
+"""Defines the configuration classes of data pipeline executions.
 
 It includes:
-- A dataclass `PipelineConfig` that stores date ranges and any unknown arguments.
+- A dataclass `PipelineConfig` with the settings every pipeline has (labels, unknown arguments).
+- A dataclass `DateRangePipelineConfig` for pipelines that process a range of dates.
 - A custom exception `PipelineConfigError` for handling invalid configuration inputs.
 
-Intended for use in CLI-based or programmatic pipeline setups where date ranges
-and additional arguments need to be passed and validated.
+Intended for use in CLI-based or programmatic pipeline setups.
 """
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import date
+from datetime import date, datetime
 from functools import cached_property
 from types import SimpleNamespace
 from typing import Any, Callable, Sequence
 
 from jinja2 import Environment
 
+from gfw.common.datetime import DateRange
 from gfw.common.jinja2 import EnvironmentLoader
 
 
-ERROR_DATE = "Dates must be in ISO format. Got: {}."
+ERROR_DATE = "{} must be a date in ISO format (YYYY-MM-DD). Got: {!r}."
+ERROR_LABELS = "labels must not be empty: every pipeline labels its jobs to audit costs."
 
 
 class PipelineConfigError(Exception):
@@ -36,10 +38,15 @@ class PipelineConfig:
 
     Note:
         This class is completely generic and independent of any specific pipeline framework.
+        Pipelines that process a range of dates use :class:`DateRangePipelineConfig`.
+
+    Raises:
+        :class:`PipelineConfigError`:
+            If ``labels`` is empty.
     """
 
-    date_range: tuple[str, str]
-    """Tuple of start and end dates in ISO format (``YYYY-MM-DD``)."""
+    labels: dict[str, str]
+    """Labels to apply to the pipeline's Dataflow job and any BigQuery jobs it runs."""
 
     name: str = ""
     """Name of the pipeline."""
@@ -53,14 +60,16 @@ class PipelineConfig:
     mock_bq_clients: bool = False
     """If True, all BigQuery interactions will be mocked."""
 
-    labels: dict[str, str] = field(default_factory=dict)
-    """Labels to apply to the pipeline's Dataflow job and any BigQuery jobs it runs."""
-
     unknown_parsed_args: dict[str, Any] = field(default_factory=dict)
     """Parsed CLI or config arguments not explicitly defined in self."""
 
     unknown_unparsed_args: tuple[str, ...] = ()
     """Raw unparsed CLI arguments."""
+
+    def __post_init__(self) -> None:
+        """Validates the configuration."""
+        if not self.labels:
+            raise PipelineConfigError(ERROR_LABELS)
 
     @classmethod
     def from_namespace(cls, ns: SimpleNamespace, **kwargs: Any) -> PipelineConfig:
@@ -82,23 +91,6 @@ class PipelineConfig:
         return cls(**ns_dict)
 
     @cached_property
-    def parsed_date_range(self) -> tuple[date, date]:
-        """Returns the parsed start and end dates as :class:`~datetime.date` objects.
-
-        Raises:
-            :class:`PipelineConfigError`:
-                If any of the dates are not in valid ISO format.
-
-        Returns:
-            A tuple containing parsed start and end dates.
-        """
-        try:
-            start_str, end_str = self.date_range
-            return (date.fromisoformat(start_str), date.fromisoformat(end_str))
-        except ValueError as e:
-            raise PipelineConfigError(ERROR_DATE.format(self.date_range)) from e
-
-    @cached_property
     def top_level_package(self) -> str:
         """Returns the top-level package from this module."""
         module = self.__class__.__module__
@@ -112,24 +104,6 @@ class PipelineConfig:
         return EnvironmentLoader().from_package(
             package=self.top_level_package, path=self.jinja_folder
         )
-
-    @property
-    def start_date(self) -> date:
-        """Returns the start date of the configured range.
-
-        Returns:
-            A :class:`~datetime.date` object representing the start of the range.
-        """
-        return self.parsed_date_range[0]
-
-    @property
-    def end_date(self) -> date:
-        """Returns the end date of the configured range.
-
-        Returns:
-            A :class:`~datetime.date` object representing the end of the range.
-        """
-        return self.parsed_date_range[1]
 
     @property
     def pre_hooks(self) -> Sequence[Callable[[Any], None]]:
@@ -148,3 +122,54 @@ class PipelineConfig:
             A dictionary representation of the configuration.
         """
         return asdict(self)
+
+
+@dataclass(frozen=True, kw_only=True)
+class DateRangePipelineConfig(PipelineConfig):
+    """Configuration of a pipeline that processes a range of dates.
+
+    The range goes from :attr:`start_date` (inclusive) to :attr:`end_date` (exclusive).
+    Both accept :class:`~datetime.date` objects or ISO format strings (``YYYY-MM-DD``),
+    since they can come from the command line, a config file or code, and are stored as
+    :class:`~datetime.date` objects.
+
+    Raises:
+        :class:`PipelineConfigError`:
+            If a date is not a valid ISO date, or :attr:`end_date` is not after
+            :attr:`start_date`.
+    """
+
+    start_date: date
+    """First date to process (inclusive)."""
+
+    end_date: date
+    """Date the processing ends at (exclusive)."""
+
+    def __post_init__(self) -> None:
+        """Parses the dates and validates the range."""
+        super().__post_init__()
+        for name in ("start_date", "end_date"):
+            object.__setattr__(self, name, _parse_date(name, getattr(self, name)))
+
+        try:
+            _ = self.date_range
+        except ValueError as e:
+            raise PipelineConfigError(str(e)) from e
+
+    @property
+    def date_range(self) -> DateRange:
+        """Returns the processed range of dates."""
+        return DateRange(self.start_date, self.end_date)
+
+
+def _parse_date(name: str, value: date | str) -> date:
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+
+    if isinstance(value, str):
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            pass
+
+    raise PipelineConfigError(ERROR_DATE.format(name, value))

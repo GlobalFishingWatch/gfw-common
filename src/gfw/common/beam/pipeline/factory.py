@@ -70,7 +70,7 @@ class PipelineFactory:
             pre_hooks=self._config.pre_hooks,
             post_hooks=self._config.post_hooks,
             unparsed_args=self._config.unknown_unparsed_args,
-            labels=self._config.labels or None,
+            labels=self._config.labels,
             **self._config.unknown_parsed_args,
             **self._kwargs,
         )

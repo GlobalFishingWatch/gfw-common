@@ -27,7 +27,13 @@ Pipeline Configuration
 ----------------------
 
 The goal of the :class:`PipelineConfig` class is to provide a standard way of configuring pipelines.
-The following code shows an example of how to inherit from the base class to add custom parameters.
+Every pipeline must set ``labels``, used to audit the costs of its jobs.
+Pipelines that process a range of dates use :class:`DateRangePipelineConfig`, which adds the
+required ``start_date`` (inclusive) and ``end_date`` (exclusive) fields, accepting dates or
+ISO strings, and a ``date_range`` property.
+The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`
+and :func:`gfw.common.cli.date_range_options`.
+The following code shows an example of how to inherit from a config class to add custom parameters.
 
 .. code-block:: python
 
@@ -35,11 +41,11 @@ The following code shows an example of how to inherit from the base class to add
     from dataclasses import dataclass, field
     from datetime import date, timedelta
 
-    from gfw.common import PipelineConfig
+    from gfw.common import DateRangePipelineConfig
 
 
-    @dataclass
-    class RawGapsConfig(PipelineConfig):
+    @dataclass(frozen=True, kw_only=True)
+    class RawGapsConfig(DateRangePipelineConfig):
         filter_not_overlapping_and_short: bool = False
         filter_good_seg: bool = False
         open_gaps_start_date: str = "2019-01-01"
@@ -66,6 +72,7 @@ The following code shows an example of how to inherit from the base class to add
         name = "pipe-gaps"
 
         def __post_init__(self) -> None:
+            super().__post_init__()
             if (
                 self.json_input_messages is None
                 and (self.bq_input_messages is None or self.bq_input_segments is None)

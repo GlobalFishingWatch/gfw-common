@@ -10,19 +10,18 @@ Intended for use in CLI-based or programmatic pipeline setups.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field, fields
-from datetime import date, datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import date, datetime
 from functools import cached_property
 from types import SimpleNamespace
 from typing import Any, Callable, Sequence, get_args, get_type_hints
 
 from jinja2 import Environment
 
-from gfw.common.datetime import datetime_from_date, datetime_from_isoformat
+from gfw.common.datetime import datetime_from_isoformat
 from gfw.common.jinja2 import EnvironmentLoader
 
 
-ERROR_DATE = "{} must be a date in ISO format (YYYY-MM-DD). Got: {!r}."
 ERROR_DATETIME = "{} must be a date or datetime in ISO format. Got: {!r}."
 ERROR_DATETIME_RANGE = "end_datetime ({}) must be after start_datetime ({})."
 ERROR_LABELS = "labels must not be empty: every pipeline labels its jobs to audit costs."
@@ -46,7 +45,8 @@ class PipelineConfig:
     required, and always validated.
 
     :meth:`from_namespace` builds them from the ``start_date`` and ``end_date`` of the command
-    line (``--start-date`` / ``--end-date``) or a config file, as UTC datetimes at midnight.
+    line (``--start-date`` / ``--end-date``) or a config file, as UTC datetimes at midnight. It
+    also converts any other field declared as a datetime.
 
     Note:
         This class is completely generic and independent of any specific pipeline framework.
@@ -114,8 +114,7 @@ class PipelineConfig:
 
         Fields declared as :class:`~datetime.datetime` (or ``datetime | None``) are turned into
         timezone-aware datetimes, UTC unless a timezone is given, from dates, naive datetimes or
-        ISO format strings. Fields declared as :class:`~datetime.date` are parsed from ISO format
-        strings. Strings come from config files, and YAML loads unquoted dates as dates.
+        ISO format strings. Strings come from config files, and YAML loads unquoted dates as dates.
 
         Args:
             ns:
@@ -129,7 +128,7 @@ class PipelineConfig:
 
         Raises:
             :class:`PipelineConfigError`:
-                If a date or datetime is a string that is not in ISO format.
+                If a datetime field is a string that is not in ISO format.
         """
         ns_dict = vars(ns)
         ns_dict.update(kwargs)
@@ -139,15 +138,9 @@ class PipelineConfig:
                 ns_dict[datetime_key] = ns_dict.pop(date_key)
 
         hints = get_type_hints(cls)
-        for f in fields(cls):
-            value = ns_dict.get(f.name)
-            if value is None:
-                continue
-
-            if _is_type(hints[f.name], datetime):
-                ns_dict[f.name] = _to_utc_datetime(f.name, value)
-            elif _is_type(hints[f.name], date) and isinstance(value, str):
-                ns_dict[f.name] = _parse_date(f.name, value)
+        for name, value in ns_dict.items():
+            if value is not None and _is_datetime(hints.get(name)):
+                ns_dict[name] = _to_datetime(name, value)
 
         return cls(**ns_dict)
 
@@ -185,28 +178,15 @@ class PipelineConfig:
         return asdict(self)
 
 
-def _is_type(hint: Any, type_: type) -> bool:
-    return type_ in (hint, *get_args(hint))
+def _is_datetime(hint: Any) -> bool:
+    return datetime in (hint, *get_args(hint))
 
 
-def _to_utc_datetime(name: str, value: str | date) -> datetime:
-    if isinstance(value, datetime):
-        if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-
-        return value
-
-    if isinstance(value, date):
-        return datetime_from_date(value)
+def _to_datetime(name: str, value: str | date) -> datetime:
+    if isinstance(value, date):  # Also a datetime, which is a subclass of date.
+        value = value.isoformat()
 
     try:
         return datetime_from_isoformat(value)
     except ValueError as e:
         raise PipelineConfigError(ERROR_DATETIME.format(name, value)) from e
-
-
-def _parse_date(name: str, value: str) -> date:
-    try:
-        return date.fromisoformat(value)
-    except ValueError as e:
-        raise PipelineConfigError(ERROR_DATE.format(name, value)) from e

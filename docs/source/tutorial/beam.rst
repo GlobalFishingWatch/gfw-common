@@ -31,8 +31,8 @@ Every pipeline must set ``labels``, used to audit the costs of its jobs, and the
 it processes: ``start_datetime`` (inclusive) and ``end_datetime`` (exclusive), as datetimes, so a
 pipeline can process whole days or any time range.
 :meth:`PipelineConfig.from_namespace` builds them from the ``start_date`` and ``end_date`` of the
-command line or a config file, as UTC datetimes at midnight. It also parses any other field
-declared as a date or datetime (like ``open_gaps_start_date`` below) from ISO strings.
+command line or a config file, as UTC datetimes at midnight. It also converts any other field
+declared as a datetime (like ``open_gaps_start`` below), e.g. from an ISO string.
 The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`
 and :func:`gfw.common.cli.date_range_options`.
 The following code shows an example of how to inherit from a config class to add custom parameters.
@@ -41,7 +41,7 @@ The following code shows an example of how to inherit from a config class to add
 
     import math
     from dataclasses import dataclass, field
-    from datetime import date, datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     from gfw.common import PipelineConfig
 
@@ -50,7 +50,7 @@ The following code shows an example of how to inherit from a config class to add
     class RawGapsConfig(PipelineConfig):
         filter_not_overlapping_and_short: bool = False
         filter_good_seg: bool = False
-        open_gaps_start_date: date = date(2019, 1, 1)
+        open_gaps_start: datetime = datetime(2019, 1, 1, tzinfo=timezone.utc)
         skip_open_gaps: bool = False
         ssvids: tuple = field(default_factory=tuple)
         min_gap_length: float = 6

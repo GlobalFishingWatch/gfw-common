@@ -146,23 +146,26 @@ def test_from_namespace_rejects_invalid_strings(start_date):
 
 @dataclass(frozen=True, kw_only=True)
 class ExtraDateConfig(PipelineConfig):
-    open_gaps_start_date: date = date(2019, 1, 1)
+    open_gaps_start: datetime = datetime(2019, 1, 1, tzinfo=UTC)
     backfill_start: datetime | None = None
+    open_gaps_day: date = date(2019, 1, 1)
     name_suffix: str = "2019-01-01"
 
 
-def test_from_namespace_parses_only_date_fields_including_subclass_ones():
+def test_from_namespace_converts_only_datetime_fields_including_subclass_ones():
     namespace = SimpleNamespace(
         labels=LABELS,
         **DATES,
-        open_gaps_start_date="2020-06-01",
+        open_gaps_start="2020-06-01",
         backfill_start="2020-06-01T06:00:00",
+        open_gaps_day="2020-06-01",
         name_suffix="2020-06-01",
     )
     cfg = ExtraDateConfig.from_namespace(namespace)
 
-    assert cfg.open_gaps_start_date == date(2020, 6, 1)
+    assert cfg.open_gaps_start == datetime(2020, 6, 1, tzinfo=UTC)
     assert cfg.backfill_start == datetime(2020, 6, 1, 6, tzinfo=UTC)
+    assert cfg.open_gaps_day == "2020-06-01"
     assert cfg.name_suffix == "2020-06-01"
 
 

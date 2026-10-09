@@ -33,9 +33,11 @@ def date_range_options() -> list[Option]:
     """Returns the required ``--start-date`` (inclusive) and ``--end-date`` (exclusive) options.
 
     Command-line values are parsed into :class:`~datetime.date` objects here, so an invalid date
-    is a usage error. Values from a config file skip argparse:
-    :meth:`PipelineConfig.from_namespace <gfw.common.config.PipelineConfig.from_namespace>` parses
-    those, and :class:`~gfw.common.config.PipelineConfig` validates the range.
+    is a usage error. Values from a config file (``start_date`` and ``end_date`` keys) skip
+    argparse.
+    :meth:`PipelineConfig.from_namespace <gfw.common.config.PipelineConfig.from_namespace>` turns
+    both into the UTC datetimes ``start_datetime`` and ``end_datetime`` at midnight, and
+    :class:`~gfw.common.config.PipelineConfig` validates the range.
     """
     return [
         Option("--start-date", type=valid_date, required=True, help=HELP_START_DATE),

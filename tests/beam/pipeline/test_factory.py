@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime, timezone
 from unittest.mock import Mock
 
 import pytest
@@ -10,8 +10,8 @@ from gfw.common.config import PipelineConfig
 
 def test_build_pipeline_creates_pipeline():
     config = PipelineConfig(
-        start_date=date(2025, 1, 1),
-        end_date=date(2025, 1, 2),
+        start_datetime=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        end_datetime=datetime(2025, 1, 2, tzinfo=timezone.utc),
         labels={"team": "pipeline"},
         unknown_unparsed_args=["--foo", "bar"],
         unknown_parsed_args={"opt_a": 123, "opt_b": "xyz"},
@@ -33,8 +33,8 @@ def test_build_pipeline_creates_pipeline():
 
 def test_build_pipeline_forwards_labels_from_config():
     config = PipelineConfig(
-        start_date=date(2025, 1, 1),
-        end_date=date(2025, 1, 2),
+        start_datetime=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        end_datetime=datetime(2025, 1, 2, tzinfo=timezone.utc),
         labels={"team": "pipeline", "env": "prod"},
     )
     mock_dag_factory = Mock()
@@ -47,7 +47,9 @@ def test_build_pipeline_forwards_labels_from_config():
 
 def test_build_pipeline_raises_when_kwarg_collides_with_config_field():
     config = PipelineConfig(
-        start_date=date(2025, 1, 1), end_date=date(2025, 1, 2), labels={"team": "pipeline"}
+        start_datetime=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        end_datetime=datetime(2025, 1, 2, tzinfo=timezone.utc),
+        labels={"team": "pipeline"},
     )
     mock_dag_factory = Mock()
 

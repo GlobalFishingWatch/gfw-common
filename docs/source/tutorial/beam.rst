@@ -28,10 +28,11 @@ Pipeline Configuration
 
 The goal of the :class:`PipelineConfig` class is to provide a standard way of configuring pipelines.
 Every pipeline must set ``labels``, used to audit the costs of its jobs, and the range of dates
-it processes: ``start_date`` (inclusive) and ``end_date`` (exclusive), as dates.
-:meth:`PipelineConfig.from_namespace` parses them, and any other field declared as a date
-(like ``open_gaps_start_date`` below), from ISO strings, e.g. from a config file.
-A pipeline that processes no dates can make them optional by redeclaring them with a default.
+it processes: ``start_datetime`` (inclusive) and ``end_datetime`` (exclusive), as datetimes, so a
+pipeline can process whole days or any time range.
+:meth:`PipelineConfig.from_namespace` builds them from the ``start_date`` and ``end_date`` of the
+command line or a config file, as UTC datetimes at midnight. It also parses any other field
+declared as a date or datetime (like ``open_gaps_start_date`` below) from ISO strings.
 The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`
 and :func:`gfw.common.cli.date_range_options`.
 The following code shows an example of how to inherit from a config class to add custom parameters.
@@ -40,7 +41,7 @@ The following code shows an example of how to inherit from a config class to add
 
     import math
     from dataclasses import dataclass, field
-    from datetime import date, timedelta
+    from datetime import date, datetime, timedelta
 
     from gfw.common import PipelineConfig
 
@@ -79,9 +80,9 @@ The following code shows an example of how to inherit from a config class to add
                 raise ValueError("You need to provide either a JSON inputs or BQ input.")
 
         @property
-        def messages_query_start_date(self) -> date:
+        def messages_query_start_date(self) -> datetime:
             buffer_days = math.ceil(self.n_hours_before / 24)
-            return self.start_date - timedelta(days=buffer_days)
+            return self.start_datetime - timedelta(days=buffer_days)
 
 
 Creating a Pipeline

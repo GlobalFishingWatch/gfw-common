@@ -1,6 +1,6 @@
 import argparse
 
-from datetime import date
+from datetime import datetime, timezone
 
 import pytest
 
@@ -18,13 +18,15 @@ def dated_cli():
 
 
 ARGS = ["dated", "--labels", "environment=dev", "--start-date", "2024-01-01"]
+JAN_1 = datetime(2024, 1, 1, tzinfo=timezone.utc)
+JAN_8 = datetime(2024, 1, 8, tzinfo=timezone.utc)
 
 
 def test_shared_options_build_a_config():
     config, _ = dated_cli().execute(args=[*ARGS, "--end-date", "2024-01-08"])
 
     assert config.labels == {"environment": "dev"}
-    assert (config.start_date, config.end_date) == (date(2024, 1, 1), date(2024, 1, 8))
+    assert (config.start_datetime, config.end_datetime) == (JAN_1, JAN_8)
 
 
 @pytest.mark.parametrize("missing", ["--labels", "--end-date"])
@@ -44,7 +46,7 @@ def test_an_invalid_command_line_date_is_a_usage_error():
 
 def test_dates_from_a_config_file_are_parsed(tmp_path):
     # YAML loads an unquoted date as a date and a quoted one as a string, which
-    # PipelineConfig.from_namespace parses: both end up as dates.
+    # PipelineConfig.from_namespace turns into UTC datetimes at midnight.
     config_file = tmp_path / "config.yaml"
     config_file.write_text("start_date: 2024-01-01\nend_date: '2024-01-08'\n")
 
@@ -52,9 +54,9 @@ def test_dates_from_a_config_file_are_parsed(tmp_path):
         args=["dated", "--labels", "environment=dev", "--config-file", str(config_file)]
     )
 
-    assert (config.start_date, config.end_date) == (date(2024, 1, 1), date(2024, 1, 8))
+    assert (config.start_datetime, config.end_datetime) == (JAN_1, JAN_8)
 
 
 def test_an_empty_range_is_rejected():
-    with pytest.raises(PipelineConfigError, match="must be after the start date"):
+    with pytest.raises(PipelineConfigError, match="must be after start_datetime"):
         dated_cli().execute(args=[*ARGS, "--end-date", "2024-01-01"])

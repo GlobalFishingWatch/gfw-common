@@ -9,6 +9,8 @@ from gfw.common.config import PipelineConfig
 
 def test_build_pipeline_creates_pipeline():
     config = PipelineConfig(
+        start_date="2025-01-01",
+        end_date="2025-01-02",
         labels={"team": "pipeline"},
         version="v1.2.3",
         name="test-pipeline",
@@ -34,6 +36,8 @@ def test_build_pipeline_creates_pipeline():
 
 def test_build_pipeline_forwards_labels_from_config():
     config = PipelineConfig(
+        start_date="2025-01-01",
+        end_date="2025-01-02",
         labels={"team": "pipeline", "env": "prod"},
     )
     mock_dag_factory = Mock()
@@ -45,7 +49,9 @@ def test_build_pipeline_forwards_labels_from_config():
 
 
 def test_build_pipeline_raises_when_kwarg_collides_with_config_field():
-    config = PipelineConfig(labels={"team": "pipeline"})
+    config = PipelineConfig(
+        start_date="2025-01-01", end_date="2025-01-02", labels={"team": "pipeline"}
+    )
     mock_dag_factory = Mock()
 
     factory = PipelineFactory(config=config, dag_factory=mock_dag_factory, labels={"env": "x"})

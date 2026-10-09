@@ -2,8 +2,7 @@
 
 Use them in a :class:`~gfw.common.cli.Command`'s options, or as the main command's common options,
 so every pipeline exposes the same flags with the same meaning.
-Their values match the fields of :class:`~gfw.common.config.PipelineConfig`
-and :class:`~gfw.common.config.DateRangePipelineConfig`, which validate them.
+Their values match the fields of :class:`~gfw.common.config.PipelineConfig`, which validates them.
 """
 
 from .actions import NestedKeyValueAction
@@ -35,7 +34,7 @@ def date_range_options() -> list[Option]:
 
     Command-line values are parsed into :class:`~datetime.date` objects here, so an invalid date
     is a usage error. Values from a config file skip argparse:
-    :class:`~gfw.common.config.DateRangePipelineConfig` parses those, and validates the range.
+    :class:`~gfw.common.config.PipelineConfig` parses those, and validates the range.
     """
     return [
         Option("--start-date", type=valid_date, required=True, help=HELP_START_DATE),

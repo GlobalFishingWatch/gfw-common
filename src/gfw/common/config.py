@@ -1,8 +1,8 @@
 """Defines the configuration classes of data pipeline executions.
 
 It includes:
-- A dataclass `PipelineConfig` with the settings every pipeline has (labels, unknown arguments).
-- A dataclass `DateRangePipelineConfig` for pipelines that process a range of dates.
+- A dataclass `PipelineConfig` with the settings every pipeline has: its labels, the range of
+  dates it processes and any unknown arguments.
 - A custom exception `PipelineConfigError` for handling invalid configuration inputs.
 
 Intended for use in CLI-based or programmatic pipeline setups.
@@ -24,6 +24,7 @@ from gfw.common.jinja2 import EnvironmentLoader
 
 ERROR_DATE = "{} must be a date in ISO format (YYYY-MM-DD). Got: {!r}."
 ERROR_LABELS = "labels must not be empty: every pipeline labels its jobs to audit costs."
+ERROR_NO_DATE_RANGE = "start_date and end_date must be set to get a date_range."
 
 
 class PipelineConfigError(Exception):
@@ -36,17 +37,31 @@ class PipelineConfigError(Exception):
 class PipelineConfig:
     """Configuration object for data pipeline execution.
 
+    The processed range of dates goes from :attr:`start_date` (inclusive) to :attr:`end_date`
+    (exclusive). Both accept :class:`~datetime.date` objects or ISO format strings
+    (``YYYY-MM-DD``), since they can come from the command line, a config file or code, and are
+    stored as :class:`~datetime.date` objects.
+
+    A pipeline that processes no dates can make them optional by redeclaring them with a default,
+    e.g. ``start_date: date | None = None``.
+
     Note:
         This class is completely generic and independent of any specific pipeline framework.
-        Pipelines that process a range of dates use :class:`DateRangePipelineConfig`.
 
     Raises:
         :class:`PipelineConfigError`:
-            If ``labels`` is empty.
+            If ``labels`` is empty, a date is not a valid ISO date, or :attr:`end_date` is not
+            after :attr:`start_date`.
     """
 
     labels: dict[str, str]
     """Labels to apply to the pipeline's Dataflow job and any BigQuery jobs it runs."""
+
+    start_date: date
+    """First date to process (inclusive)."""
+
+    end_date: date
+    """Date the processing ends at (exclusive)."""
 
     name: str = ""
     """Name of the pipeline."""
@@ -67,9 +82,31 @@ class PipelineConfig:
     """Raw unparsed CLI arguments."""
 
     def __post_init__(self) -> None:
-        """Validates the configuration."""
+        """Validates the configuration, and parses the dates."""
         if not self.labels:
             raise PipelineConfigError(ERROR_LABELS)
+
+        for name in ("start_date", "end_date"):
+            object.__setattr__(self, name, _parse_date(name, getattr(self, name)))
+
+        if self.start_date is not None and self.end_date is not None:
+            try:
+                DateRange(self.start_date, self.end_date)
+            except ValueError as e:
+                raise PipelineConfigError(str(e)) from e
+
+    @property
+    def date_range(self) -> DateRange:
+        """Returns the processed range of dates.
+
+        Raises:
+            :class:`PipelineConfigError`:
+                If a subclass made the dates optional and one is not set.
+        """
+        if self.start_date is None or self.end_date is None:
+            raise PipelineConfigError(ERROR_NO_DATE_RANGE)
+
+        return DateRange(self.start_date, self.end_date)
 
     @classmethod
     def from_namespace(cls, ns: SimpleNamespace, **kwargs: Any) -> PipelineConfig:
@@ -124,46 +161,8 @@ class PipelineConfig:
         return asdict(self)
 
 
-@dataclass(frozen=True, kw_only=True)
-class DateRangePipelineConfig(PipelineConfig):
-    """Configuration of a pipeline that processes a range of dates.
-
-    The range goes from :attr:`start_date` (inclusive) to :attr:`end_date` (exclusive).
-    Both accept :class:`~datetime.date` objects or ISO format strings (``YYYY-MM-DD``),
-    since they can come from the command line, a config file or code, and are stored as
-    :class:`~datetime.date` objects.
-
-    Raises:
-        :class:`PipelineConfigError`:
-            If a date is not a valid ISO date, or :attr:`end_date` is not after
-            :attr:`start_date`.
-    """
-
-    start_date: date
-    """First date to process (inclusive)."""
-
-    end_date: date
-    """Date the processing ends at (exclusive)."""
-
-    def __post_init__(self) -> None:
-        """Parses the dates and validates the range."""
-        super().__post_init__()
-        for name in ("start_date", "end_date"):
-            object.__setattr__(self, name, _parse_date(name, getattr(self, name)))
-
-        try:
-            _ = self.date_range
-        except ValueError as e:
-            raise PipelineConfigError(str(e)) from e
-
-    @property
-    def date_range(self) -> DateRange:
-        """Returns the processed range of dates."""
-        return DateRange(self.start_date, self.end_date)
-
-
-def _parse_date(name: str, value: date | str) -> date:
-    if isinstance(value, date) and not isinstance(value, datetime):
+def _parse_date(name: str, value: date | str | None) -> date | None:
+    if value is None or (isinstance(value, date) and not isinstance(value, datetime)):
         return value
 
     if isinstance(value, str):

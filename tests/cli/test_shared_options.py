@@ -6,14 +6,14 @@ from types import SimpleNamespace
 import pytest
 
 from gfw.common.cli import CLI, ParametrizedCommand, date_range_options, labels_option
-from gfw.common.config import DateRangePipelineConfig, PipelineConfigError
+from gfw.common.config import PipelineConfig, PipelineConfigError
 
 
 def dated_cli():
     command = ParametrizedCommand(
         name="dated",
         options=[labels_option(), *date_range_options()],
-        run=lambda config, **kwargs: DateRangePipelineConfig.from_namespace(config),
+        run=lambda config, **kwargs: PipelineConfig.from_namespace(config),
     )
     return CLI(name="program", subcommands=[command])
 
@@ -61,7 +61,7 @@ def test_an_empty_range_is_rejected():
 
 
 def test_config_parses_values_the_cli_left_as_strings():
-    config = DateRangePipelineConfig.from_namespace(
+    config = PipelineConfig.from_namespace(
         SimpleNamespace(labels={"a": "b"}, start_date="2024-01-01", end_date="2024-01-02")
     )
 

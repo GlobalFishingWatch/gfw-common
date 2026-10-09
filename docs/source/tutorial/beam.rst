@@ -27,10 +27,10 @@ Pipeline Configuration
 ----------------------
 
 The goal of the :class:`PipelineConfig` class is to provide a standard way of configuring pipelines.
-Every pipeline must set ``labels``, used to audit the costs of its jobs.
-Pipelines that process a range of dates use :class:`DateRangePipelineConfig`, which adds the
-required ``start_date`` (inclusive) and ``end_date`` (exclusive) fields, accepting dates or
-ISO strings, and a ``date_range`` property.
+Every pipeline must set ``labels``, used to audit the costs of its jobs, and the range of dates
+it processes: ``start_date`` (inclusive) and ``end_date`` (exclusive), which accept dates or ISO
+strings and are also available together as the ``date_range`` property.
+A pipeline that processes no dates can make them optional by redeclaring them with a default.
 The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`
 and :func:`gfw.common.cli.date_range_options`.
 The following code shows an example of how to inherit from a config class to add custom parameters.
@@ -41,11 +41,11 @@ The following code shows an example of how to inherit from a config class to add
     from dataclasses import dataclass, field
     from datetime import date, timedelta
 
-    from gfw.common import DateRangePipelineConfig
+    from gfw.common import PipelineConfig
 
 
     @dataclass(frozen=True, kw_only=True)
-    class RawGapsConfig(DateRangePipelineConfig):
+    class RawGapsConfig(PipelineConfig):
         filter_not_overlapping_and_short: bool = False
         filter_good_seg: bool = False
         open_gaps_start_date: str = "2019-01-01"

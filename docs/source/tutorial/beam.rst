@@ -29,7 +29,8 @@ Pipeline Configuration
 The goal of the :class:`PipelineConfig` class is to provide a standard way of configuring pipelines.
 Every pipeline must set ``labels``, used to audit the costs of its jobs, and the range of dates
 it processes: ``start_date`` (inclusive) and ``end_date`` (exclusive), as dates.
-:meth:`PipelineConfig.from_namespace` parses them from ISO strings, e.g. from a config file.
+:meth:`PipelineConfig.from_namespace` parses them, and any other field declared as a date
+(like ``open_gaps_start_date`` below), from ISO strings, e.g. from a config file.
 A pipeline that processes no dates can make them optional by redeclaring them with a default.
 The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`
 and :func:`gfw.common.cli.date_range_options`.
@@ -48,7 +49,7 @@ The following code shows an example of how to inherit from a config class to add
     class RawGapsConfig(PipelineConfig):
         filter_not_overlapping_and_short: bool = False
         filter_good_seg: bool = False
-        open_gaps_start_date: str = "2019-01-01"
+        open_gaps_start_date: date = date(2019, 1, 1)
         skip_open_gaps: bool = False
         ssvids: tuple = field(default_factory=tuple)
         min_gap_length: float = 6
@@ -78,10 +79,6 @@ The following code shows an example of how to inherit from a config class to add
                 and (self.bq_input_messages is None or self.bq_input_segments is None)
             ):
                 raise ValueError("You need to provide either a JSON inputs or BQ input.")
-
-        @property
-        def open_gaps_start(self) -> date:
-            return date.fromisoformat(self.open_gaps_start_date)
 
         @property
         def messages_query_start_date(self) -> date:

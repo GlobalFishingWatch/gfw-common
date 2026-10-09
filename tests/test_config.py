@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError, dataclass
-from datetime import date, datetime
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
@@ -35,20 +35,6 @@ def test_labels_and_dates_are_required(missing):
 def test_labels_must_not_be_empty():
     with pytest.raises(PipelineConfigError, match="labels must not be empty"):
         PipelineConfig(labels={}, **DATES)
-
-
-@pytest.mark.parametrize(
-    "start_date, field",
-    [
-        ("2023-01-01", "start_date"),
-        (datetime(2023, 1, 1), "start_date"),
-        (20230101, "start_date"),
-    ],
-    ids=["string", "datetime", "int"],
-)
-def test_dates_must_be_dates(start_date, field):
-    with pytest.raises(PipelineConfigError, match=f"{field} must be a date. Got"):
-        PipelineConfig(labels=LABELS, start_date=start_date, end_date=date(2023, 12, 31))
 
 
 @pytest.mark.parametrize(
@@ -118,6 +104,25 @@ def test_from_namespace_rejects_invalid_strings(start_date):
 
     with pytest.raises(PipelineConfigError, match="start_date must be a date in ISO format"):
         PipelineConfig.from_namespace(namespace)
+
+
+@dataclass(frozen=True, kw_only=True)
+class ExtraDateConfig(PipelineConfig):
+    open_gaps_start_date: date = date(2019, 1, 1)
+    name_suffix: str = "2019-01-01"
+
+
+def test_from_namespace_parses_only_date_fields_including_subclass_ones():
+    namespace = SimpleNamespace(
+        labels=LABELS,
+        **DATES,
+        open_gaps_start_date="2020-06-01",
+        name_suffix="2020-06-01",
+    )
+    cfg = ExtraDateConfig.from_namespace(namespace)
+
+    assert cfg.open_gaps_start_date == date(2020, 6, 1)
+    assert cfg.name_suffix == "2020-06-01"
 
 
 def test_from_namespace_leaves_missing_optional_dates_alone():

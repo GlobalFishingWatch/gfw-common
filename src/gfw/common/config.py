@@ -46,7 +46,8 @@ class PipelineConfig:
 
     :meth:`from_namespace` builds them from the ``start_date`` and ``end_date`` of the command
     line (``--start-date`` / ``--end-date``) or a config file, as UTC datetimes at midnight. It
-    also converts any other field declared as a datetime.
+    also converts any other field declared as a datetime. Their dates are available as
+    :attr:`start_date` and :attr:`end_date`.
 
     Note:
         This class is completely generic and independent of any specific pipeline framework.
@@ -104,6 +105,16 @@ class PipelineConfig:
             raise PipelineConfigError(
                 ERROR_DATETIME_RANGE.format(self.end_datetime, self.start_datetime)
             )
+
+    @property
+    def start_date(self) -> date:
+        """Returns the date of :attr:`start_datetime`."""
+        return self.start_datetime.date()
+
+    @property
+    def end_date(self) -> date:
+        """Returns the date of :attr:`end_datetime`."""
+        return self.end_datetime.date()
 
     @classmethod
     def from_namespace(cls, ns: SimpleNamespace, **kwargs: Any) -> PipelineConfig:

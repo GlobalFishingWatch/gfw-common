@@ -41,6 +41,14 @@ def test_end_datetime_must_be_after_start_datetime(end_datetime):
         PipelineConfig(labels=LABELS, start_datetime=START, end_datetime=end_datetime)
 
 
+def test_start_date_and_end_date_are_the_dates_of_the_datetimes():
+    cfg = PipelineConfig(
+        labels=LABELS, start_datetime=START.replace(hour=6), end_datetime=END.replace(hour=18)
+    )
+
+    assert (cfg.start_date, cfg.end_date) == (date(2023, 1, 1), date(2023, 12, 31))
+
+
 def test_the_range_can_be_shorter_than_a_day():
     end_datetime = START + timedelta(hours=1)
     cfg = PipelineConfig(labels=LABELS, start_datetime=START, end_datetime=end_datetime)

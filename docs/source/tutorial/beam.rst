@@ -33,6 +33,7 @@ pipeline can process whole days or any time range.
 :meth:`PipelineConfig.from_namespace` builds them from the ``start_date`` and ``end_date`` of the
 command line or a config file, as UTC datetimes at midnight. It also converts any other field
 declared as a datetime (like ``open_gaps_start`` below), e.g. from an ISO string.
+Their dates are available as the ``start_date`` and ``end_date`` properties.
 The CLI options for these fields are available from :func:`gfw.common.cli.labels_option`
 and :func:`gfw.common.cli.date_range_options`.
 The following code shows an example of how to inherit from a config class to add custom parameters.

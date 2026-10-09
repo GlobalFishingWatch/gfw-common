@@ -1,5 +1,6 @@
 import json
 
+from datetime import date, datetime
 from pathlib import Path
 
 import yaml
@@ -25,6 +26,28 @@ def test_yaml_load(tmp_path):
         yaml.dump(data, f)
 
     assert io.yaml_load(filepath) == data
+
+
+def test_yaml_load_parses_timestamps_by_default(tmp_path):
+    filepath = tmp_path.joinpath("test.yaml")
+    filepath.write_text("day: 2024-01-01\nmoment: 2024-01-01T06:00:00\nquoted: '2024-01-01'\n")
+
+    assert io.yaml_load(filepath) == {
+        "day": date(2024, 1, 1),
+        "moment": datetime(2024, 1, 1, 6),
+        "quoted": "2024-01-01",
+    }
+
+
+def test_yaml_load_can_keep_timestamps_as_strings(tmp_path):
+    filepath = tmp_path.joinpath("test.yaml")
+    filepath.write_text("day: 2024-01-01\nmoment: 2024-01-01T06:00:00\nnumber: 5\n")
+
+    assert io.yaml_load(filepath, parse_timestamps=False) == {
+        "day": "2024-01-01",
+        "moment": "2024-01-01T06:00:00",
+        "number": 5,
+    }
 
 
 def test_yaml_save(tmp_path):

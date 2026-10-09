@@ -260,11 +260,12 @@ class CLI:
         only_render = self._pop_builtin_arg(cli_args, "only_render")
         log_to_stdout = self._pop_builtin_arg(cli_args, "log_to_stdout")
 
-        # Load config file if exists.
+        # Load config file if exists. Dates are loaded as strings, like on the command line, so
+        # that the options' types parse them below.
         config_file_args = {}
         if config_file is not None:
             logger.info(f"Loading config file from {config_file}.")
-            config_file_args = yaml_load(config_file)
+            config_file_args = yaml_load(config_file, parse_timestamps=False)
 
         unknown_parsed_args = self._extract_unknown_config_file_args(config_file_args, cli_args)
 
@@ -273,6 +274,7 @@ class CLI:
 
         # Resolved invoked command.
         command = self._get_invoked_command(cli_args)
+        self._apply_option_types(command, config_file_args)
 
         # Resolve configuration based on cli_args, config file and defaults.
         # cli_args takes precedence over config file and config file over defaults.
@@ -368,6 +370,27 @@ class CLI:
         indent = " " * 4
         examples_str = "\n".join(f"{indent}{e}" for e in self._examples)
         return f"Examples:\n{examples_str}"
+
+    @staticmethod
+    def _apply_option_types(command: Command, config_file_args: dict[str, Any]) -> None:
+        """Parses the string values of a config file with their option's ``type``.
+
+        Like argparse does for command-line values and string defaults, so an option's value has
+        the same type whether it comes from the command line or a config file.
+        Bool options are skipped: their type would turn any non-empty string into ``True``.
+        """
+        option_types = {o.dest: o.type for o in command.options if o.type is not bool}
+
+        for dest, value in config_file_args.items():
+            if dest not in option_types or not isinstance(value, str):
+                continue
+
+            try:
+                config_file_args[dest] = option_types[dest](value)
+            except (argparse.ArgumentTypeError, TypeError, ValueError) as e:
+                raise argparse.ArgumentTypeError(
+                    f"Invalid value for '{dest}' in the config file: {e}"
+                ) from e
 
     def _extract_unknown_config_file_args(
         self, config_file: dict[str, Any], args: dict[str, Any]

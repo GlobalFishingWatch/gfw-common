@@ -4,6 +4,8 @@ import argparse
 
 from datetime import date, datetime
 
+from gfw.common.datetime import datetime_from_isoformat
+
 
 def valid_list(s: str) -> list[str]:
     """Use with argparse to parse a comma-separated string.
@@ -38,6 +40,8 @@ def valid_date(s: str) -> date:
 def valid_datetime(s: str) -> datetime:
     """Use with argparse to validate a datetime parameter.
 
+    Returns a timezone-aware datetime: UTC unless the value has a timezone.
+
     Example Usage:
     parser.add_argument(
         '--datetime',
@@ -46,7 +50,7 @@ def valid_datetime(s: str) -> datetime:
     )
     """
     try:
-        return datetime.fromisoformat(s)
+        return datetime_from_isoformat(s)
     except ValueError as e:
         msg = "Not a valid datetime: '{0}'. Expected format is YYYY-MM-DDTHH:MM:SS".format(s)
         raise argparse.ArgumentTypeError(msg) from e

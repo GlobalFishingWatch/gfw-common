@@ -60,6 +60,14 @@ def test_end_date_is_rounded_up_and_start_date_down(end_datetime):
     assert (cfg.start_date, cfg.end_date) == (date(2023, 1, 1), date(2024, 1, 1))
 
 
+@pytest.mark.parametrize("missing", ["start_datetime", "end_datetime"])
+def test_datetimes_must_not_be_none(missing):
+    kwargs = {**DATETIMES, missing: None}
+
+    with pytest.raises(PipelineConfigError, match="start_datetime and end_datetime must be set"):
+        PipelineConfig(labels=LABELS, **kwargs)
+
+
 def test_the_range_can_be_shorter_than_a_day():
     end_datetime = START + timedelta(hours=1)
     cfg = PipelineConfig(labels=LABELS, start_datetime=START, end_datetime=end_datetime)

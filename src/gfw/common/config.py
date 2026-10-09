@@ -23,6 +23,7 @@ from gfw.common.jinja2 import EnvironmentLoader
 
 
 ERROR_DATETIME = "{} must be a date or datetime in ISO format. Got: {!r}."
+ERROR_DATETIME_MISSING = "start_datetime and end_datetime must be set. Got: {!r}, {!r}."
 ERROR_DATETIME_RANGE = "end_datetime ({}) must be after start_datetime ({})."
 ERROR_LABELS = "labels must not be empty: every pipeline labels its jobs to audit costs."
 
@@ -54,8 +55,8 @@ class PipelineConfig:
 
     Raises:
         :class:`PipelineConfigError`:
-            If ``labels`` is empty, or :attr:`end_datetime` is not after
-            :attr:`start_datetime`.
+            If ``labels`` is empty, a datetime is ``None``, or :attr:`end_datetime` is not
+            after :attr:`start_datetime`.
     """
 
     start_datetime: datetime
@@ -95,12 +96,18 @@ class PipelineConfig:
             raise PipelineConfigError(ERROR_LABELS)
 
     def validate_datetime_range(self) -> None:
-        """Validates that :attr:`end_datetime` is after :attr:`start_datetime`.
+        """Validates that both datetimes are set and :attr:`end_datetime` is after :attr:`start_datetime`.
 
         Raises:
             :class:`PipelineConfigError`:
-                If :attr:`end_datetime` is not after :attr:`start_datetime`.
+                If a datetime is ``None``, or :attr:`end_datetime` is not after
+                :attr:`start_datetime`.
         """
+        if self.start_datetime is None or self.end_datetime is None:
+            raise PipelineConfigError(
+                ERROR_DATETIME_MISSING.format(self.start_datetime, self.end_datetime)
+            )
+
         if self.end_datetime <= self.start_datetime:
             raise PipelineConfigError(
                 ERROR_DATETIME_RANGE.format(self.end_datetime, self.start_datetime)

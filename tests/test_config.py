@@ -41,12 +41,23 @@ def test_end_datetime_must_be_after_start_datetime(end_datetime):
         PipelineConfig(labels=LABELS, start_datetime=START, end_datetime=end_datetime)
 
 
-def test_start_date_and_end_date_are_the_dates_of_the_datetimes():
-    cfg = PipelineConfig(
-        labels=LABELS, start_datetime=START.replace(hour=6), end_datetime=END.replace(hour=18)
-    )
+def test_start_date_and_end_date_are_the_dates_of_midnight_datetimes():
+    cfg = PipelineConfig(labels=LABELS, **DATETIMES)
 
     assert (cfg.start_date, cfg.end_date) == (date(2023, 1, 1), date(2023, 12, 31))
+
+
+@pytest.mark.parametrize(
+    "end_datetime",
+    [END.replace(hour=6), END.replace(microsecond=1)],
+    ids=["hours", "microsecond"],
+)
+def test_end_date_is_rounded_up_and_start_date_down(end_datetime):
+    cfg = PipelineConfig(
+        labels=LABELS, start_datetime=START.replace(hour=6), end_datetime=end_datetime
+    )
+
+    assert (cfg.start_date, cfg.end_date) == (date(2023, 1, 1), date(2024, 1, 1))
 
 
 def test_the_range_can_be_shorter_than_a_day():

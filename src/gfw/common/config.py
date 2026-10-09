@@ -11,7 +11,7 @@ Intended for use in CLI-based or programmatic pipeline setups.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from functools import cached_property
 from types import SimpleNamespace
 from typing import Any, Callable, Sequence, get_args, get_type_hints
@@ -113,8 +113,17 @@ class PipelineConfig:
 
     @property
     def end_date(self) -> date:
-        """Returns the date of :attr:`end_datetime`."""
-        return self.end_datetime.date()
+        """Returns the date of :attr:`end_datetime`, rounded up when it's not at midnight.
+
+        The end is exclusive, so rounding up keeps the time after midnight in the range:
+        an :attr:`end_datetime` of ``2024-01-08T06:00`` gives ``2024-01-09``. Together with
+        :attr:`start_date`, it gives the smallest range of whole days that contains the time range.
+        """
+        end_date = self.end_datetime.date()
+        if self.end_datetime.time() != time.min:  # Not at midnight.
+            end_date += timedelta(days=1)
+
+        return end_date
 
     @classmethod
     def from_namespace(cls, ns: SimpleNamespace, **kwargs: Any) -> PipelineConfig:

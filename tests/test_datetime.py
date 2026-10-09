@@ -5,6 +5,7 @@ import pytest
 from dateutil.relativedelta import relativedelta
 
 from gfw.common.datetime import (
+    DateRange,
     datetime_from_date,
     datetime_from_isoformat,
     datetime_from_string,
@@ -215,3 +216,15 @@ def test_split_datetime_ranges(start, end, step, expected_ranges):
     """Test splitting date ranges to list of tuple datetime."""
     result = split_datetime_range(start, end, step)
     assert result == expected_ranges
+
+
+def test_date_range_holds_its_dates():
+    date_range = DateRange(date(2024, 1, 1), date(2024, 1, 8))
+
+    assert (date_range.start, date_range.end) == (date(2024, 1, 1), date(2024, 1, 8))
+
+
+@pytest.mark.parametrize("end", [date(2024, 1, 1), date(2023, 12, 31)], ids=["empty", "reversed"])
+def test_date_range_end_must_be_after_start(end):
+    with pytest.raises(ValueError, match="must be after the start date"):
+        DateRange(date(2024, 1, 1), end)

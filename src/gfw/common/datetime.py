@@ -3,6 +3,7 @@
 import logging
 import re
 
+from dataclasses import dataclass
 from datetime import date, datetime, time, timezone, tzinfo
 from typing import Optional, Union
 
@@ -192,3 +193,30 @@ def split_datetime_range(
         ranges.append((current_start, current_end))
         current_start = current_end
     return ranges
+
+
+@dataclass(frozen=True)
+class DateRange:
+    """A range of dates, from :attr:`start` (inclusive) to :attr:`end` (exclusive).
+
+    Args:
+        start:
+            First date of the range (inclusive).
+
+        end:
+            Date the range ends at (exclusive). Must be after ``start``.
+
+    Raises:
+        ValueError:
+            If ``end`` is not after ``start``.
+    """
+
+    start: date
+    end: date
+
+    def __post_init__(self) -> None:
+        """Validates that the range is not empty."""
+        if self.end <= self.start:
+            raise ValueError(
+                f"The end date ({self.end}) must be after the start date ({self.start})."
+            )

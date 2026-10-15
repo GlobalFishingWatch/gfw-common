@@ -237,9 +237,8 @@ def test_dry_run_does_not_touch_any_table(caplog):
     [
         {"write_disposition": WriteDisposition.WRITE_APPEND},
         {"destination": f"{TABLE}$20240101"},
-        {"destination": None},
     ],
-    ids=["write_append", "partition_decorator", "no_destination"],
+    ids=["write_append", "partition_decorator"],
 )
 def test_ignored_when_it_does_not_apply(caplog, kwargs):
     helper = _helper(_table())
@@ -248,6 +247,15 @@ def test_ignored_when_it_does_not_apply(caplog, kwargs):
 
     _assert_not_recreated(helper)
     assert "allow_table_recreation only applies to WRITE_TRUNCATE" in caplog.text
+
+
+def test_ignored_without_destination():
+    helper = _helper(_table())
+
+    _run(helper, destination=None)
+
+    helper.client.get_table.assert_not_called()
+    _assert_not_recreated(helper)
 
 
 def test_default_is_not_to_recreate():

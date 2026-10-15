@@ -436,13 +436,14 @@ class BigQueryHelper:
                    together as the requested layout. If none of them is given, the table keeps
                    its layout and nothing is compared.
 
-                Otherwise the query runs as usual (a warning is logged if conditions 1 or 2
-                don't hold). When recreating, the query is written to ``<destination>_staging``
-                first, so the table is untouched if it fails; then the table is dropped, the
-                staging table is copied into it, and the staging table is deleted. The table is
-                missing only during the copy. Its IAM policy is copied over; if it has row-level
-                access policies or column policy tags, :class:`TableRecreationError` is raised
-                instead, as they would be lost. In dry-run mode, nothing is dropped or copied.
+                Otherwise the query runs as usual (a warning is logged if there is a destination
+                but conditions 1 or 2 don't hold). When recreating, the query is written to
+                ``<destination>_staging`` first, so the table is untouched if it fails; then the
+                table is dropped, the staging table is copied into it, and the staging table is
+                deleted. The table is missing only during the copy. Its IAM policy is copied
+                over; if it has row-level access policies or column policy tags,
+                :class:`TableRecreationError` is raised instead, as they would be lost. In
+                dry-run mode, nothing is dropped or copied.
 
             **kwargs:
                 Extra keyword arguments to be passed to :class:`job.QueryJobConfig` constructor.
@@ -453,10 +454,10 @@ class BigQueryHelper:
         """
         if (
             allow_table_recreation
+            and destination is not None
             and self._table_layout_differs(
                 destination, write_disposition, partition_field, partition_type, clustering_fields
             )
-            and destination is not None
         ):
             return self._run_query_recreating_table(
                 query_str,
@@ -522,18 +523,14 @@ class BigQueryHelper:
 
     def _table_layout_differs(
         self,
-        destination: Optional[str],
+        destination: str,
         write_disposition: str,
         partition_field: Optional[str],
         partition_type: str,
         clustering_fields: Optional[list[str]],
     ) -> bool:
         """Whether the destination must be recreated to get the requested layout."""
-        if (
-            destination is None
-            or write_disposition != WriteDisposition.WRITE_TRUNCATE
-            or "$" in destination
-        ):
+        if write_disposition != WriteDisposition.WRITE_TRUNCATE or "$" in destination:
             logger.warning(
                 "allow_table_recreation only applies to WRITE_TRUNCATE into a whole table. "
                 "Ignoring it."
@@ -548,13 +545,21 @@ class BigQueryHelper:
         except NotFound:
             return False
 
-        partitioning = table.time_partitioning
-        actual_partitioning = (partitioning.type_, partitioning.field) if partitioning else None
-        requested_partitioning = (partition_type, partition_field) if partition_field else None
+        actual_partitioning = None
+        if table.time_partitioning is not None:
+            actual_partitioning = (table.time_partitioning.type_, table.time_partitioning.field)
 
-        return actual_partitioning != requested_partitioning or list(
-            table.clustering_fields or []
-        ) != list(clustering_fields or [])
+        requested_partitioning = None
+        if partition_field is not None:
+            requested_partitioning = (partition_type, partition_field)
+
+        actual_clustering = list(table.clustering_fields or [])
+        requested_clustering = list(clustering_fields or [])
+
+        return (
+            actual_partitioning != requested_partitioning
+            or actual_clustering != requested_clustering
+        )
 
     def _run_query_recreating_table(
         self,

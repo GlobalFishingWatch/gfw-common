@@ -154,6 +154,10 @@ class BigQueryHelper:
             client = mock.create_autospec(
                 bigquery.Client, project=project, instance=True, **kwargs
             )
+            # Not in the spec, as it's set in Client.__init__. Used to list row access policies:
+            # a mocked table has none.
+            client._connection = mock.MagicMock()
+            client._connection.api_request.return_value = {}
             return client
 
         if mocked:
@@ -770,8 +774,12 @@ class BigQueryHelper:
         return query
 
 
-def _has_policy_tags(fields: List[bigquery.SchemaField]) -> bool:
+def _has_policy_tags(fields: List[Any]) -> bool:
     for field in fields:
+        # Fields can be dicts, like the schemas given to run_query (e.g. on a mocked table).
+        if isinstance(field, dict):
+            field = bigquery.SchemaField.from_api_repr(field)
+
         if field.policy_tags is not None and field.policy_tags.names:
             return True
         if _has_policy_tags(list(field.fields)):

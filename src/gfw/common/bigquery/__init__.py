@@ -16,10 +16,11 @@ Classes
    SingleSourceViewConfig
    TableConfig
    TableDescription
+   TableRecreationError
    ViewConfig
 """
 
-from .helper import BigQueryHelper, QueryResult
+from .helper import BigQueryHelper, QueryResult, TableRecreationError
 from .schema import Schema
 from .table_config import TableConfig
 from .table_description import TableDescription
@@ -33,5 +34,6 @@ __all__ = [
     "SingleSourceViewConfig",
     "TableConfig",
     "TableDescription",
+    "TableRecreationError",
     "ViewConfig",
 ]

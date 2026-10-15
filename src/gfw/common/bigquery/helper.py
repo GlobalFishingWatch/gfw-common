@@ -10,6 +10,7 @@ from unittest import mock
 
 import sqlparse
 
+from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 from google.cloud.bigquery import WriteDisposition
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
@@ -18,6 +19,10 @@ from .schema import Schema
 
 
 logger = logging.getLogger(__name__)
+
+
+class TableRecreationError(Exception):
+    """Raised when a table can't be safely dropped and recreated."""
 
 
 @dataclass
@@ -376,6 +381,7 @@ class BigQueryHelper:
         partition_type: str = bigquery.table.TimePartitioningType.DAY,
         schema: Optional[List[Dict[str, str]]] = None,
         description: Optional[str] = None,
+        allow_table_recreation: bool = False,
         **kwargs: Any,
     ) -> QueryResult:
         """Runs a query.
@@ -417,6 +423,28 @@ class BigQueryHelper:
             description:
                 Description to set on the destination table once the query finishes.
 
+            allow_table_recreation:
+                Allows dropping and recreating the destination table to change its partitioning
+                or clustering, which BigQuery can't change on an existing table (the job fails,
+                with ``WRITE_TRUNCATE`` too). It's a permission, not a request: the table is only
+                recreated when all of these hold:
+
+                1. ``write_disposition`` is ``WRITE_TRUNCATE``;
+                2. ``destination`` is a whole table, not a partition (``table$20240101``);
+                3. the table exists and its partitioning or clustering differ from the given
+                   ``partition_field``, ``partition_type`` and ``clustering_fields``, taken
+                   together as the requested layout. If none of them is given, the table keeps
+                   its layout and nothing is compared.
+
+                Otherwise the query runs as usual (a warning is logged if there is a destination
+                but conditions 1 or 2 don't hold). When recreating, the query is written to
+                ``<destination>_staging`` first, so the table is untouched if it fails; then the
+                table is dropped, the staging table is copied into it, and the staging table is
+                deleted. The table is missing only during the copy. Its IAM policy is copied
+                over; if it has row-level access policies or column policy tags,
+                :class:`TableRecreationError` is raised instead, as they would be lost. In
+                dry-run mode, nothing is dropped or copied.
+
             **kwargs:
                 Extra keyword arguments to be passed to :class:`job.QueryJobConfig` constructor.
 
@@ -424,6 +452,26 @@ class BigQueryHelper:
             An instance wrapping the BigQuery QueryJob, providing convenient access
             to the query results and metadata.
         """
+        if (
+            allow_table_recreation
+            and destination is not None
+            and self._table_layout_differs(
+                destination, write_disposition, partition_field, partition_type, clustering_fields
+            )
+        ):
+            return self._run_query_recreating_table(
+                query_str,
+                destination=destination,
+                clustering_fields=clustering_fields,
+                session_id=session_id,
+                labels=labels,
+                partition_field=partition_field,
+                partition_type=partition_type,
+                schema=schema,
+                description=description,
+                **kwargs,
+            )
+
         connection_properties = []
 
         if session_id is not None:
@@ -472,6 +520,124 @@ class BigQueryHelper:
                 )
 
         return QueryResult(query_job, row_iterator)
+
+    def _table_layout_differs(
+        self,
+        destination: str,
+        write_disposition: str,
+        partition_field: Optional[str],
+        partition_type: str,
+        clustering_fields: Optional[list[str]],
+    ) -> bool:
+        """Whether the destination must be recreated to get the requested layout."""
+        if write_disposition != WriteDisposition.WRITE_TRUNCATE or "$" in destination:
+            logger.warning(
+                "allow_table_recreation only applies to WRITE_TRUNCATE into a whole table. "
+                "Ignoring it."
+            )
+            return False
+
+        if partition_field is None and clustering_fields is None:
+            return False
+
+        try:
+            table = self.client.get_table(self._create_table_reference(destination))
+        except NotFound:
+            return False
+
+        actual_partitioning = None
+        if table.time_partitioning is not None:
+            actual_partitioning = (table.time_partitioning.type_, table.time_partitioning.field)
+
+        requested_partitioning = None
+        if partition_field is not None:
+            requested_partitioning = (partition_type, partition_field)
+
+        actual_clustering = list(table.clustering_fields or [])
+        requested_clustering = list(clustering_fields or [])
+
+        return (
+            actual_partitioning != requested_partitioning
+            or actual_clustering != requested_clustering
+        )
+
+    def _run_query_recreating_table(
+        self,
+        query_str: str,
+        destination: str,
+        schema: Optional[List[Dict[str, str]]] = None,
+        description: Optional[str] = None,
+        labels: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
+    ) -> QueryResult:
+        """Runs the query into a staging table and replaces ``destination`` with a copy of it."""
+        if self._dry_run:
+            logger.warning(
+                f"{destination} would be recreated with a new partitioning or clustering."
+            )
+            # Without a destination, the layout arguments in kwargs are ignored.
+            return self.run_query(query_str, labels=labels, **kwargs)
+
+        table_ref = self._create_table_reference(destination)
+        staging = f"{destination}_staging"
+        staging_ref = self._create_table_reference(staging)
+
+        self._check_table_can_be_recreated(self.client.get_table(table_ref))
+        iam_policy = self.client.get_iam_policy(table_ref)
+
+        logger.warning(
+            f"The partitioning or clustering of {destination} differs from the requested one. "
+            f"Recreating it through {staging}..."
+        )
+        self.client.delete_table(staging_ref, not_found_ok=True)
+        result = self.run_query(
+            query_str,
+            destination=staging,
+            write_disposition=WriteDisposition.WRITE_TRUNCATE,
+            schema=schema,
+            description=description,
+            labels=labels,
+            **kwargs,
+        )
+
+        self.client.delete_table(table_ref)
+        self.client.copy_table(staging_ref, table_ref).result()
+        self.client.delete_table(staging_ref)
+
+        if iam_policy.bindings:
+            new_policy = self.client.get_iam_policy(table_ref)
+            new_policy.bindings = iam_policy.bindings
+            self.client.set_iam_policy(table_ref, new_policy)
+
+        self.update_table_metadata(
+            destination, schema=schema, description=description, labels=labels
+        )
+
+        return result
+
+    def _check_table_can_be_recreated(self, table: bigquery.table.Table) -> None:
+        """Raises if dropping the table would lose policies that can't be copied over."""
+        if _has_policy_tags(table.schema):
+            raise TableRecreationError(
+                f"{table.full_table_id} has column policy tags, which recreating it would lose."
+            )
+
+        if self._list_row_access_policies(table):
+            raise TableRecreationError(
+                f"{table.full_table_id} has row-level access policies, "
+                "which recreating it would lose."
+            )
+
+    def _list_row_access_policies(self, table: bigquery.table.Table) -> List[Dict[str, Any]]:
+        # The client library has no method for this, so call the REST API.
+        path = (
+            f"/projects/{table.project}/datasets/{table.dataset_id}"
+            f"/tables/{table.table_id}/rowAccessPolicies"
+        )
+        response = self.client._connection.api_request(  # type: ignore[no-untyped-call]
+            method="GET", path=path
+        )
+        return response.get("rowAccessPolicies", [])
 
     def update_table_metadata(
         self,
@@ -602,3 +768,12 @@ class BigQueryHelper:
         query = sql_template.render(kwargs)
 
         return query
+
+
+def _has_policy_tags(fields: List[bigquery.SchemaField]) -> bool:
+    for field in fields:
+        if field.policy_tags is not None and field.policy_tags.names:
+            return True
+        if _has_policy_tags(list(field.fields)):
+            return True
+    return False

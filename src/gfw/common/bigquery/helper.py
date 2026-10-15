@@ -575,10 +575,8 @@ class BigQueryHelper:
             logger.warning(
                 f"{destination} would be recreated with a new partitioning or clustering."
             )
-            session_id = kwargs.pop("session_id", None)
-            for key in ("clustering_fields", "partition_field", "partition_type"):
-                kwargs.pop(key, None)
-            return self.run_query(query_str, session_id=session_id, labels=labels, **kwargs)
+            # Without a destination, the layout arguments in kwargs are ignored.
+            return self.run_query(query_str, labels=labels, **kwargs)
 
         table_ref = self._create_table_reference(destination)
         staging = f"{destination}_staging"

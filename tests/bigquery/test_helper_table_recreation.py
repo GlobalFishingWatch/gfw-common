@@ -13,6 +13,7 @@ from google.cloud import bigquery
 from google.cloud.bigquery import WriteDisposition
 
 from gfw.common.bigquery import BigQueryHelper, TableRecreationError
+from gfw.common.bigquery.helper import _has_policy_tags
 
 
 TABLE = "test.dataset.output"
@@ -279,3 +280,66 @@ def test_list_row_access_policies_calls_the_rest_api(mocker):
     helper.client._connection.api_request.assert_called_once_with(
         method="GET", path="/projects/test/datasets/dataset/tables/output/rowAccessPolicies"
     )
+
+
+def test_mocked_helper_can_recreate_a_table(mocker):
+    """Pipelines run with mocked clients for development: recreation must work with them too."""
+    mocker.stopall()  # Undo the autouse patch: use the mocked client's row access policies.
+    helper = BigQueryHelper.mocked(project="test")
+
+    helper.run_query(
+        "SELECT 1",
+        destination=TABLE,
+        write_disposition=WriteDisposition.WRITE_TRUNCATE,
+        allow_table_recreation=True,
+        **LAYOUT,
+    )
+
+    helper.client.copy_table.assert_called_once()
+
+
+def test_mocked_helper_can_recreate_tables_one_after_another(mocker):
+    """Recreating tables one after another works with a mocked helper.
+
+    A mocked client returns the same table for every get_table, and run_query sets the schema on
+    it as dicts, so the policy tags check must handle them.
+    """
+    mocker.stopall()
+    helper = BigQueryHelper.mocked(project="test")
+    schema = [{"name": "id", "type": "STRING", "description": "The id."}]
+
+    for table in (TABLE, f"{TABLE}_2"):
+        helper.run_query(
+            "SELECT 1",
+            destination=table,
+            write_disposition=WriteDisposition.WRITE_TRUNCATE,
+            allow_table_recreation=True,
+            schema=schema,
+            **LAYOUT,
+        )
+
+    assert helper.client.copy_table.call_count == 2
+
+
+@pytest.mark.parametrize(
+    "schema, expected",
+    [
+        ([{"name": "id", "type": "STRING"}], False),
+        ([{"name": "id", "type": "STRING", "policyTags": {"names": ["projects/p/tag"]}}], True),
+        (
+            [
+                {
+                    "name": "record",
+                    "type": "RECORD",
+                    "fields": [
+                        {"name": "id", "type": "STRING", "policyTags": {"names": ["p/tag"]}}
+                    ],
+                }
+            ],
+            True,
+        ),
+    ],
+    ids=["no_tags", "tags", "nested_tags"],
+)
+def test_policy_tags_are_found_in_a_dict_schema(schema, expected):
+    assert _has_policy_tags(schema) is expected

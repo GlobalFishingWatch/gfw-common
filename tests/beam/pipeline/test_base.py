@@ -153,3 +153,35 @@ def test_pipeline_options_missing_project():
     pipeline = Pipeline()
     with pytest.raises(ValueError, match="You must configure a project"):
         _ = pipeline.pipeline_options
+
+
+def _pipeline_options(**options):
+    return Pipeline(project="my-project", **options).pipeline_options.get_all_options()
+
+
+@pytest.mark.parametrize(
+    "runner",
+    [
+        "DataflowRunner",
+        "dataflow",
+        "apache_beam.runners.dataflow.dataflow_runner.DataflowRunner",
+    ],
+)
+def test_setup_file_is_set_on_dataflow_without_container_image(runner):
+    assert _pipeline_options(runner=runner)["setup_file"] == "./setup.py"
+
+
+def test_setup_file_is_not_set_on_dataflow_with_container_image():
+    options = _pipeline_options(runner="DataflowRunner", sdk_container_image="image:tag")
+    assert options["setup_file"] is None
+
+
+@pytest.mark.parametrize("runner", ["DirectRunner", "PrismRunner"])
+def test_setup_file_is_not_set_on_local_runners(runner):
+    """Building the package on every local run only slows it down."""
+    assert _pipeline_options(runner=runner)["setup_file"] is None
+
+
+def test_setup_file_given_is_kept():
+    options = _pipeline_options(runner="DataflowRunner", setup_file="./other/setup.py")
+    assert options["setup_file"] == "./other/setup.py"

@@ -115,8 +115,13 @@ class Pipeline:
         if options.get("project") is None:
             raise ValueError("You must configure a project to run a Beam pipeline.")
 
-        if DATAFLOW_SDK_CONTAINER_IMAGE not in options:
-            options["setup_file"] = "./setup.py"
+        # Dataflow workers need the package: from the container image or built from setup.py.
+        # Other runners run locally, where building it only slows every run down.
+        if (
+            _is_dataflow_runner(options.get("runner"))
+            and DATAFLOW_SDK_CONTAINER_IMAGE not in options
+        ):
+            options.setdefault("setup_file", "./setup.py")
 
         logger.info("Beam options to use:")
         logger.info(json.dumps(dict(options), indent=4))
@@ -219,3 +224,10 @@ class Pipeline:
             "subnetwork": "regions/us-east1/subnetworks/gfw-internal-us-east1",
             "network": "gfw-internal-network",
         }
+
+
+def _is_dataflow_runner(runner: Any) -> bool:
+    # Beam accepts the runner's name with or without the "Runner" suffix, in any case, or its
+    # full class path.
+    name = str(runner).rsplit(".", 1)[-1].lower()
+    return name in ("dataflow", "dataflowrunner")

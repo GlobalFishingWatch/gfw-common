@@ -1,6 +1,6 @@
 # Build system requirements.
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=69"]  # Ships py.typed automatically (PEP 561).
 build-backend = "setuptools.build_meta"
 
 

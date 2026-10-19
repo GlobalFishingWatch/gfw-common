@@ -5,6 +5,7 @@ import pytest
 
 from gfw.common.beam.pipeline import Pipeline
 from gfw.common.beam.pipeline.hooks import create_view_hook, delete_events_hook
+from gfw.common.bigquery.helper import BigQueryHelper
 
 
 @pytest.fixture
@@ -39,6 +40,17 @@ def test_delete_events_hook(table_config):
 
     pipeline = Pipeline(project="test-project")
     hook(pipeline)
+
+
+def test_delete_events_hook_labels_the_query_job(table_config, monkeypatch):
+    calls = []
+    monkeypatch.setattr(BigQueryHelper, "run_query", lambda self, **kwargs: calls.append(kwargs))
+    labels = {"project": "ais", "stage": "port_state_transitions"}
+
+    hook = delete_events_hook(table_config, start_date=date(2024, 1, 1), labels=labels, mock=True)
+    hook(Pipeline(project="test-project"))
+
+    assert calls[0]["labels"] == labels
 
 
 def test_create_view_hook(view_config):

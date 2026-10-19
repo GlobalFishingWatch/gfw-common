@@ -53,6 +53,7 @@ def delete_events_hook(
     table_config: TableConfig,
     start_date: date,
     end_date: Optional[date] = None,
+    labels: Optional[dict[str, str]] = None,
     mock: bool = False,
 ) -> Callable[[Pipeline], None]:
     """Returns a hook function to delete events from a BigQuery table.
@@ -68,6 +69,9 @@ def delete_events_hook(
         end_date:
             Date up to which events should be deleted (exclusive).
 
+        labels:
+            Labels to attach to the delete query job, e.g., for cost tracking.
+
         mock:
             If True, uses a mocked BQ client instead of performing real operations.
 
@@ -82,7 +86,7 @@ def delete_events_hook(
         delete_query = table_config.delete_query(start_date=start_date, end_date=end_date)
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
         bq_client = BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
-        bq_client.run_query(query_str=delete_query)
+        bq_client.run_query(query_str=delete_query, labels=labels)
         logger.info("Done.")
 
     return _hook

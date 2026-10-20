@@ -24,20 +24,16 @@ logger = logging.getLogger(__name__)
 
 
 def _bigquery_helper(
-    p: Pipeline, bq_client_factory: Optional[Callable[..., bigquery.Client]]
+    p: Pipeline, bq_client_factory: Callable[..., bigquery.Client]
 ) -> BigQueryHelper:
-    client_factory = bq_client_factory
-    if client_factory is None:
-        client_factory = BigQueryHelper.get_client_factory()
-
-    return BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
+    return BigQueryHelper(client_factory=bq_client_factory, project=p.cloud_options.project)
 
 
 def create_view_hook(
     view_config: ViewConfig,
     *,
     labels: dict[str, str],
-    bq_client_factory: Optional[Callable[..., bigquery.Client]] = None,
+    bq_client_factory: Callable[..., bigquery.Client] = bigquery.client.Client,
 ) -> Callable[[Pipeline], None]:
     """Returns a hook function to create a BigQuery view.
 
@@ -73,7 +69,7 @@ def delete_events_hook(
     end_date: Optional[date] = None,
     *,
     labels: dict[str, str],
-    bq_client_factory: Optional[Callable[..., bigquery.Client]] = None,
+    bq_client_factory: Callable[..., bigquery.Client] = bigquery.client.Client,
 ) -> Callable[[Pipeline], None]:
     """Returns a hook function to delete events from a BigQuery table.
 
@@ -115,7 +111,7 @@ def create_table_hook(
     table_config: TableConfig,
     *,
     labels: dict[str, str],
-    bq_client_factory: Optional[Callable[..., bigquery.Client]] = None,
+    bq_client_factory: Callable[..., bigquery.Client] = bigquery.client.Client,
 ) -> Callable[[Pipeline], None]:
     """Returns a hook function to create a BigQuery table.
 
@@ -151,7 +147,7 @@ def update_table_metadata_hook(
     table_config: TableConfig,
     *,
     labels: dict[str, str],
-    bq_client_factory: Optional[Callable[..., bigquery.Client]] = None,
+    bq_client_factory: Callable[..., bigquery.Client] = bigquery.client.Client,
 ) -> Callable[[Pipeline], None]:
     """Returns a hook function to set a BigQuery table's description and labels.
 

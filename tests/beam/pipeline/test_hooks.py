@@ -145,21 +145,6 @@ def test_update_table_metadata_hook_without_description_only_sets_the_labels(
     assert fields == ["labels"]
 
 
-def test_hooks_default_to_a_real_bigquery_client(table_config, pipeline, monkeypatch):
-    requested = []
-    original_get_client_factory = BigQueryHelper.get_client_factory
-
-    def get_client_factory(mocked=False):
-        requested.append(mocked)
-        return original_get_client_factory(mocked=True)
-
-    monkeypatch.setattr(BigQueryHelper, "get_client_factory", get_client_factory)
-
-    create_table_hook(table_config, labels=LABELS)(pipeline)
-
-    assert requested == [False]
-
-
 @pytest.mark.parametrize(
     "make_hook", [create_view_hook, create_table_hook, update_table_metadata_hook]
 )

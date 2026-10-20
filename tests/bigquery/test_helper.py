@@ -146,6 +146,33 @@ def test_create_view_without_description_renders_empty_options_clause():
     assert 'OPTIONS(description="""""")' in query
 
 
+def test_create_view_with_labels_sets_them_on_the_view_and_the_ddl_job():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.project = "test"
+    helper.client.query.return_value = mock.MagicMock()
+    labels = {"project": "ais", "stage": "raw_gaps"}
+
+    helper.create_view("my_dataset.my_view", "SELECT 1", labels=labels)
+
+    query = helper.client.query.call_args[0][0]
+    assert (
+        'OPTIONS(description="""""", labels=[("project", "ais"), ("stage", "raw_gaps")])' in query
+    )
+    assert helper.client.query.call_args[1]["job_config"].labels == labels
+
+
+def test_create_view_without_labels_leaves_them_out_of_the_options_clause():
+    helper = BigQueryHelper.mocked(project="test")
+    helper.client.project = "test"
+    helper.client.query.return_value = mock.MagicMock()
+
+    helper.create_view("my_dataset.my_view", "SELECT 1")
+
+    query = helper.client.query.call_args[0][0]
+    assert "labels" not in query
+    assert helper.client.query.call_args[1]["job_config"].labels == {}
+
+
 def test_create_view_with_schema_orders_column_list_by_dry_run_not_schema_arg():
     helper = BigQueryHelper.mocked(project="test")
     helper.client.project = "test"

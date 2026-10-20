@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 def create_view_hook(
     view_config: ViewConfig,
+    *,
+    labels: dict[str, str],
     mock: bool = False,
 ) -> Callable[[Pipeline], None]:
     """Returns a hook function to create a BigQuery view.
@@ -30,6 +32,10 @@ def create_view_hook(
     Args:
         view_config:
             :class:`~gfw.common.bigquery.ViewConfig` instance containing view details.
+
+        labels:
+            Labels to set on the view and on the query job that creates it,
+            e.g., for cost tracking.
 
         mock:
             If True, uses a mocked BQ client instead of performing real operations.
@@ -43,7 +49,7 @@ def create_view_hook(
         logger.info(f"Creating view: {view_config.view_id}...")
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
         bq_client = BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
-        bq_client.create_view(**view_config.as_create_view_params())
+        bq_client.create_view(**view_config.as_create_view_params(), labels=labels)
         logger.info("Done.")
 
     return _hook
@@ -53,6 +59,8 @@ def delete_events_hook(
     table_config: TableConfig,
     start_date: date,
     end_date: Optional[date] = None,
+    *,
+    labels: dict[str, str],
     mock: bool = False,
 ) -> Callable[[Pipeline], None]:
     """Returns a hook function to delete events from a BigQuery table.
@@ -68,6 +76,9 @@ def delete_events_hook(
         end_date:
             Date up to which events should be deleted (exclusive).
 
+        labels:
+            Labels to attach to the delete query job, e.g., for cost tracking.
+
         mock:
             If True, uses a mocked BQ client instead of performing real operations.
 
@@ -82,7 +93,7 @@ def delete_events_hook(
         delete_query = table_config.delete_query(start_date=start_date, end_date=end_date)
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
         bq_client = BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
-        bq_client.run_query(query_str=delete_query)
+        bq_client.run_query(query_str=delete_query, labels=labels)
         logger.info("Done.")
 
     return _hook
@@ -90,6 +101,8 @@ def delete_events_hook(
 
 def create_table_hook(
     table_config: TableConfig,
+    *,
+    labels: dict[str, str],
     mock: bool = False,
 ) -> Callable[[Pipeline], None]:
     """Returns a hook function to create a BigQuery table.
@@ -97,6 +110,10 @@ def create_table_hook(
     Args:
         table_config:
             :class:`~gfw.common.bigquery.TableConfig` instance containing view details.
+
+        labels:
+            Labels to set on the table when it's created, e.g., for cost tracking.
+            An existing table keeps its labels.
 
         mock:
             If True, uses a mocked BQ client instead of performing real operations.
@@ -112,7 +129,7 @@ def create_table_hook(
         client_factory = BigQueryHelper.get_client_factory(mocked=mock)
         bq_client = BigQueryHelper(client_factory=client_factory, project=p.cloud_options.project)
         params = table_config.to_bigquery_params()
-        bq_client.create_table(**params, exists_ok=True)
+        bq_client.create_table(**params, labels=labels, exists_ok=True)
         logger.info("Done.")
 
     return _hook

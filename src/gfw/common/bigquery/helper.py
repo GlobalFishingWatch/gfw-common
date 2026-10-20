@@ -313,6 +313,7 @@ class BigQueryHelper:
         view_query: str,
         description: str = "",
         schema: Optional[List[Dict[str, Any]]] = None,
+        labels: Optional[dict[str, str]] = None,
     ) -> None:
         """Creates or replaces a BigQuery view.
 
@@ -348,6 +349,10 @@ class BigQueryHelper:
                 metadata call -- to learn its real output order from BigQuery
                 itself, and builds the column list in that order. The view
                 itself is still created by a single, atomic DDL statement.
+
+            labels:
+                Dictionary of labels to audit costs, set on the view and on the
+                DDL job that creates it.
         """
         column_list = ""
         if schema:
@@ -359,13 +364,19 @@ class BigQueryHelper:
             ]
             column_list = f" ({', '.join(fields)})"
 
-        options_clause = f' OPTIONS(description="""{description}""")'
+        labels = labels or {}
+        options = [f'description="""{description}"""']
+        if labels:
+            label_pairs = ", ".join(f'("{k}", "{v}")' for k, v in labels.items())
+            options.append(f"labels=[{label_pairs}]")
+
+        options_clause = f" OPTIONS({', '.join(options)})"
 
         ddl = f"""
         CREATE OR REPLACE VIEW `{view_id}`{column_list}{options_clause} AS
         {view_query}
         """
-        self.client.query(ddl).result()
+        self.client.query(ddl, job_config=bigquery.QueryJobConfig(labels=labels)).result()
 
     def _dry_run_output_field_names(self, query: str) -> List[str]:
         """Returns the output column names of `query`, in order, via a dry run."""

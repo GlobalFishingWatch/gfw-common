@@ -50,10 +50,8 @@ def create_view_hook(
 
     def _hook(p: Pipeline) -> None:
         logger.info(f"Creating view: {view_config.view_id}...")
-        bq_client = BigQueryHelper(
-            client_factory=bq_client_factory, project=p.cloud_options.project
-        )
-        bq_client.create_view(**view_config.as_create_view_params(), labels=labels)
+        bq = BigQueryHelper(client_factory=bq_client_factory, project=p.cloud_options.project)
+        bq.create_view(**view_config.as_create_view_params(), labels=labels)
         logger.info("Done.")
 
     return _hook
@@ -96,10 +94,8 @@ def delete_events_hook(
         table_id = table_config.table_id
         logger.info(f"Deleting events from '{table_id}' after '{start_date}'...")
         delete_query = table_config.delete_query(start_date=start_date, end_date=end_date)
-        bq_client = BigQueryHelper(
-            client_factory=bq_client_factory, project=p.cloud_options.project
-        )
-        bq_client.run_query(query_str=delete_query, labels=labels)
+        bq = BigQueryHelper(client_factory=bq_client_factory, project=p.cloud_options.project)
+        bq.run_query(query_str=delete_query, labels=labels)
         logger.info("Done.")
 
     return _hook
@@ -133,11 +129,9 @@ def create_table_hook(
     def _hook(p: Pipeline) -> None:
         view_id = table_config.table_id
         logger.info(f"Creating table: {view_id}...")
-        bq_client = BigQueryHelper(
-            client_factory=bq_client_factory, project=p.cloud_options.project
-        )
+        bq = BigQueryHelper(client_factory=bq_client_factory, project=p.cloud_options.project)
         params = table_config.to_bigquery_params()
-        bq_client.create_table(**params, labels=labels, exists_ok=True)
+        bq.create_table(**params, labels=labels, exists_ok=True)
         logger.info("Done.")
 
     return _hook
@@ -182,10 +176,8 @@ def update_table_metadata_hook(
         if table_config.description is not None:
             description = table_config.description.render()
 
-        bq_client = BigQueryHelper(
-            client_factory=bq_client_factory, project=p.cloud_options.project
-        )
-        bq_client.update_table_metadata(table_id, description=description, labels=labels)
+        bq = BigQueryHelper(client_factory=bq_client_factory, project=p.cloud_options.project)
+        bq.update_table_metadata(table_id, description=description, labels=labels)
         logger.info("Done.")
 
     return _hook

@@ -28,6 +28,7 @@ import sqlparse
 from jinja2 import Environment
 
 from gfw.common.jinja2 import EnvironmentLoader
+from gfw.common.resources import top_level_package
 
 
 logger = logging.getLogger(__name__)
@@ -110,10 +111,7 @@ class Query(ABC):
         Returns:
             The name of the top-level package as a string.
         """
-        module = self.__class__.__module__
-        package = module.split(".")[0]
-
-        return package
+        return top_level_package(type(self))
 
     @cached_property
     def jinja_env(self) -> Environment:

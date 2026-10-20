@@ -34,6 +34,7 @@ Modules
    gfw.common.jinja2
    gfw.common.logging
    gfw.common.query
+   gfw.common.resources
    gfw.common.serialization
    gfw.common.sorting
    gfw.common.strings

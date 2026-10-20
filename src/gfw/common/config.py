@@ -24,6 +24,7 @@ from jinja2 import Environment
 
 from gfw.common.datetime import datetime_from_isoformat
 from gfw.common.jinja2 import EnvironmentLoader
+from gfw.common.resources import top_level_package
 
 
 ERROR_ISOFORMAT = "{} must be a {} in ISO format. Got: {!r}."
@@ -121,10 +122,7 @@ class PipelineConfig:
     @cached_property
     def top_level_package(self) -> str:
         """Returns the top-level package from this module."""
-        module = self.__class__.__module__
-        package = module.split(".")[0]
-
-        return package
+        return top_level_package(type(self))
 
     @cached_property
     def jinja_env(self) -> Environment:

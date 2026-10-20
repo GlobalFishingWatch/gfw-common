@@ -3,14 +3,17 @@
 Defines the TableConfig dataclass with common BigQuery table parameters,
 including schema, partitioning, clustering, and optional description support.
 
-Subclasses must implement the schema property.
+The schema is read from :attr:`TableConfig.schema_file`, in the package of the subclass.
+Subclasses override :attr:`TableConfig.schema` to adjust it.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 from datetime import date
 from functools import cached_property
 from typing import Any, Optional, Tuple
+
+from gfw.common.resources import SCHEMAS_FOLDER, load_schema, top_level_package
 
 from .table_description import TableDescription
 
@@ -19,11 +22,14 @@ from .table_description import TableDescription
 class TableConfig(ABC):
     """Abstract base class for BigQuery table configuration."""
 
+    SCHEMAS_FOLDER = SCHEMAS_FOLDER
+    """Folder of :attr:`schema_file`, relative to the top-level package of the subclass."""
+
     table_id: str
     """Fully qualified BigQuery table ID."""
 
     schema_file: str
-    """Path to the file defining the schema."""
+    """Name of the JSON file defining the schema, in :attr:`SCHEMAS_FOLDER`."""
 
     description: Optional[TableDescription] = None
     """Optional :class:`~gfw.common.bigquery.TableDescription` instance for the table metadata."""
@@ -37,10 +43,15 @@ class TableConfig(ABC):
     clustering_fields: Optional[Tuple[str, ...]] = None
     """Optional tuple of fields for clustering."""
 
-    @abstractmethod
     @cached_property
     def schema(self) -> list[dict[str, str]]:
-        """Returns the schema of the table."""
+        """Returns the schema of the table.
+
+        Reads :attr:`schema_file` from :attr:`SCHEMAS_FOLDER`, in the top-level package of the
+        subclass (e.g. ``pipe_gaps/assets/schemas``). Override this to adjust the schema,
+        starting from ``super().schema``.
+        """
+        return load_schema(top_level_package(type(self)), self.schema_file, self.SCHEMAS_FOLDER)
 
     def to_bigquery_params(self, include_description: bool = True) -> dict[str, Any]:
         """Returns parameters for BigQuery table creation or write operations.

@@ -29,6 +29,28 @@ def test_schema_property(config):
     assert config.schema == [{"name": "id", "type": "STRING"}]
 
 
+class DefaultSchemaTableConfig(TableConfig):
+    pass
+
+
+def test_schema_defaults_to_the_schema_file_in_the_package_of_the_subclass():
+    config = DefaultSchemaTableConfig(table_id="p.d.t", schema_file="normalize-schema.json")
+
+    assert config.schema[0]["name"] == "msgid"
+
+
+def test_schema_can_be_adjusted_starting_from_the_default():
+    class AdjustedTableConfig(TableConfig):
+        @property
+        def schema(self):
+            return [*super().schema, {"name": "extra", "type": "STRING"}]
+
+    config = AdjustedTableConfig(table_id="p.d.t", schema_file="normalize-schema.json")
+
+    assert config.schema[0]["name"] == "msgid"
+    assert config.schema[-1] == {"name": "extra", "type": "STRING"}
+
+
 def test_to_bigquery_params_with_description(config):
     result = config.to_bigquery_params(include_description=True)
 

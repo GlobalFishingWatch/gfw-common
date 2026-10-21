@@ -28,6 +28,7 @@ Classes
    ReadFromJson
    ReadMatchingAvroFiles
    SampleAndLogElements
+   ShrinkableRecord
    WriteToBigQueryWrapper
    WriteToJson
    WritePartitionedParquet
@@ -58,6 +59,7 @@ from .core import GroupBy, SampleAndLogElements
 from .json import ReadFromJson, WriteToJson
 from .parquet import FakeParquetSink, HivePartitionConfig, ParquetSink, WritePartitionedParquet
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
+from .shrinkable_record import ShrinkableRecord
 from .windows import ApplySlidingWindows
 
 
@@ -75,6 +77,7 @@ __all__ = [
     "ReadFromJson",
     "ReadMatchingAvroFiles",
     "SampleAndLogElements",
+    "ShrinkableRecord",
     "WritePartitionedParquet",
     "WriteToBigQueryWrapper",
     "WriteToJson",

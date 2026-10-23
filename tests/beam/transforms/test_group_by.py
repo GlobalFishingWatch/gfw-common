@@ -16,6 +16,9 @@ from gfw.common.beam.transforms import GroupBy
         pytest.param(
             ["city", "country"], "Users", "GroupUsersByCityAndCountry", id="with-elements-label"
         ),
+        pytest.param(
+            ["ssvid", "vessel_id"], "", "GroupBySsvidAndVesselId", id="key-with-underscores"
+        ),
     ],
 )
 def test_groupby_label(keys, custom_label, expected_label):

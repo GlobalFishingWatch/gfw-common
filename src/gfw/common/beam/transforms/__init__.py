@@ -28,6 +28,7 @@ Classes
    ReadFromJson
    ReadMatchingAvroFiles
    SampleAndLogElements
+   ShrinkGroupBy
    WriteToBigQueryWrapper
    WriteToJson
    WritePartitionedParquet
@@ -54,7 +55,7 @@ from .bigquery import (
     ReadFromBigQuery,
     WriteToBigQueryWrapper,
 )
-from .core import GroupBy, SampleAndLogElements
+from .core import GroupBy, SampleAndLogElements, ShrinkGroupBy
 from .json import ReadFromJson, WriteToJson
 from .parquet import FakeParquetSink, HivePartitionConfig, ParquetSink, WritePartitionedParquet
 from .pubsub import FakeReadFromPubSub, ReadAndDecodeFromPubSub
@@ -75,6 +76,7 @@ __all__ = [
     "ReadFromJson",
     "ReadMatchingAvroFiles",
     "SampleAndLogElements",
+    "ShrinkGroupBy",
     "WritePartitionedParquet",
     "WriteToBigQueryWrapper",
     "WriteToJson",

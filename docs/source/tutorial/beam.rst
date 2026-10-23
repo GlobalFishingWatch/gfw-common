@@ -165,4 +165,5 @@ around the built-in Ptransforms of Apache Beam.
 * :class:`ReadFromBigQuery`
 * :class:`ReadMatchingAvroFiles`
 * :class:`SampleAndLogElements`
+* :class:`ShrinkGroupBy`
 * :class:`WriteToPartitionedBigQuery`

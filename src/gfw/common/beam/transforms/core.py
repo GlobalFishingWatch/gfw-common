@@ -75,7 +75,8 @@ class GroupBy(beam.PTransform):
         the grouping keys, formatted in a CamelCase style joined by 'And'.
 
         For example, keys ``['user', 'country']`` and elements 'Sessions' result in
-        ``GroupSessionsByUserAndCountry``.
+        ``GroupSessionsByUserAndCountry``. Underscores separate words, so ``vessel_id`` becomes
+        ``VesselId``.
 
         Args:
             keys:
@@ -87,7 +88,7 @@ class GroupBy(beam.PTransform):
         Returns:
             A formatted string label for use as the PTransform's step label.
         """
-        key_label = "And".join(s.title() for s in keys)
+        key_label = "And".join("".join(part.title() for part in s.split("_")) for s in keys)
         return f"Group{elements}By{key_label}"
 
     def expand(self, pcoll: PCollection) -> PCollection:
@@ -180,7 +181,7 @@ class ShrinkGroupBy(GroupBy):
 
     Field types are read from the record type's annotations. The record type is a plain
     NamedTuple — no base class or decorator required. The step label comes from GroupBy,
-    like ``GroupPositionsBySsvidAndVessel_Id``.
+    like ``GroupPositionsBySsvidAndVesselId``.
 
     Example:
         .. code-block:: python

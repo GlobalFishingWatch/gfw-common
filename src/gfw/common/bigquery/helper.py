@@ -8,8 +8,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Union
 from unittest import mock
 
-import sqlparse
-
 from google.api_core.exceptions import NotFound
 from google.cloud import bigquery
 from google.cloud.bigquery import WriteDisposition
@@ -514,7 +512,7 @@ class BigQueryHelper:
             job_config.write_disposition = write_disposition
 
         logger.debug("Query to execute:")
-        logger.debug(sqlparse.format(query_str, reindent=True, keyword_case="upper"))
+        logger.debug(query_str)
 
         query_job = self.client.query(query_str, job_config=job_config)
         logger.debug(f"BigQuery QueryJob id: {query_job.job_id}.")

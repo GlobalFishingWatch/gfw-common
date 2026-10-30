@@ -369,6 +369,15 @@ def test_run_query_warns_on_write_truncate_without_schema(caplog):
     assert "WRITE_TRUNCATE into dataset.output without a schema" in caplog.text
 
 
+def test_run_query_logs_the_query_as_it_is_at_debug(caplog):
+    helper = _helper_with_query_job()
+    caplog.set_level("DEBUG", logger="gfw.common.bigquery.helper")
+
+    helper.run_query("select 1\n  from t")
+
+    assert "select 1\n  from t" in caplog.text
+
+
 def test_run_query_does_not_warn_on_write_truncate_with_schema(caplog):
     helper = _helper_with_query_job()
 

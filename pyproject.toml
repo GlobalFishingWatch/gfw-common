@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # Project metadata.
 [project]
 name = "gfw-common"
-version = "0.24.1"
+version = "0.24.2"
 description = "Common place for GFW reusable Python components."
 readme = "README.md"
 license = "Apache-2.0"
@@ -36,6 +36,8 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Software Development",
   "Topic :: Software Development :: Libraries",
   "Topic :: Software Development :: Libraries :: Python Modules",
@@ -54,14 +56,17 @@ dependencies = [
 # Google BigQuery
 bq = [
   "google-cloud-bigquery~=3.0",
-  "pyarrow~=18.1",
+  # pyarrow publishes wheels for Python 3.14 since 22.0.
+  "pyarrow~=18.1; python_version < '3.14'",
+  "pyarrow~=22.0; python_version >= '3.14'",
   "sqlparse==0.5",
 ]
 
 # Apache Beam
 beam = [
   "apache-beam[gcp]~=2.0",
-  "pyarrow~=18.1",
+  "pyarrow~=18.1; python_version < '3.14'",
+  "pyarrow~=22.0; python_version >= '3.14'",
 ]
 
 # Linting and code quality tools
@@ -120,6 +125,11 @@ Documentation = "https://gfw-common.readthedocs.io/en/latest"
 Changelog = "https://github.com/GlobalFishingWatch/gfw-common/blob/main/CHANGELOG.md"
 Repository = "https://github.com/GlobalFishingWatch/gfw-common"
 Issues = "https://github.com/GlobalFishingWatch/gfw-common/issues"
+
+[tool.uv]
+# uv locks one numpy for every Python, 2.2.6 for Beam 2.70 below 3.14, which has no wheels for
+# 3.14. Only for the lock: it isn't published.
+constraint-dependencies = ["numpy>=2.3.2; python_version >= '3.14'"]
 
 [tool.ruff]
 fix = true

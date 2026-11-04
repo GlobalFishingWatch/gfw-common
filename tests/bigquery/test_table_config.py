@@ -59,6 +59,7 @@ def test_to_bigquery_params_with_description(config):
     assert result["partition_type"] == config.partition_type
     assert result["partition_field"] == config.partition_field
     assert result["clustering_fields"] == config.clustering_fields
+    assert result["require_partition_filter"] == config.require_partition_filter
     assert "description" in result
     assert "AIS" in result["description"]
     assert "country" in result["description"]
@@ -68,3 +69,14 @@ def test_to_bigquery_params_with_description(config):
 def test_to_bigquery_params_without_description(config):
     result = config.to_bigquery_params(include_description=False)
     assert "description" not in result
+
+
+def test_to_bigquery_params_require_partition_filter():
+    config = DummyTableConfig(
+        table_id="p.d.t",
+        schema_file="schema.json",
+        partition_field="timestamp",
+        require_partition_filter=True,
+    )
+
+    assert config.to_bigquery_params()["require_partition_filter"] is True

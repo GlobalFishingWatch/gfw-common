@@ -9,7 +9,7 @@ from gfw.common.beam.pipeline.hooks import (
     create_table_hook,
     create_view_hook,
     delete_events_hook,
-    update_table_metadata_hook,
+    update_table_hook,
 )
 from gfw.common.bigquery.helper import BigQueryHelper
 
@@ -19,6 +19,7 @@ def table_config():
     class DummyTableConfig:
         table_id = "project.dataset.table"
         description = None
+        require_partition_filter = False
 
         def to_bigquery_params(self):
             return {"table": self.table_id, "schema": [{"name": "id", "type": "STRING"}]}
@@ -115,39 +116,46 @@ def test_create_table_hook_creates_the_table_with_labels(
     assert client.create_table.call_args[1]["exists_ok"] is True
 
 
-def test_update_table_metadata_hook_sets_the_description_and_labels(
+def test_update_table_hook_sets_the_description_and_labels(
     table_config, pipeline, bq_client_factory, bq_clients
 ):
     table_config.description = mock.Mock(render=mock.Mock(return_value="A table."))
 
-    hook = update_table_metadata_hook(
-        table_config, labels=LABELS, bq_client_factory=bq_client_factory
-    )
+    hook = update_table_hook(table_config, labels=LABELS, bq_client_factory=bq_client_factory)
     hook(pipeline)
 
     (client,) = bq_clients
     updated_table, fields = client.update_table.call_args[0]
     assert updated_table.description == "A table."
     assert updated_table.labels == LABELS
-    assert fields == ["description", "labels"]
+    assert fields == ["description", "labels", "require_partition_filter"]
 
 
-def test_update_table_metadata_hook_without_description_only_sets_the_labels(
+def test_update_table_hook_without_description_only_sets_the_labels(
     table_config, pipeline, bq_client_factory, bq_clients
 ):
-    hook = update_table_metadata_hook(
-        table_config, labels=LABELS, bq_client_factory=bq_client_factory
-    )
+    hook = update_table_hook(table_config, labels=LABELS, bq_client_factory=bq_client_factory)
     hook(pipeline)
 
     (client,) = bq_clients
     _, fields = client.update_table.call_args[0]
-    assert fields == ["labels"]
+    assert fields == ["labels", "require_partition_filter"]
 
 
-@pytest.mark.parametrize(
-    "make_hook", [create_view_hook, create_table_hook, update_table_metadata_hook]
-)
+def test_update_table_hook_applies_require_partition_filter(
+    table_config, pipeline, bq_client_factory, bq_clients
+):
+    table_config.require_partition_filter = True
+
+    hook = update_table_hook(table_config, labels=LABELS, bq_client_factory=bq_client_factory)
+    hook(pipeline)
+
+    (client,) = bq_clients
+    updated_table, _ = client.update_table.call_args[0]
+    assert updated_table.require_partition_filter is True
+
+
+@pytest.mark.parametrize("make_hook", [create_view_hook, create_table_hook, update_table_hook])
 def test_hooks_require_labels(make_hook):
     with pytest.raises(TypeError, match="labels"):
         make_hook(object())

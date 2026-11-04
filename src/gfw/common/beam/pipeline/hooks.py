@@ -137,17 +137,18 @@ def create_table_hook(
     return _hook
 
 
-def update_table_metadata_hook(
+def update_table_hook(
     table_config: TableConfig,
     *,
     labels: dict[str, str],
     bq_client_factory: Callable[..., bigquery.Client] = bigquery.client.Client,
 ) -> Callable[[Pipeline], None]:
-    """Returns a hook function to set a BigQuery table's description and labels.
+    """Returns a hook function to set a BigQuery table's description, labels and partition filter.
 
     Meant as a post-hook for pipelines that write with ``CREATE_NEVER``: the table is
     created with its partitioning and clustering in a pre-hook (:func:`create_table_hook`),
-    and its description and labels are set here once the data is written. Passing the
+    and its description, labels and ``require_partition_filter`` are set here once the data
+    is written, so they also reach tables that already existed. Passing the
     description to the load job instead (``destinationTableProperties``) only works on new
     tables: on an existing table, BigQuery fails the job if the description differs from
     the current one.
@@ -155,7 +156,8 @@ def update_table_metadata_hook(
     Args:
         table_config:
             :class:`~gfw.common.bigquery.TableConfig` instance containing table details.
-            Its description, if any, replaces the table's.
+            Its description, if any, replaces the table's, and its ``require_partition_filter``
+            is applied to the table.
 
         labels:
             Labels to set on the table, replacing its existing ones, e.g., for cost tracking.
@@ -171,13 +173,18 @@ def update_table_metadata_hook(
 
     def _hook(p: Pipeline) -> None:
         table_id = table_config.table_id
-        logger.info(f"Updating the description and labels of {table_id}...")
+        logger.info(f"Updating the description, labels and partition filter of {table_id}...")
         description = None
         if table_config.description is not None:
             description = table_config.description.render()
 
         bq = BigQueryHelper(client_factory=bq_client_factory, project=p.cloud_options.project)
-        bq.update_table_metadata(table_id, description=description, labels=labels)
+        bq.update_table_metadata(
+            table_id,
+            description=description,
+            labels=labels,
+            require_partition_filter=table_config.require_partition_filter,
+        )
         logger.info("Done.")
 
     return _hook

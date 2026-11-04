@@ -352,6 +352,16 @@ def test_update_table_metadata_only_updates_given_fields():
     assert table.description == "A table."
 
 
+def test_update_table_metadata_sets_require_partition_filter():
+    helper = BigQueryHelper.mocked(project="test")
+
+    helper.update_table_metadata("dataset.output", require_partition_filter=True)
+
+    table, fields = helper.client.update_table.call_args[0]
+    assert table.require_partition_filter is True
+    assert fields == ["require_partition_filter"]
+
+
 def test_update_table_metadata_with_nothing_given_updates_no_fields():
     helper = BigQueryHelper.mocked(project="test")
     helper.client.project = "test"

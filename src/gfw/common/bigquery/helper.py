@@ -664,8 +664,9 @@ class BigQueryHelper:
         schema: Optional[List[Dict[str, str]]] = None,
         description: Optional[str] = None,
         labels: Optional[dict[str, str]] = None,
+        require_partition_filter: Optional[bool] = None,
     ) -> bigquery.table.Table:
-        """Updates an existing table's schema, description and/or labels.
+        """Updates an existing table's schema, description, labels and/or partition filter.
 
         Only the arguments that are given are updated.
 
@@ -684,6 +685,10 @@ class BigQueryHelper:
                 Labels to set, replacing the table's existing ones. Empty labels leave the
                 table's labels alone.
 
+            require_partition_filter:
+                Whether queries over the table must filter on the partition field.
+                ``None`` leaves the table's setting alone.
+
         Returns:
             The updated table.
         """
@@ -701,6 +706,10 @@ class BigQueryHelper:
         if labels:
             bq_table.labels = labels
             fields.append("labels")
+
+        if require_partition_filter is not None:
+            bq_table.require_partition_filter = require_partition_filter
+            fields.append("require_partition_filter")
 
         return self.client.update_table(bq_table, fields)
 

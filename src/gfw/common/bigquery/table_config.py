@@ -43,6 +43,9 @@ class TableConfig(ABC):
     clustering_fields: Optional[Tuple[str, ...]] = None
     """Optional tuple of fields for clustering."""
 
+    require_partition_filter: bool = False
+    """Whether queries over the table must filter on the partition field."""
+
     @cached_property
     def schema(self) -> list[dict[str, str]]:
         """Returns the schema of the table.
@@ -72,6 +75,7 @@ class TableConfig(ABC):
             "partition_type": self.partition_type,
             "partition_field": self.partition_field,
             "clustering_fields": self.clustering_fields,
+            "require_partition_filter": self.require_partition_filter,
         }
 
         if include_description and self.description is not None:

@@ -187,6 +187,7 @@ class BigQueryHelper:
         partition_field: Optional[str] = None,
         partition_type: str = bigquery.table.TimePartitioningType.DAY,
         clustering_fields: Optional[list[str]] = None,
+        require_partition_filter: bool = False,
         labels: Optional[dict[str, str]] = None,
         **kwargs: Any,
     ) -> bigquery.table.Table:
@@ -212,6 +213,10 @@ class BigQueryHelper:
             clustering_fields:
                 A list of fields to use for clustering the BigQuery table (optional).
 
+            require_partition_filter:
+                Whether queries over the table must filter on the partition field.
+                Only has effect when ``partition_field`` is set.
+
             labels:
                 Dictionary of labels to audit costs.
 
@@ -225,6 +230,7 @@ class BigQueryHelper:
 
         bq_table = bigquery.table.Table(table_ref, schema=schema)
         bq_table.labels = labels or {}
+        bq_table.require_partition_filter = require_partition_filter
         bq_table.description = description
 
         if partition_field is not None:

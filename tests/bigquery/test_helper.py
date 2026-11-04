@@ -52,6 +52,7 @@ def test_create_table_sets_all_fields():
         partition_field="date",
         partition_type=bigquery.TimePartitioningType.HOUR,
         clustering_fields=["id"],
+        require_partition_filter=True,
         labels={"env": "test"},
     )
 
@@ -64,6 +65,7 @@ def test_create_table_sets_all_fields():
     assert created_table.time_partitioning.field == "date"
     assert created_table.time_partitioning.type_ == bigquery.TimePartitioningType.HOUR
     assert created_table.clustering_fields == ["id"]
+    assert created_table.require_partition_filter is True
     assert isinstance(table, mock.MagicMock)
 
 

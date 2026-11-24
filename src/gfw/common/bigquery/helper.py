@@ -527,9 +527,11 @@ class BigQueryHelper:
         row_iterator = query_job.result()
 
         if destination is not None:
-            self.update_table_metadata(
-                destination, schema=schema, description=description, labels=labels
-            )
+            # A dry run doesn't write the destination, which may not exist yet.
+            if not self._dry_run:
+                self.update_table_metadata(
+                    destination, schema=schema, description=description, labels=labels
+                )
 
             if write_disposition == WriteDisposition.WRITE_TRUNCATE and schema is None:
                 logger.warning(

@@ -258,8 +258,8 @@ def test_run_query_without_destination():
     assert result.query_job is mock_query_job
 
 
-def _helper_with_query_job():
-    helper = BigQueryHelper.mocked(project="test")
+def _helper_with_query_job(**kwargs):
+    helper = BigQueryHelper.mocked(project="test", **kwargs)
     helper.client.query.return_value = mock.MagicMock()
     helper.client.project = "test"
     return helper
@@ -330,6 +330,23 @@ def test_run_query_without_metadata_or_labels_leaves_the_table_unchanged():
     helper.run_query("SELECT 1", destination="dataset.output", labels={})
 
     assert helper.client.update_table.call_args.args[1] == []
+
+
+def test_run_query_in_dry_run_does_not_update_the_destination_metadata():
+    helper = _helper_with_query_job(dry_run=True)
+
+    helper.run_query(
+        "SELECT 1",
+        destination="dataset.output",
+        write_disposition=WriteDisposition.WRITE_TRUNCATE,
+        schema=[{"name": "id", "type": "STRING"}],
+        description="A table.",
+        labels={"env": "test"},
+    )
+
+    helper.client.query.return_value.result.assert_called_once()
+    helper.client.get_table.assert_not_called()
+    helper.client.update_table.assert_not_called()
 
 
 def test_run_query_without_destination_does_not_touch_any_table():

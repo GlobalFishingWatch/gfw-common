@@ -68,6 +68,7 @@ class PipelineFactory:
             pre_hooks=self._config.pre_hooks,
             post_hooks=self._config.post_hooks,
             unparsed_args=self._config.unknown_unparsed_args,
+            wait_for_job=self._config.wait_for_job,
             labels=self._config.labels,
             **self._config.unknown_parsed_args,
             **self._kwargs,

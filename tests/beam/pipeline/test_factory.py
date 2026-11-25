@@ -52,3 +52,15 @@ def test_build_pipeline_raises_when_kwarg_collides_with_config_field():
         factory.build_pipeline()
 
     mock_dag_factory.build_dag.assert_not_called()
+
+
+@pytest.mark.parametrize("wait_for_job", [True, False])
+def test_build_pipeline_forwards_wait_for_job_from_config(wait_for_job):
+    config = PipelineConfig(labels={"team": "pipeline"}, wait_for_job=wait_for_job)
+    mock_dag_factory = Mock()
+    mock_dag_factory.build_dag.return_value = Mock(name="MockDag")
+
+    pipeline = PipelineFactory(config=config, dag_factory=mock_dag_factory).build_pipeline()
+
+    assert pipeline._wait_for_job is wait_for_job
+    assert "wait_for_job" not in pipeline._options

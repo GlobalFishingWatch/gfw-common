@@ -66,6 +66,9 @@ class PipelineConfig:
     mock_bq_clients: bool = False
     """If True, all BigQuery interactions will be mocked."""
 
+    wait_for_job: bool = True
+    """Whether to wait until the pipeline's job finishes, or return once it is submitted."""
+
     unknown_parsed_args: dict[str, Any] = field(default_factory=dict)
     """Parsed CLI or config arguments not explicitly defined in self."""
 

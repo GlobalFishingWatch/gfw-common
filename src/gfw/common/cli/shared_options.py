@@ -14,6 +14,10 @@ from .validations import valid_date, valid_datetime
 HELP_LABELS = (
     "Labels for the pipeline's jobs, to audit costs, e.g. --labels environment=dev step=x."
 )
+HELP_WAIT_FOR_JOB = (
+    "Wait until the job finishes before returning. "
+    "Pass --no-wait-for-job to return once the job is submitted."
+)
 HELP_START_DATE = "First date to process, inclusive (YYYY-MM-DD)."
 HELP_END_DATE = "Date to stop processing at, exclusive (YYYY-MM-DD)."
 HELP_START_DATETIME = (
@@ -36,6 +40,15 @@ def labels_option() -> Option:
         required=True,
         help=HELP_LABELS,
     )
+
+
+def wait_for_job_option() -> Option:
+    """Returns the ``--wait-for-job`` option, which is ``True`` by default.
+
+    It fills the ``wait_for_job`` field of :class:`~gfw.common.config.PipelineConfig`. Use it in
+    the commands that run Apache Beam: other commands have no job to wait for.
+    """
+    return Option("--wait-for-job", type=bool, default=True, help=HELP_WAIT_FOR_JOB)
 
 
 def date_range_options() -> list[Option]:

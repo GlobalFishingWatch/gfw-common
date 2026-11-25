@@ -24,12 +24,18 @@ Functions
    date_range_options
    datetime_range_options
    labels_option
+   wait_for_job_option
 """
 
 from .cli import CLI
 from .command import Command, ParametrizedCommand
 from .option import Option
-from .shared_options import date_range_options, datetime_range_options, labels_option
+from .shared_options import (
+    date_range_options,
+    datetime_range_options,
+    labels_option,
+    wait_for_job_option,
+)
 
 
 __all__ = [  # functions/classes/modules importable directly from package.
@@ -40,4 +46,5 @@ __all__ = [  # functions/classes/modules importable directly from package.
     "date_range_options",
     "datetime_range_options",
     "labels_option",
+    "wait_for_job_option",
 ]

@@ -54,34 +54,6 @@ def test_pipeline_run():
     assert_that(outputs, equal_to(["A", "B", "C"]))
 
 
-def test_pipeline_run_wait_until_finish_false(caplog):
-    caplog.set_level(logging.INFO)
-
-    dag = LinearDag(
-        sources=[DummySource()],
-        core=UppercaseTransform(),
-        sinks=[DummySink()],
-    )
-
-    pipeline = Pipeline(dag=dag, project="test-project")
-    pipeline.run(wait_until_finish=False)
-    assert any("Not waiting" in rec.message for rec in caplog.records)
-
-
-def test_pipeline_run_wait_until_finish_true(monkeypatch, caplog):
-    dag = LinearDag(
-        sources=[DummySource()],
-        core=UppercaseTransform(),
-        sinks=[DummySink()],
-    )
-
-    pipeline = Pipeline(dag=dag, project="test-project")
-
-    monkeypatch.setattr(pipeline, "is_streaming", lambda: True)
-    pipeline.run(wait_until_finish=True)
-    assert any("Waiting on a streaming pipeline" in rec.message for rec in caplog.records)
-
-
 class FakeResult:
     def __init__(self, state):
         self.state = state
@@ -109,7 +81,7 @@ def test_pipeline_run_runs_post_hooks_if_done(monkeypatch):
         monkeypatch, PipelineState.DONE, post_hooks=[called.append]
     )
 
-    result, _ = pipeline.run(wait_until_finish=True)
+    result, _ = pipeline.run()
 
     assert result.state == PipelineState.DONE
     assert called == [pipeline]
@@ -129,7 +101,7 @@ def test_pipeline_run_raises_if_not_done(monkeypatch, state):
     pipeline = make_pipeline_with_final_state(monkeypatch, state, post_hooks=[called.append])
 
     with pytest.raises(PipelineNotDoneError) as exc_info:
-        pipeline.run(wait_until_finish=True)
+        pipeline.run()
 
     assert exc_info.value.state == str(state)
     assert exc_info.value.job_id is None
@@ -156,9 +128,11 @@ def test_pipeline_error_exposes_the_result_and_the_job_id():
 
 
 def test_pipeline_run_does_not_raise_if_it_does_not_wait(monkeypatch):
-    pipeline = make_pipeline_with_final_state(monkeypatch, PipelineState.RUNNING)
+    pipeline = make_pipeline_with_final_state(
+        monkeypatch, PipelineState.RUNNING, wait_for_job=False
+    )
 
-    result, _ = pipeline.run(wait_until_finish=False)
+    result, _ = pipeline.run()
 
     assert result.state == PipelineState.RUNNING
 
@@ -269,45 +243,32 @@ def test_setup_file_given_is_kept():
 
 
 @pytest.mark.parametrize(
-    "runner,expected",
+    "wait_for_job,is_streaming,expected",
     [
-        pytest.param("DataflowRunner", True, id="dataflow_runner"),
-        pytest.param("dataflow", True, id="dataflow"),
-        pytest.param("DirectRunner", False, id="direct_runner"),
-    ],
-)
-def test_is_dataflow_runner(runner, expected):
-    pipeline = Pipeline(runner=runner, project="test-project")
-
-    assert pipeline.is_dataflow_runner is expected
-
-
-@pytest.mark.parametrize(
-    "is_dataflow,wait_for_job,expected",
-    [
-        pytest.param(True, True, True, id="dataflow_wait"),
-        pytest.param(True, False, False, id="dataflow_no_wait"),
-        pytest.param(False, True, True, id="other_runner_wait"),
-        pytest.param(False, False, True, id="other_runner_always_waits"),
+        pytest.param(True, False, True, id="batch_wait"),
+        pytest.param(False, False, False, id="batch_no_wait"),
+        pytest.param(True, True, False, id="streaming_never_waits"),
+        pytest.param(False, True, False, id="streaming_no_wait"),
     ],
 )
 def test_pipeline_run_waits_according_to_wait_for_job(
-    monkeypatch, is_dataflow, wait_for_job, expected
+    monkeypatch, caplog, wait_for_job, is_streaming, expected
 ):
+    caplog.set_level(logging.INFO)
     pipeline = make_pipeline_with_final_state(
         monkeypatch, PipelineState.DONE, wait_for_job=wait_for_job
     )
-    monkeypatch.setattr(Pipeline, "is_dataflow_runner", is_dataflow)
+    monkeypatch.setattr(Pipeline, "is_streaming", is_streaming)
 
     result, _ = pipeline.run()
 
     assert result.waited is expected
+    assert any("Not waiting" in rec.message for rec in caplog.records) is not expected
 
 
-def test_pipeline_run_wait_until_finish_argument_wins_over_wait_for_job(monkeypatch):
-    pipeline = make_pipeline_with_final_state(monkeypatch, PipelineState.DONE, wait_for_job=False)
-    monkeypatch.setattr(Pipeline, "is_dataflow_runner", True)
+def test_pipeline_waits_for_the_job_by_default(monkeypatch):
+    pipeline = make_pipeline_with_final_state(monkeypatch, PipelineState.DONE)
 
-    result, _ = pipeline.run(wait_until_finish=True)
+    result, _ = pipeline.run()
 
     assert result.waited is True

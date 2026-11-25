@@ -93,10 +93,9 @@ class Pipeline:
             Defaults to an empty tuple.
 
         wait_for_job:
-            Whether :meth:`run` waits until the job finishes when it is not told explicitly.
-            Only a batch job running on Dataflow can be left running after it is submitted, so
-            that is the only case where ``False`` has an effect: other runners always wait,
-            and streaming pipelines never do.
+            Whether :meth:`run` waits until the job finishes.
+            If ``False``, it returns once the job is submitted. Streaming pipelines never wait,
+            as their job does not finish.
             Defaults to ``True``.
 
         **options:
@@ -187,46 +186,23 @@ class Pipeline:
         """Returns whether the pipeline is running in streaming mode."""
         return self.pipeline_options.view_as(StandardOptions).streaming
 
-    @cached_property
-    def is_dataflow_runner(self) -> bool:
-        """Returns whether the pipeline runs on Dataflow, whichever way its runner is named."""
-        runner = self.pipeline_options.view_as(StandardOptions).runner
-        return str(runner).rsplit(".", 1)[-1].lower() in ("dataflow", "dataflowrunner")
-
     def apply_dag(self) -> PCollection:
         """Applies the provided DAG implementation to the self.pipeline."""
         return self._dag.apply(self.pipeline)
 
-    def run(self, wait_until_finish: Optional[bool] = None) -> tuple[PipelineResult, PCollection]:
+    def run(self) -> tuple[PipelineResult, PCollection]:
         """Executes the Apache Beam pipeline.
 
         Runs the configured DAG and returns the pipeline result along with its main output(s).
 
-        The execution can be either blocking or non-blocking depending on the pipeline type
-        and the ``wait_until_finish`` parameter:
-
-        - If ``wait_until_finish`` is ``None`` (default):
-          - batch pipelines block until completion, unless ``wait_for_job`` is ``False`` and
-            they run on Dataflow
-          - streaming pipelines return immediately after submission
-
-        - If ``wait_until_finish`` is explicitly set:
-          - ``True`` blocks until the pipeline finishes
-          - ``False`` returns immediately
-
-        Note that waiting on a streaming pipeline will block indefinitely unless the job
-        is externally cancelled.
+        The execution is blocking if ``wait_for_job`` is ``True`` (the default) and the pipeline
+        is a batch one, and returns once the job is submitted otherwise. Streaming pipelines
+        never wait, as their job does not finish unless it is externally cancelled.
 
         Post-hooks are only executed when the pipeline finishes successfully (i.e., in
         blocking mode and when the final state is ``DONE``). If the pipeline is waited for and
         ends in any other state, post-hooks are skipped and :class:`PipelineNotDoneError` is
         raised, so that an unhandled failure ends the process with a non-zero exit code.
-
-        Args:
-            wait_until_finish:
-                Whether to wait for the pipeline execution to complete.
-                If ``None``, the behavior is inferred from whether the pipeline is
-                running in streaming mode.
 
         Returns:
             A tuple containing:
@@ -244,18 +220,7 @@ class Pipeline:
         outputs = self.apply_dag()
         result = self.pipeline.run()
 
-        if wait_until_finish is None:
-            wait_until_finish = not self.is_streaming and (
-                self._wait_for_job or not self.is_dataflow_runner
-            )
-
-        if wait_until_finish and self.is_streaming:
-            logger.warning(
-                "Waiting on a streaming pipeline. "
-                "This will block indefinitely unless the job is cancelled."
-            )
-
-        if wait_until_finish:
+        if self._wait_for_job and not self.is_streaming:
             result.wait_until_finish()
 
             if result.state == PipelineState.DONE:

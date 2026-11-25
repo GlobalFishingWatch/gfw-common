@@ -15,9 +15,8 @@ HELP_LABELS = (
     "Labels for the pipeline's jobs, to audit costs, e.g. --labels environment=dev step=x."
 )
 HELP_WAIT_FOR_JOB = (
-    "Wait until the Dataflow job finishes before returning. "
-    "Pass --no-wait-for-job to return once the job is submitted. "
-    "Other runners always wait."
+    "Wait until the job finishes before returning. "
+    "Pass --no-wait-for-job to return once the job is submitted."
 )
 HELP_START_DATE = "First date to process, inclusive (YYYY-MM-DD)."
 HELP_END_DATE = "Date to stop processing at, exclusive (YYYY-MM-DD)."

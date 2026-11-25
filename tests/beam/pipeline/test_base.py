@@ -13,7 +13,7 @@ from apache_beam.options.pipeline_options import (
 from apache_beam.runners.runner import PipelineState
 from apache_beam.testing.util import assert_that, equal_to
 
-from gfw.common.beam.pipeline import LinearDag, Pipeline
+from gfw.common.beam.pipeline import LinearDag, Pipeline, PipelineFailedError
 
 
 class DummySource(PTransform):
@@ -80,6 +80,67 @@ def test_pipeline_run_wait_until_finish_true(monkeypatch, caplog):
     monkeypatch.setattr(pipeline, "is_streaming", lambda: True)
     pipeline.run(wait_until_finish=True)
     assert any("Waiting on a streaming pipeline" in rec.message for rec in caplog.records)
+
+
+class FakeResult:
+    def __init__(self, state):
+        self.state = state
+
+    def wait_until_finish(self):
+        return self.state
+
+
+def make_pipeline_with_final_state(monkeypatch, state, post_hooks=()):
+    dag = LinearDag(
+        sources=[DummySource()],
+        core=UppercaseTransform(),
+        sinks=[DummySink()],
+    )
+
+    pipeline = Pipeline(dag=dag, post_hooks=list(post_hooks), project="test-project")
+    monkeypatch.setattr(pipeline.pipeline, "run", lambda: FakeResult(state))
+    return pipeline
+
+
+def test_pipeline_run_runs_post_hooks_if_done(monkeypatch):
+    called = []
+    pipeline = make_pipeline_with_final_state(
+        monkeypatch, PipelineState.DONE, post_hooks=[called.append]
+    )
+
+    result, _ = pipeline.run(wait_until_finish=True)
+
+    assert result.state == PipelineState.DONE
+    assert called == [pipeline]
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        PipelineState.FAILED,
+        PipelineState.CANCELLED,
+        PipelineState.DRAINED,
+        PipelineState.UPDATED,
+    ],
+)
+def test_pipeline_run_raises_if_not_done(monkeypatch, state):
+    called = []
+    pipeline = make_pipeline_with_final_state(monkeypatch, state, post_hooks=[called.append])
+
+    with pytest.raises(PipelineFailedError) as exc_info:
+        pipeline.run(wait_until_finish=True)
+
+    assert exc_info.value.state == str(state)
+    assert str(state) in str(exc_info.value)
+    assert called == []
+
+
+def test_pipeline_run_does_not_raise_if_it_does_not_wait(monkeypatch):
+    pipeline = make_pipeline_with_final_state(monkeypatch, PipelineState.RUNNING)
+
+    result, _ = pipeline.run(wait_until_finish=False)
+
+    assert result.state == PipelineState.RUNNING
 
 
 def test_parsed_args():

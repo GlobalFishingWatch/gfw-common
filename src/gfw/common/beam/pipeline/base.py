@@ -23,6 +23,21 @@ from .dag.linear import LinearDag
 
 logger = logging.getLogger(__name__)
 
+
+class PipelineFailedError(Exception):
+    """Raised when a pipeline that was waited for does not finish in the ``DONE`` state.
+
+    Args:
+        state:
+            The final state of the pipeline, for example ``FAILED`` or ``CANCELLED``.
+    """
+
+    def __init__(self, state: str) -> None:
+        """Initializes the error with the final state of the pipeline."""
+        super().__init__(f"Pipeline did not finish successfully: {state}.")
+        self.state = state
+
+
 DATAFLOW_SDK_CONTAINER_IMAGE = "sdk_container_image"
 DATAFLOW_SERVICE_OPTIONS = "dataflow_service_options"
 
@@ -167,7 +182,9 @@ class Pipeline:
         is externally cancelled.
 
         Post-hooks are only executed when the pipeline finishes successfully (i.e., in
-        blocking mode and when the final state is ``DONE``).
+        blocking mode and when the final state is ``DONE``). If the pipeline is waited for and
+        ends in any other state, post-hooks are skipped and :class:`PipelineFailedError` is
+        raised, so that an unhandled failure ends the process with a non-zero exit code.
 
         Args:
             wait_until_finish:
@@ -180,6 +197,10 @@ class Pipeline:
                 - The :class:`PipelineResult` of the executed pipeline.
                 - The main output(s) produced by the DAG, which may be a
                   :class:`PCollection`, a tuple, a dict, or ``None``.
+
+        Raises:
+            PipelineFailedError:
+                If the pipeline was waited for and its final state is not ``DONE``.
         """
         for hook in self._pre_hooks:
             hook(self)
@@ -203,7 +224,8 @@ class Pipeline:
                 for hook in self._post_hooks:
                     hook(self)
             else:
-                logger.warning("Pipeline did not finish successfully; skipping post-hooks.")
+                logger.error(f"Pipeline did not finish successfully ({result.state}).")
+                raise PipelineFailedError(str(result.state))
         else:
             logger.info("Not waiting for pipeline to finish.")
 

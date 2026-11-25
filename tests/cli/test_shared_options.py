@@ -11,8 +11,14 @@ from gfw.common.cli import (
     date_range_options,
     datetime_range_options,
     labels_option,
+    wait_for_job_option,
 )
-from gfw.common.config import DatePipelineConfig, DatetimePipelineConfig, PipelineConfigError
+from gfw.common.config import (
+    DatePipelineConfig,
+    DatetimePipelineConfig,
+    PipelineConfig,
+    PipelineConfigError,
+)
 
 
 def make_cli(options, config_class):
@@ -119,3 +125,19 @@ def test_a_date_option_declared_as_a_string_still_gives_a_date():
     )
 
     assert (config.start_date, config.end_date) == (date(2024, 1, 1), date(2024, 1, 8))
+
+
+@pytest.mark.parametrize(
+    "extra_args,expected",
+    [
+        pytest.param([], True, id="default"),
+        pytest.param(["--wait-for-job"], True, id="flag"),
+        pytest.param(["--no-wait-for-job"], False, id="negated_flag"),
+    ],
+)
+def test_wait_for_job_option_fills_the_config(extra_args, expected):
+    cli = make_cli([wait_for_job_option()], PipelineConfig)
+
+    config, _ = cli.execute(["command", "--labels", "environment=dev", *extra_args])
+
+    assert config.wait_for_job is expected

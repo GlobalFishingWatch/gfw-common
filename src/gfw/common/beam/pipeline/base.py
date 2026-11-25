@@ -24,18 +24,39 @@ from .dag.linear import LinearDag
 logger = logging.getLogger(__name__)
 
 
-class PipelineFailedError(Exception):
+class PipelineNotDoneError(Exception):
     """Raised when a pipeline that was waited for does not finish in the ``DONE`` state.
 
+    It covers every other final state, like ``FAILED`` or ``CANCELLED``.
+
     Args:
+        result:
+            The :class:`~apache_beam.runners.runner.PipelineResult` of the job.
+
+    Attributes:
+        result:
+            The result of the job, for anything else the caller needs from it.
+
         state:
-            The final state of the pipeline, for example ``FAILED`` or ``CANCELLED``.
+            The final state of the job, for example ``FAILED`` or ``CANCELLED``.
+
+        job_id:
+            The id of the job, if the runner has one (Dataflow), otherwise ``None``.
     """
 
-    def __init__(self, state: str) -> None:
-        """Initializes the error with the final state of the pipeline."""
-        super().__init__(f"Pipeline did not finish successfully: {state}.")
-        self.state = state
+    def __init__(self, result: PipelineResult) -> None:
+        """Initializes the error with the result of the job."""
+        self.result = result
+        self.state = str(result.state)
+
+        get_job_id = getattr(result, "job_id", None)
+        self.job_id: Optional[str] = get_job_id() if callable(get_job_id) else None
+
+        message = f"Pipeline did not finish successfully: {self.state}"
+        if self.job_id:
+            message += f" (job {self.job_id})"
+
+        super().__init__(f"{message}.")
 
 
 DATAFLOW_SDK_CONTAINER_IMAGE = "sdk_container_image"
@@ -71,6 +92,12 @@ class Pipeline:
             A list of unparsed arguments to pass to Beam options.
             Defaults to an empty tuple.
 
+        wait_for_job:
+            Whether :meth:`run` waits until the job finishes when it is not told explicitly.
+            Only a batch job running on Dataflow can be left running after it is submitted, so
+            that is the only case where ``False`` has an effect: other runners always wait,
+            and streaming pipelines never do.
+            Defaults to ``True``.
 
         **options:
             Additional options to pass to the Beam pipeline.
@@ -92,6 +119,7 @@ class Pipeline:
         pre_hooks: Sequence[Callable[..., None]] = (),
         post_hooks: Sequence[Callable[..., None]] = (),
         unparsed_args: Tuple[str, ...] = (),
+        wait_for_job: bool = True,
         **options: Any,
     ) -> None:
         """Initializes the BeamPipeline object with sources, core, sinks, and options."""
@@ -99,6 +127,7 @@ class Pipeline:
         self._pre_hooks = pre_hooks
         self._post_hooks = post_hooks
         self._unparsed_args = unparsed_args
+        self._wait_for_job = wait_for_job
         self._options = options
 
     @cached_property
@@ -158,6 +187,12 @@ class Pipeline:
         """Returns whether the pipeline is running in streaming mode."""
         return self.pipeline_options.view_as(StandardOptions).streaming
 
+    @cached_property
+    def is_dataflow_runner(self) -> bool:
+        """Returns whether the pipeline runs on Dataflow, whichever way its runner is named."""
+        runner = self.pipeline_options.view_as(StandardOptions).runner
+        return str(runner).rsplit(".", 1)[-1].lower() in ("dataflow", "dataflowrunner")
+
     def apply_dag(self) -> PCollection:
         """Applies the provided DAG implementation to the self.pipeline."""
         return self._dag.apply(self.pipeline)
@@ -171,7 +206,8 @@ class Pipeline:
         and the ``wait_until_finish`` parameter:
 
         - If ``wait_until_finish`` is ``None`` (default):
-          - batch pipelines block until completion
+          - batch pipelines block until completion, unless ``wait_for_job`` is ``False`` and
+            they run on Dataflow
           - streaming pipelines return immediately after submission
 
         - If ``wait_until_finish`` is explicitly set:
@@ -183,7 +219,7 @@ class Pipeline:
 
         Post-hooks are only executed when the pipeline finishes successfully (i.e., in
         blocking mode and when the final state is ``DONE``). If the pipeline is waited for and
-        ends in any other state, post-hooks are skipped and :class:`PipelineFailedError` is
+        ends in any other state, post-hooks are skipped and :class:`PipelineNotDoneError` is
         raised, so that an unhandled failure ends the process with a non-zero exit code.
 
         Args:
@@ -199,7 +235,7 @@ class Pipeline:
                   :class:`PCollection`, a tuple, a dict, or ``None``.
 
         Raises:
-            PipelineFailedError:
+            PipelineNotDoneError:
                 If the pipeline was waited for and its final state is not ``DONE``.
         """
         for hook in self._pre_hooks:
@@ -209,7 +245,9 @@ class Pipeline:
         result = self.pipeline.run()
 
         if wait_until_finish is None:
-            wait_until_finish = not self.is_streaming
+            wait_until_finish = not self.is_streaming and (
+                self._wait_for_job or not self.is_dataflow_runner
+            )
 
         if wait_until_finish and self.is_streaming:
             logger.warning(
@@ -224,8 +262,7 @@ class Pipeline:
                 for hook in self._post_hooks:
                     hook(self)
             else:
-                logger.error(f"Pipeline did not finish successfully ({result.state}).")
-                raise PipelineFailedError(str(result.state))
+                raise PipelineNotDoneError(result)
         else:
             logger.info("Not waiting for pipeline to finish.")
 

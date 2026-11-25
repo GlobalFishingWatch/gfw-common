@@ -13,7 +13,7 @@ from apache_beam.options.pipeline_options import (
 from apache_beam.runners.runner import PipelineState
 from apache_beam.testing.util import assert_that, equal_to
 
-from gfw.common.beam.pipeline import LinearDag, Pipeline, PipelineFailedError
+from gfw.common.beam.pipeline import LinearDag, Pipeline, PipelineNotDoneError
 
 
 class DummySource(PTransform):
@@ -85,19 +85,20 @@ def test_pipeline_run_wait_until_finish_true(monkeypatch, caplog):
 class FakeResult:
     def __init__(self, state):
         self.state = state
+        self.waited = False
 
     def wait_until_finish(self):
-        return self.state
+        self.waited = True
 
 
-def make_pipeline_with_final_state(monkeypatch, state, post_hooks=()):
+def make_pipeline_with_final_state(monkeypatch, state, post_hooks=(), **kwargs):
     dag = LinearDag(
         sources=[DummySource()],
         core=UppercaseTransform(),
         sinks=[DummySink()],
     )
 
-    pipeline = Pipeline(dag=dag, post_hooks=list(post_hooks), project="test-project")
+    pipeline = Pipeline(dag=dag, post_hooks=list(post_hooks), project="test-project", **kwargs)
     monkeypatch.setattr(pipeline.pipeline, "run", lambda: FakeResult(state))
     return pipeline
 
@@ -127,12 +128,31 @@ def test_pipeline_run_raises_if_not_done(monkeypatch, state):
     called = []
     pipeline = make_pipeline_with_final_state(monkeypatch, state, post_hooks=[called.append])
 
-    with pytest.raises(PipelineFailedError) as exc_info:
+    with pytest.raises(PipelineNotDoneError) as exc_info:
         pipeline.run(wait_until_finish=True)
 
     assert exc_info.value.state == str(state)
+    assert exc_info.value.job_id is None
     assert str(state) in str(exc_info.value)
     assert called == []
+
+
+def test_pipeline_error_exposes_the_result_and_the_job_id():
+    class DataflowLikeResult(FakeResult):
+        def job_id(self):
+            return "2026-11-25_00_00_00-123"
+
+    result = DataflowLikeResult(PipelineState.CANCELLED)
+
+    error = PipelineNotDoneError(result)
+
+    assert error.result is result
+    assert error.state == str(PipelineState.CANCELLED)
+    assert error.job_id == "2026-11-25_00_00_00-123"
+    assert str(error) == (
+        f"Pipeline did not finish successfully: {PipelineState.CANCELLED} "
+        "(job 2026-11-25_00_00_00-123)."
+    )
 
 
 def test_pipeline_run_does_not_raise_if_it_does_not_wait(monkeypatch):
@@ -246,3 +266,48 @@ def test_setup_file_is_not_set_on_local_runners(runner):
 def test_setup_file_given_is_kept():
     options = _pipeline_options(runner="DataflowRunner", setup_file="./other/setup.py")
     assert options["setup_file"] == "./other/setup.py"
+
+
+@pytest.mark.parametrize(
+    "runner,expected",
+    [
+        pytest.param("DataflowRunner", True, id="dataflow_runner"),
+        pytest.param("dataflow", True, id="dataflow"),
+        pytest.param("DirectRunner", False, id="direct_runner"),
+    ],
+)
+def test_is_dataflow_runner(runner, expected):
+    pipeline = Pipeline(runner=runner, project="test-project")
+
+    assert pipeline.is_dataflow_runner is expected
+
+
+@pytest.mark.parametrize(
+    "is_dataflow,wait_for_job,expected",
+    [
+        pytest.param(True, True, True, id="dataflow_wait"),
+        pytest.param(True, False, False, id="dataflow_no_wait"),
+        pytest.param(False, True, True, id="other_runner_wait"),
+        pytest.param(False, False, True, id="other_runner_always_waits"),
+    ],
+)
+def test_pipeline_run_waits_according_to_wait_for_job(
+    monkeypatch, is_dataflow, wait_for_job, expected
+):
+    pipeline = make_pipeline_with_final_state(
+        monkeypatch, PipelineState.DONE, wait_for_job=wait_for_job
+    )
+    monkeypatch.setattr(Pipeline, "is_dataflow_runner", is_dataflow)
+
+    result, _ = pipeline.run()
+
+    assert result.waited is expected
+
+
+def test_pipeline_run_wait_until_finish_argument_wins_over_wait_for_job(monkeypatch):
+    pipeline = make_pipeline_with_final_state(monkeypatch, PipelineState.DONE, wait_for_job=False)
+    monkeypatch.setattr(Pipeline, "is_dataflow_runner", True)
+
+    result, _ = pipeline.run(wait_until_finish=True)
+
+    assert result.waited is True

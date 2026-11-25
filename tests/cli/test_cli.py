@@ -236,6 +236,47 @@ def test_dont_allow_unknown_fails(main_command, subcommand):
         test_cli.execute(args=["subcommand", "--number-2", "3", *unknown])
 
 
+def test_command_overrides_allow_unknown_to_reject(main_command, subcommand):
+    strict = subcommand.copy_with(name="strict", allow_unknown=False)
+    test_cli = CLI(**main_command, subcommands=[subcommand, strict], allow_unknown=True)
+
+    known = ["--number-2", "3", "--project", "my-project"]
+    unknown = ["--other", "4"]
+
+    _, config = test_cli.execute(args=[subcommand.name, *known, *unknown])
+    assert config[CLI._KEY_UNKNOWN_UNPARSED_ARGS] == unknown
+
+    with pytest.raises(SystemExit):
+        test_cli.execute(args=["strict", *known, *unknown])
+
+
+def test_command_overrides_allow_unknown_to_accept(main_command, subcommand):
+    lenient = subcommand.copy_with(name="lenient", allow_unknown=True)
+    test_cli = CLI(**main_command, subcommands=[subcommand, lenient])
+
+    known = ["--number-2", "3", "--project", "my-project"]
+    unknown = ["--other", "4"]
+
+    _, config = test_cli.execute(args=["lenient", *known, *unknown])
+    assert config[CLI._KEY_UNKNOWN_UNPARSED_ARGS] == unknown
+
+    with pytest.raises(SystemExit):
+        test_cli.execute(args=[subcommand.name, *known, *unknown])
+
+
+def test_command_allow_unknown_false_rejects_unknown_config_file_keys(
+    tmp_path, main_command, subcommand
+):
+    strict = subcommand.copy_with(allow_unknown=False)
+    path = tmp_path.joinpath("config.yaml")
+    yaml_save(path, data={"other2": 5})
+
+    test_cli = CLI(**main_command, subcommands=[strict], allow_unknown=True)
+    args = [strict.name, "--number-2", "3", "--project", "p", "--config-file", f"{path}"]
+    with pytest.raises(ValueError, match="not recognized"):
+        test_cli.execute(args=args)
+
+
 @pytest.mark.parametrize(
     "use_underscore,sep",
     [

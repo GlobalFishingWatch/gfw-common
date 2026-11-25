@@ -76,7 +76,10 @@ class CLI:
             LoggerConfig instance to control logging behavior.
 
         allow_unknown:
-            If True, unknown CLI arguments are allowed.
+            Default for commands that do not set :attr:`Command.allow_unknown` themselves.
+            If True, unknown CLI arguments and config file keys are allowed. Each command can
+            override it, so a CLI can mix commands that pass unknown arguments on (e.g. to
+            Apache Beam) with commands that must reject them.
 
         use_underscore:
             If True, converts hyphens in the option name to underscores (e.g., ``--log_file``).
@@ -237,13 +240,14 @@ class CLI:
                 - Configuration dictionary used for execution.
         """
         args = args or ["--help"]
-        unknown_unparsed_args: list[str] = []
-        if self._allow_unknown:
-            ns, unknown_unparsed_args = self.main_parser.parse_known_args(args=args)
-        else:
-            ns = self.main_parser.parse_args(args=args)
-
+        ns, unknown_unparsed_args = self.main_parser.parse_known_args(args=args)
         cli_args = vars(ns)
+
+        # Resolved invoked command.
+        command = self._get_invoked_command(cli_args)
+        allow_unknown = self._resolve_allow_unknown(command)
+        if unknown_unparsed_args and not allow_unknown:
+            self.main_parser.error(f"unrecognized arguments: {' '.join(unknown_unparsed_args)}")
 
         # Delete CLI configuration from parsed namespace. `_add_option_to_parser` forces every
         # option's argparse-level default to None (see its own comment) so that, for a regular
@@ -267,13 +271,13 @@ class CLI:
             logger.info(f"Loading config file from {config_file}.")
             config_file_args = yaml_load(config_file, parse_timestamps=False)
 
-        unknown_parsed_args = self._extract_unknown_config_file_args(config_file_args, cli_args)
+        unknown_parsed_args = self._extract_unknown_config_file_args(
+            config_file_args, cli_args, allow_unknown
+        )
 
         for u in unknown_parsed_args:
             del config_file_args[u]
 
-        # Resolved invoked command.
-        command = self._get_invoked_command(cli_args)
         self._apply_option_types(command, config_file_args)
 
         # Resolve configuration based on cli_args, config file and defaults.
@@ -287,7 +291,7 @@ class CLI:
 
         config = DeepChainMap(cli_args, config_file_args, defaults_args).to_dict()
 
-        if self._allow_unknown:
+        if allow_unknown:
             config[self._KEY_UNKNOWN_UNPARSED_ARGS] = unknown_unparsed_args
             config[self._KEY_UNKNOWN_PARSED_ARGS] = unknown_parsed_args
 
@@ -392,12 +396,18 @@ class CLI:
                     f"Invalid value for '{dest}' in the config file: {e}"
                 ) from e
 
+    def _resolve_allow_unknown(self, command: Command) -> bool:
+        if command.allow_unknown is None:
+            return self._allow_unknown
+
+        return command.allow_unknown
+
     def _extract_unknown_config_file_args(
-        self, config_file: dict[str, Any], args: dict[str, Any]
+        self, config_file: dict[str, Any], args: dict[str, Any], allow_unknown: bool
     ) -> dict[str, Any]:
         known_keys = set(args.keys())
         unknown_config_args = {k: v for k, v in config_file.items() if k not in known_keys}
-        if unknown_config_args and not self._allow_unknown:
+        if unknown_config_args and not allow_unknown:
             raise ValueError(
                 f"Invalid configuration file: parameters {list(unknown_config_args.keys())}"
                 " are not recognized by any defined argument."

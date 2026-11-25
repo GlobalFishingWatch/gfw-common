@@ -51,6 +51,12 @@ class Command(ABC):
         options:
             A list of `Option` instances representing CLI arguments specific to this subcommand.
 
+        allow_unknown:
+            Whether the command accepts arguments that it does not declare, on the command line
+            and in the config file. Commands that pass them on (e.g. to Apache Beam) override
+            it to ``True``. Defaults to ``None``, which inherits the ``allow_unknown`` setting
+            of the :class:`~gfw.common.cli.CLI`.
+
     Methods:
         run:
             A callable to execute when the subcommand is invoked.
@@ -80,6 +86,11 @@ class Command(ABC):
         """Executes the command logic."""
 
     @property
+    def allow_unknown(self) -> Optional[bool]:
+        """Whether unknown arguments are accepted. ``None`` inherits the CLI's setting."""
+        return None
+
+    @property
     def header(self) -> str:
         """Returns a descriptive title for the command's options group."""
         return f"options defined by '{self.name}' command"
@@ -99,6 +110,7 @@ class Command(ABC):
             description=kwargs.get("description", self.description),
             options=kwargs.get("options", self.options),
             run=kwargs.get("run", self.run),
+            allow_unknown=kwargs.get("allow_unknown", self.allow_unknown),
         )
 
 
@@ -123,6 +135,10 @@ class ParametrizedCommand(Command):
         run:
             :class:`Callable` executed when the command is invoked.
             It should accept keyword arguments matching the options.
+
+        allow_unknown:
+            Whether the command accepts arguments that it does not declare.
+            If ``None`` (default), inherits the setting of the CLI.
     """
 
     def __init__(
@@ -131,6 +147,7 @@ class ParametrizedCommand(Command):
         description: str = "",
         options: Optional[List[Option]] = None,
         run: Callable[..., Any] = lambda config: SimpleNamespace,
+        allow_unknown: Optional[bool] = None,
         **y: None,
     ) -> None:
         """Initializes ParametrizedCommand class."""
@@ -138,6 +155,7 @@ class ParametrizedCommand(Command):
         self._description = description
         self._options = options or []
         self._run = run
+        self._allow_unknown = allow_unknown
 
     @property
     def name(self) -> str:
@@ -153,6 +171,11 @@ class ParametrizedCommand(Command):
     def options(self) -> List[Option]:
         """The command's options."""
         return self._options
+
+    @property
+    def allow_unknown(self) -> Optional[bool]:
+        """Whether unknown arguments are accepted. ``None`` inherits the CLI's setting."""
+        return self._allow_unknown
 
     def run(self, config: SimpleNamespace, **kwargs: Any) -> Any:
         """Execute the command logic."""

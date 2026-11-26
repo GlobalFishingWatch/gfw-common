@@ -14,7 +14,6 @@ Classes
 
    Pipeline
    PipelineFactory
-   PipelineNotDoneError
    Dag
    DagFactory
    LinearDag
@@ -33,7 +32,7 @@ Modules
 ----
 """
 
-from .base import Pipeline, PipelineNotDoneError
+from .base import Pipeline
 from .dag import Dag, DagFactory, LinearDag, LinearDagFactory
 from .factory import PipelineFactory
 
@@ -45,5 +44,4 @@ __all__ = [
     "LinearDagFactory",
     "Pipeline",
     "PipelineFactory",
-    "PipelineNotDoneError",
 ]

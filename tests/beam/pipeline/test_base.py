@@ -13,7 +13,7 @@ from apache_beam.options.pipeline_options import (
 from apache_beam.runners.runner import PipelineState
 from apache_beam.testing.util import assert_that, equal_to
 
-from gfw.common.beam.pipeline import LinearDag, Pipeline, PipelineNotDoneError
+from gfw.common.beam.pipeline import LinearDag, Pipeline
 
 
 class DummySource(PTransform):
@@ -87,44 +87,24 @@ def test_pipeline_run_runs_post_hooks_if_done(monkeypatch):
     assert called == [pipeline]
 
 
-@pytest.mark.parametrize(
-    "state",
-    [
-        PipelineState.FAILED,
-        PipelineState.CANCELLED,
-        PipelineState.DRAINED,
-        PipelineState.UPDATED,
-    ],
-)
-def test_pipeline_run_raises_if_not_done(monkeypatch, state):
-    called = []
-    pipeline = make_pipeline_with_final_state(monkeypatch, state, post_hooks=[called.append])
+def test_pipeline_run_propagates_runner_exception_and_skips_post_hooks(monkeypatch):
+    class RunnerError(Exception):
+        pass
 
-    with pytest.raises(PipelineNotDoneError) as exc_info:
+    class FailingResult(FakeResult):
+        def wait_until_finish(self):
+            raise RunnerError("job failed")
+
+    called = []
+    pipeline = make_pipeline_with_final_state(
+        monkeypatch, PipelineState.FAILED, post_hooks=[called.append]
+    )
+    monkeypatch.setattr(pipeline.pipeline, "run", lambda: FailingResult(PipelineState.FAILED))
+
+    with pytest.raises(RunnerError, match="job failed"):
         pipeline.run()
 
-    assert exc_info.value.state == str(state)
-    assert exc_info.value.job_id is None
-    assert str(state) in str(exc_info.value)
     assert called == []
-
-
-def test_pipeline_error_exposes_the_result_and_the_job_id():
-    class DataflowLikeResult(FakeResult):
-        def job_id(self):
-            return "2026-11-25_00_00_00-123"
-
-    result = DataflowLikeResult(PipelineState.CANCELLED)
-
-    error = PipelineNotDoneError(result)
-
-    assert error.result is result
-    assert error.state == str(PipelineState.CANCELLED)
-    assert error.job_id == "2026-11-25_00_00_00-123"
-    assert str(error) == (
-        f"Pipeline did not finish successfully: {PipelineState.CANCELLED} "
-        "(job 2026-11-25_00_00_00-123)."
-    )
 
 
 def test_pipeline_run_does_not_raise_if_it_does_not_wait(monkeypatch):

@@ -15,48 +15,13 @@ from apache_beam.options.pipeline_options import (
     StandardOptions,
 )
 from apache_beam.pvalue import PCollection
-from apache_beam.runners.runner import PipelineResult, PipelineState
+from apache_beam.runners.runner import PipelineResult
 
 from .dag.base import Dag
 from .dag.linear import LinearDag
 
 
 logger = logging.getLogger(__name__)
-
-
-class PipelineNotDoneError(Exception):
-    """Raised when a pipeline that was waited for does not finish in the ``DONE`` state.
-
-    It covers every other final state, like ``FAILED`` or ``CANCELLED``.
-
-    Args:
-        result:
-            The :class:`~apache_beam.runners.runner.PipelineResult` of the job.
-
-    Attributes:
-        result:
-            The result of the job, for anything else the caller needs from it.
-
-        state:
-            The final state of the job, for example ``FAILED`` or ``CANCELLED``.
-
-        job_id:
-            The id of the job, if the runner has one (Dataflow), otherwise ``None``.
-    """
-
-    def __init__(self, result: PipelineResult) -> None:
-        """Initializes the error with the result of the job."""
-        self.result = result
-        self.state = str(result.state)
-
-        get_job_id = getattr(result, "job_id", None)
-        self.job_id: Optional[str] = get_job_id() if callable(get_job_id) else None
-
-        message = f"Pipeline did not finish successfully: {self.state}"
-        if self.job_id:
-            message += f" (job {self.job_id})"
-
-        super().__init__(f"{message}.")
 
 
 DATAFLOW_SDK_CONTAINER_IMAGE = "sdk_container_image"
@@ -200,9 +165,11 @@ class Pipeline:
         never wait, as their job does not finish unless it is externally cancelled.
 
         Post-hooks are only executed when the pipeline finishes successfully (i.e., in
-        blocking mode and when the final state is ``DONE``). If the pipeline is waited for and
-        ends in any other state, post-hooks are skipped and :class:`PipelineNotDoneError` is
-        raised, so that an unhandled failure ends the process with a non-zero exit code.
+        blocking mode and when the job ends in the ``DONE`` state). If the job ends in any other
+        final state (``FAILED``, ``CANCELLED``...), the runner raises its own exception (e.g.
+        ``DataflowRuntimeException``) while waiting. It is not caught here: post-hooks are
+        skipped and the exception propagates, so that an unhandled failure ends the process with
+        a non-zero exit code.
 
         Returns:
             A tuple containing:
@@ -211,8 +178,9 @@ class Pipeline:
                   :class:`PCollection`, a tuple, a dict, or ``None``.
 
         Raises:
-            PipelineNotDoneError:
-                If the pipeline was waited for and its final state is not ``DONE``.
+            Exception:
+                The runner's own exception, if the pipeline was waited for and its job did not
+                end in the ``DONE`` state.
         """
         for hook in self._pre_hooks:
             hook(self)
@@ -223,11 +191,8 @@ class Pipeline:
         if self._wait_for_job and not self.is_streaming:
             result.wait_until_finish()
 
-            if result.state == PipelineState.DONE:
-                for hook in self._post_hooks:
-                    hook(self)
-            else:
-                raise PipelineNotDoneError(result)
+            for hook in self._post_hooks:
+                hook(self)
         else:
             logger.info("Not waiting for pipeline to finish.")
 

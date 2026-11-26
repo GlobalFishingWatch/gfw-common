@@ -189,7 +189,11 @@ class Pipeline:
         result = self.pipeline.run()
 
         if self._wait_for_job and not self.is_streaming:
-            result.wait_until_finish()
+            try:
+                result.wait_until_finish()
+            except Exception:
+                logger.error("Pipeline did not finish successfully. Skipping post-hooks.")
+                raise
 
             for hook in self._post_hooks:
                 hook(self)

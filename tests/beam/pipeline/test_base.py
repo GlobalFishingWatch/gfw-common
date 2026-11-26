@@ -87,7 +87,7 @@ def test_pipeline_run_runs_post_hooks_if_done(monkeypatch):
     assert called == [pipeline]
 
 
-def test_pipeline_run_propagates_runner_exception_and_skips_post_hooks(monkeypatch):
+def test_pipeline_run_propagates_runner_exception_and_skips_post_hooks(monkeypatch, caplog):
     class RunnerError(Exception):
         pass
 
@@ -105,6 +105,7 @@ def test_pipeline_run_propagates_runner_exception_and_skips_post_hooks(monkeypat
         pipeline.run()
 
     assert called == []
+    assert any("Skipping post-hooks" in rec.message for rec in caplog.records)
 
 
 def test_pipeline_run_does_not_raise_if_it_does_not_wait(monkeypatch):
